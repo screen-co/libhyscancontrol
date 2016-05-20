@@ -18,6 +18,8 @@ if (${CMAKE_C_COMPILER_ID} STREQUAL "GNU" OR ${CMAKE_C_COMPILER_ID} STREQUAL "Cl
 elseif (${CMAKE_C_COMPILER_ID} STREQUAL "MSVC")
   set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /wd4244 /wd4305 $ENV{CFLAGS}")
   set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /wd4244 /wd4305 $ENV{CFLAGS}")
+else ()
+  message (FATAL_ERROR "Unsupported compiler ${CMAKE_C_COMPILER_ID}")
 endif ()
 
 #
@@ -92,3 +94,4 @@ include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/hyscancontrol")
 # Target.
 add_definitions (-DG_LOG_DOMAIN="HyScanControl")
 add_subdirectory ("hyscancontrol")
+add_subdirectory ("tests")
