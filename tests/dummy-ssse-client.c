@@ -27,10 +27,14 @@ main (int    argc,
   hyscan_sonar_lock (sonar, NULL, 0);
 
   ports = hyscan_sensor_control_list_ports (sensor);
+  if (ports == NULL)
+    g_error ("empty port list");
+
   for (i = 0; ports[i] != NULL; i++)
     {
       g_message ("port%d: %s", ports[i]->id, ports[i]->name);
-      hyscan_sensor_control_set_enable (sensor, ports[i]->id, TRUE);
+      if (!hyscan_sensor_control_set_enable (sensor, ports[i]->id, TRUE))
+        g_error ("can't enable port %s", ports[i]->name);
     }
 
   hyscan_db_project_create (db, "test", NULL);

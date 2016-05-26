@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <hyscan-sensor-control.h>
+#include <hyscan-data-schema-builder.h>
 #include <hyscan-data-box.h>
 
 enum
@@ -42,6 +43,15 @@ struct _HyScanSonarDummySSSEPrivate
 static void            hyscan_sonar_dummy_ssse_interface_init       (HyScanSonarInterface          *iface);
 static void            hyscan_sonar_dummy_ssse_object_finalize      (GObject                       *object);
 
+static HyScanDataSchema*
+                       hyscan_sonar_dummy_ssse_build_schema         (void);
+
+static void            hyscan_sonar_dummy_ssse_define_port          (HyScanDataSchemaBuilder       *builder,
+                                                                     const gchar                   *name,
+                                                                     HyScanSensorPortType           type,
+                                                                     HyScanSensorProtocolType       protocol);
+
+
 static void            hyscan_sonar_dummy_ssse_free_port            (gpointer                       data);
 
 static void            hyscan_sonar_dummy_ssse_set_sensor_enable    (HyScanSonarDummySSSEPrivate   *priv,
@@ -54,6 +64,8 @@ static void            hyscan_sonar_dummy_ssse_port_send_data       (gpointer   
 static gpointer        hyscan_sonar_dummy_ssse_worker               (gpointer                       user_data);
 
 static guint           hyscan_sonar_dummy_ssse_signals[SIGNAL_LAST] = { 0 };
+
+static gint64          id_counter = 1;
 
 G_DEFINE_TYPE_WITH_CODE (HyScanSonarDummySSSE, hyscan_sonar_dummy_ssse, G_TYPE_OBJECT,
                          G_ADD_PRIVATE (HyScanSonarDummySSSE)
@@ -98,12 +110,8 @@ hyscan_sonar_dummy_ssse_init (HyScanSonarDummySSSE *dummy_sonar)
   priv = dummy_sonar->priv;
 
   /* Схема "гидролокатора". */
-  priv->params =
-    hyscan_data_box_new_from_resource_all ("/org/hyscan/schemas/hyscan-sonar-dummy-ssse-schema.xml",
-                                           "root",
-                                           "/org/hyscan/schemas/hyscan-sonar-dummy-ssse-overrides.ini");
-
-  schema = hyscan_data_box_get_schema (priv->params);
+  schema = hyscan_sonar_dummy_ssse_build_schema ();
+  priv->params = hyscan_data_box_new_from_schema (schema);
   nodes = hyscan_data_schema_list_nodes (schema);
 
   /* Список портов. */
@@ -126,19 +134,8 @@ hyscan_sonar_dummy_ssse_init (HyScanSonarDummySSSE *dummy_sonar)
 
           gchar *key_name;
           gboolean status;
-
-          gboolean exist;
           gint64 id;
 
-          /* Проверяем наличие порта. */
-          key_name = g_strdup_printf ("%s/exist", sensors->nodes[i]->path);
-          status = hyscan_data_box_get_boolean (priv->params, key_name, &exist);
-          g_free (key_name);
-
-          if (!status || !exist)
-            continue;
-
-          /* Идентификатор порта. */
           key_name = g_strdup_printf ("%s/id", sensors->nodes[i]->path);
           status = hyscan_data_box_get_integer (priv->params, key_name, &id);
           g_free (key_name);
@@ -158,6 +155,7 @@ hyscan_sonar_dummy_ssse_init (HyScanSonarDummySSSE *dummy_sonar)
     }
 
   hyscan_data_schema_free_nodes (nodes);
+  g_object_unref (schema);
 
   g_signal_connect_swapped (priv->params, "changed",
                             G_CALLBACK (hyscan_sonar_dummy_ssse_set_sensor_enable), priv);
@@ -185,6 +183,222 @@ hyscan_sonar_dummy_ssse_object_finalize (GObject *object)
   g_object_unref (priv->params);
 
   G_OBJECT_CLASS (hyscan_sonar_dummy_ssse_parent_class)->finalize (object);
+}
+
+/* Функция создаёт схему гидролокатора. */
+static HyScanDataSchema *
+hyscan_sonar_dummy_ssse_build_schema (void)
+{
+  gchar *data;
+  HyScanDataSchema *schema;
+  HyScanDataSchemaBuilder *builder;
+
+  builder = hyscan_data_schema_builder_new ("root");
+
+  /* Версия схемы данных гидролокатора. */
+  hyscan_data_schema_builder_key_integer_create (builder, "/sonar-version", "Sonar version", NULL, TRUE,
+                                                          20160400, 20160400, 20160400, 0);
+
+  /* Состояние порта. */
+  hyscan_data_schema_builder_enum_create (builder, "port-status");
+  hyscan_data_schema_builder_enum_value_create (builder, "port-status",
+                                                         HYSCAN_SENSOR_PORT_STATUS_DISABLED,
+                                                         "Disabled", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-status",
+                                                         HYSCAN_SENSOR_PORT_STATUS_OK,
+                                                         "Ok", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-status",
+                                                         HYSCAN_SENSOR_PORT_STATUS_WARNING,
+                                                         "Warning", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-status",
+                                                         HYSCAN_SENSOR_PORT_STATUS_ERROR,
+                                                         "Error", NULL);
+
+  /* Типы портов. */
+  hyscan_data_schema_builder_enum_create (builder, "port-type");
+  hyscan_data_schema_builder_enum_value_create (builder, "port-type",
+                                                         HYSCAN_SENSOR_PORT_VIRTUAL,
+                                                         "Virtual", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-type",
+                                                         HYSCAN_SENSOR_PORT_IP,
+                                                         "IP", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-type",
+                                                         HYSCAN_SENSOR_PORT_RS232,
+                                                         "RS232", NULL);
+
+  /* Формат данных порта. */
+  hyscan_data_schema_builder_enum_create (builder, "port-protocol");
+  hyscan_data_schema_builder_enum_value_create (builder, "port-protocol",
+                                                         HYSCAN_SENSOR_PROTOCOL_SAS,
+                                                         "SAS", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "port-protocol",
+                                                         HYSCAN_SENSOR_PROTOCOL_NMEA_0183,
+                                                         "NMEA-0183", NULL);
+
+  /* IP адреса доступные для портов. */
+  hyscan_data_schema_builder_enum_create (builder, "ip-address");
+  hyscan_data_schema_builder_enum_value_create (builder, "ip-address",
+                                                         0,
+                                                         "off", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "ip-address",
+                                                         1,
+                                                         "localhost", NULL);
+
+  /* Физические RS232 порты. */
+  hyscan_data_schema_builder_enum_create (builder, "rs232-port");
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-port",
+                                                         0,
+                                                         "off", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-port",
+                                                         1,
+                                                         "TTYS0", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-port",
+                                                         2,
+                                                         "TTYS1", NULL);
+
+  /* Скорости передачи через RS232 порт. */
+  hyscan_data_schema_builder_enum_create (builder, "rs232-speed");
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         0,
+                                                         "off", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         4800,
+                                                         "4800", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         9600,
+                                                         "9600", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         19200,
+                                                         "19200", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         38400,
+                                                         "38400", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         57600,
+                                                         "57600", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "rs232-speed",
+                                                         115200,
+                                                         "115200", NULL);
+
+  /* Порты. */
+  hyscan_sonar_dummy_ssse_define_port (builder, "virtual.1",
+                                                HYSCAN_SENSOR_PORT_VIRTUAL,
+                                                HYSCAN_SENSOR_PROTOCOL_SAS);
+  hyscan_sonar_dummy_ssse_define_port (builder, "virtual.2",
+                                                HYSCAN_SENSOR_PORT_VIRTUAL,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "virtual.3",
+                                                HYSCAN_SENSOR_PORT_VIRTUAL,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "virtual.4",
+                                                HYSCAN_SENSOR_PORT_VIRTUAL,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+
+  hyscan_sonar_dummy_ssse_define_port (builder, "ip.1",
+                                                HYSCAN_SENSOR_PORT_IP,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "ip.2",
+                                                HYSCAN_SENSOR_PORT_IP,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "ip.3",
+                                                HYSCAN_SENSOR_PORT_IP,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "ip.4",
+                                                HYSCAN_SENSOR_PORT_IP,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+
+  hyscan_sonar_dummy_ssse_define_port (builder, "rs232.1",
+                                                HYSCAN_SENSOR_PORT_RS232,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "rs232.2",
+                                                HYSCAN_SENSOR_PORT_RS232,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "rs232.3",
+                                                HYSCAN_SENSOR_PORT_RS232,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+  hyscan_sonar_dummy_ssse_define_port (builder, "rs232.4",
+                                                HYSCAN_SENSOR_PORT_RS232,
+                                                HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+
+  data = hyscan_data_schema_builder_get_data (builder);
+  schema = hyscan_data_schema_new_from_string (data, "root");
+  g_free (data);
+
+  g_object_unref (builder);
+
+  return schema;
+}
+
+/* Функция добавляет определение порта. */
+static void
+hyscan_sonar_dummy_ssse_define_port (HyScanDataSchemaBuilder *builder,
+                                     const gchar             *name,
+                                     HyScanSensorPortType     type,
+                                     HyScanSensorProtocolType protocol)
+{
+  const gchar *prefix = "/sensors";
+  gchar *key_id;
+
+  /* Тип порта. */
+  key_id = g_strdup_printf ("%s/%s/type", prefix, name);
+  hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, TRUE,
+                                                       "port-type", type);
+  g_free (key_id);
+
+  /* Идентификатор порта */
+  key_id = g_strdup_printf ("%s/%s/id", prefix, name);
+  hyscan_data_schema_builder_key_integer_create (builder, key_id, name, NULL, TRUE,
+                                                          id_counter++, 1, G_MAXINT64, 1);
+  g_free (key_id);
+
+  /* Формат данных. */
+  key_id = g_strdup_printf ("%s/%s/protocol", prefix, name);
+  hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, FALSE,
+                                                       "port-protocol", protocol);
+  g_free (key_id);
+
+  /* Состояние порта */
+  key_id = g_strdup_printf ("%s/%s/status", prefix, name);
+  hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, FALSE,
+                                                       "port-status", HYSCAN_SENSOR_PORT_STATUS_DISABLED);
+  g_free (key_id);
+
+  /* Признак включения. */
+  key_id = g_strdup_printf ("%s/%s/enable", prefix, name);
+  hyscan_data_schema_builder_key_boolean_create (builder, key_id, name, NULL, FALSE, FALSE);
+  g_free (key_id);
+
+  /* Дополнительные параметры IP порта. */
+  if (type == HYSCAN_SENSOR_PORT_IP)
+    {
+      /* IP адрес. */
+      key_id = g_strdup_printf ("%s/%s/ip-address", prefix, name);
+      hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, TRUE,
+                                                           "ip-address", 0);
+      g_free (key_id);
+
+      /* UDP порт. */
+      key_id = g_strdup_printf ("%s/%s/udp-port", prefix, name);
+      hyscan_data_schema_builder_key_integer_create (builder, key_id, name, NULL, TRUE,
+                                                              10000, 1024, 66535, 1);
+      g_free (key_id);
+    }
+
+  /* Дополнительные параметры RS232 порта. */
+  if (type == HYSCAN_SENSOR_PORT_IP)
+    {
+      /* Физический RS232 порт. */
+      key_id = g_strdup_printf ("%s/%s/rs232-port", prefix, name);
+      hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, TRUE,
+                                                           "rs232-port", 0);
+      g_free (key_id);
+
+      /* Скорость обмена через RS232 порт. */
+      key_id = g_strdup_printf ("%s/%s/rs232-speed", prefix, name);
+      hyscan_data_schema_builder_key_enum_create (builder, key_id, name, NULL, TRUE,
+                                                           "rs232-speed", 0);
+      g_free (key_id);
+    }
 }
 
 /* Функция освобождает память, выделеную под структуру HyScanSonarDummySSSESensorPort. */

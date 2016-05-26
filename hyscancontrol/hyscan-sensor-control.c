@@ -144,13 +144,15 @@ hyscan_sensor_control_object_constructed (GObject *object)
     return;
 
   /* Проверяем версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (priv->sonar, "/version", &version))
+  if (!hyscan_sonar_get_integer (priv->sonar, "/sonar-version", &version))
     {
+      g_clear_object (&priv->sonar);
       g_warning ("HyScanSensor: unknown sonar schema");
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
+      g_clear_object (&priv->sonar);
       g_warning ("HyScanSensor: sonar schema version mismatch");
       return;
     }
@@ -181,22 +183,14 @@ hyscan_sensor_control_object_constructed (GObject *object)
     {
       HyScanSensorControlPort *port;
 
+      gchar **pathv;
       gchar *key_name;
       gboolean status;
 
-      gboolean exist;
       gchar *name;
       gint64 id;
       gint64 type;
       gint64 protocol;
-
-      /* Проверяем наличие порта. */
-      key_name = g_strdup_printf ("%s/exist", sensors->nodes[i]->path);
-      status = hyscan_sonar_get_boolean (priv->sonar, key_name, &exist);
-      g_free (key_name);
-
-      if (!status || !exist)
-        continue;
 
       /* Идентификатор порта. */
       key_name = g_strdup_printf ("%s/id", sensors->nodes[i]->path);
@@ -216,14 +210,6 @@ hyscan_sensor_control_object_constructed (GObject *object)
                       type != HYSCAN_SENSOR_PORT_RS232))
         continue;
 
-      /* Название порта. */
-      key_name = g_strdup_printf ("%s/name", sensors->nodes[i]->path);
-      name = hyscan_sonar_get_string (priv->sonar, key_name);
-      g_free (key_name);
-
-      if (name == NULL)
-        continue;
-
       /* Протокол обмена данными с датчиком. */
       key_name = g_strdup_printf ("%s/protocol", sensors->nodes[i]->path);
       status = hyscan_sonar_get_enum (priv->sonar, key_name, &protocol);
@@ -232,6 +218,10 @@ hyscan_sensor_control_object_constructed (GObject *object)
       if (!status || (protocol != HYSCAN_SENSOR_PROTOCOL_SAS &&
                       protocol != HYSCAN_SENSOR_PROTOCOL_NMEA_0183))
         continue;
+
+      pathv = g_strsplit (sensors->nodes[i]->path, "/", -1);
+      name = g_strdup (pathv[2]);
+      g_strfreev (pathv);
 
       /* Описание порта. */
       port = g_new0 (HyScanSensorControlPort, 1);
