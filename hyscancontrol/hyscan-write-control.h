@@ -9,7 +9,8 @@
  * \defgroup HyScanWriteControl HyScanWriteControl - класс управления записью данных
  *
  * Класс предназначен для управления записью данных от гидролокатора, установки параметров
- * записи и непосредственно записи данных.
+ * записи и непосредственно записи данных. Класс HyScanWriteControl используется как базовый
+ * для классов управления локаторами.
  *
  * Для управления записью предназначены функции:
  *
@@ -51,11 +52,30 @@ G_BEGIN_DECLS
 /** \brief Данные для записи. */
 typedef struct
 {
-  const gchar         *name;                                   /**< Название целевого канала данных. */
-  gint64               time;                                   /**< Время приёма данных. */
-  guint32              size;                                   /**< Размер данных. */
-  gconstpointer        data;                                   /**< Данные. */
+  const gchar                 *name;                           /**< Название целевого канала данных. */
+  gint64                       time;                           /**< Время приёма данных. */
+  guint32                      size;                           /**< Размер данных. */
+  gconstpointer                data;                           /**< Данные. */
 } HyScanWriteData;
+
+/** \brief Образ излучаемого сигнала для свёртки. */
+typedef struct
+{
+  HyScanSourceType             source;                         /**< Идентификатор генератора. */
+  gint64                       time;                           /**< Время начала действия сигнала. */
+  guint32                      n_points;                       /**< Число точек образа. */
+  HyScanComplexFloat          *points;                         /**< Образ сигнала для свёртки. */
+} HyScanWriteSignal;
+
+/** \brief Значения коэффициентов усиления системы ВАРУ. */
+typedef struct
+{
+  const gchar                 *name;                           /**< Название целевого канала данных. */
+  gint64                       time;                           /**< Время начала действия сигнала. */
+  gfloat                       dtime;                          /**< Шаг времени изменения коэффициента передачи, с. */
+  guint32                      n_gains;                        /**< Число коэффициентов передачи. */
+  gfloat                      *gains;                          /**< Коэффициенты передачи приёмного тракта, дБ. */
+} HyScanWriteTVG;
 
 #define HYSCAN_TYPE_WRITE_CONTROL             (hyscan_write_control_get_type ())
 #define HYSCAN_WRITE_CONTROL(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_WRITE_CONTROL, HyScanWriteControl))
@@ -88,18 +108,6 @@ struct _HyScanWriteControlClass
 
 HYSCAN_CONTROL_EXPORT
 GType                  hyscan_write_control_get_type           (void);
-
-/**
- *
- * Функция создаёт новый объект \link HyScanWriteControl \endlink.
- *
- * \param db указатель на объект \link HyScanDB \endlink.
- *
- * \return Указатель на объект \link HyScanWriteControl \endlink.
- *
- */
-HYSCAN_CONTROL_EXPORT
-HyScanWriteControl    *hyscan_write_control_new                (HyScanDB                      *db);
 
 /**
  *

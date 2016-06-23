@@ -46,7 +46,7 @@ struct _HyScanWriteControlPrivate
   gint64                       save_time;                      /* Интервал времени хранения данных. */
   gint64                       save_size;                      /* Максимальный объём данных в канале. */
 
-  GRWLock                      lock;                           /* Блокировка. */
+  GMutex                       lock;                           /* Блокировка. */
 };
 
 static void    hyscan_write_control_set_property               (GObject               *object,
@@ -119,7 +119,7 @@ hyscan_write_control_object_constructed (GObject *object)
   HyScanWriteControl *control = HYSCAN_WRITE_CONTROL (object);
   HyScanWriteControlPrivate *priv = control->priv;
 
-  g_rw_lock_init (&priv->lock);
+  g_mutex_init (&priv->lock);
 
   priv->write = FALSE;
 
@@ -154,7 +154,7 @@ hyscan_write_control_object_finalize (GObject *object)
 
   g_clear_object (&priv->db);
 
-  g_rw_lock_clear (&priv->lock);
+  g_mutex_clear (&priv->lock);
 
   G_OBJECT_CLASS (hyscan_write_control_parent_class)->finalize (object);
 }
@@ -212,7 +212,7 @@ hyscan_write_control_class_start (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&priv->lock);
+  g_mutex_lock (&priv->lock);
 
   /* Останавливаем запись в текущий галс. */
   hyscan_write_control_class_stop_int (priv);
@@ -233,7 +233,7 @@ hyscan_write_control_class_start (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_rw_lock_writer_unlock (&priv->lock);
+  g_mutex_unlock (&priv->lock);
   return status;
 }
 
@@ -246,16 +246,9 @@ hyscan_write_control_class_stop (HyScanWriteControl *control)
   if (control->priv->db == NULL)
     return;
 
-  g_rw_lock_writer_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
   hyscan_write_control_class_stop_int (control->priv);
-  g_rw_lock_writer_unlock (&control->priv->lock);
-}
-
-/* Функция создаёт новый объект HyScanWriteControl. */
-HyScanWriteControl *
-hyscan_write_control_new (HyScanDB *db)
-{
-  return g_object_new (HYSCAN_TYPE_WRITE_CONTROL, "db", db, NULL);
+  g_mutex_unlock (&control->priv->lock);
 }
 
 /* Функция включает запись данных. */
@@ -304,7 +297,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -327,7 +320,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_rw_lock_writer_unlock (&control->priv->lock);
+  g_mutex_unlock (&control->priv->lock);
   return status;
 }
 
@@ -349,7 +342,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -372,7 +365,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_rw_lock_writer_unlock (&control->priv->lock);
+  g_mutex_unlock (&control->priv->lock);
   return status;
 }
 
@@ -394,7 +387,7 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -417,7 +410,7 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_rw_lock_writer_unlock (&control->priv->lock);
+  g_mutex_unlock (&control->priv->lock);
   return status;
 }
 
@@ -439,7 +432,7 @@ hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_reader_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
 
   if (!priv->write)
     goto exit;
@@ -448,37 +441,21 @@ hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
   channel = g_hash_table_lookup (priv->sensor_channels, data->name);
   if (channel == NULL)
     {
-      g_rw_lock_reader_unlock (&control->priv->lock);
+      channel = g_new (HyScanWriteControlSensorChannel, 1);
 
-      /* Блокируем таблицу на запись, проверяем что канала все ещё нет
-         и создаём новый. */
-      g_rw_lock_writer_lock (&control->priv->lock);
-      channel = g_hash_table_lookup (priv->sensor_channels, data->name);
-      if (channel == NULL)
-        {
-          channel = g_new (HyScanWriteControlSensorChannel, 1);
+      channel->db = priv->db;
+      channel->name = g_strdup (data->name);
+      channel->id = hyscan_channel_sensor_create (priv->db, priv->project_name, priv->track_name,
+                                                  data->name, info);
 
-          channel->db = priv->db;
-          channel->name = g_strdup (data->name);
-          channel->id = hyscan_channel_sensor_create (priv->db, priv->project_name, priv->track_name,
-                                                      data->name, info);
+      if (priv->chunk_size > 0)
+        hyscan_db_channel_set_chunk_size (priv->db, channel->id, priv->chunk_size);
+      if (priv->save_time > 0)
+        hyscan_db_channel_set_save_time (priv->db, channel->id, priv->save_time);
+      if (priv->save_size > 0)
+        hyscan_db_channel_set_save_size (priv->db, channel->id, priv->save_size);
 
-          if (priv->chunk_size > 0)
-            hyscan_db_channel_set_chunk_size (priv->db, channel->id, priv->chunk_size);
-          if (priv->save_time > 0)
-            hyscan_db_channel_set_save_time (priv->db, channel->id, priv->save_time);
-          if (priv->save_size > 0)
-            hyscan_db_channel_set_save_size (priv->db, channel->id, priv->save_size);
-
-          g_hash_table_insert (priv->sensor_channels, channel->name, channel);
-        }
-      g_rw_lock_writer_unlock (&control->priv->lock);
-
-      /* Проверяем, что канал существует. Его могут закрыть между вызовами unlonk/lock. */
-      g_rw_lock_reader_lock (&control->priv->lock);
-      channel = g_hash_table_lookup (priv->sensor_channels, data->name);
-      if (channel == NULL)
-        goto exit;
+      g_hash_table_insert (priv->sensor_channels, channel->name, channel);
     }
 
   if (channel->id < 0)
@@ -488,7 +465,7 @@ hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
   status =  hyscan_db_channel_add_data (priv->db, channel->id, data->time, data->data, data->size, NULL);
 
 exit:
-  g_rw_lock_reader_unlock (&control->priv->lock);
+  g_mutex_unlock (&control->priv->lock);
   return status;
 }
 
@@ -510,7 +487,7 @@ hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_rw_lock_reader_lock (&control->priv->lock);
+  g_mutex_lock (&control->priv->lock);
 
   if (!priv->write)
     goto exit;
@@ -519,42 +496,26 @@ hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
   channel = g_hash_table_lookup (priv->data_channels, data->name);
   if (channel == NULL)
     {
-      g_rw_lock_reader_unlock (&control->priv->lock);
+      channel = g_new (HyScanWriteControlDataChannel, 1);
 
-      /* Блокируем таблицу на запись, проверяем что канала все ещё нет
-         и создаём новый. */
-      g_rw_lock_writer_lock (&control->priv->lock);
-      channel = g_hash_table_lookup (priv->data_channels, data->name);
-      if (channel != NULL)
-        {
-          channel = g_new (HyScanWriteControlDataChannel, 1);
+      channel->name = g_strdup (data->name);
+      channel->writer = hyscan_data_channel_writer_new (priv->db, priv->project_name, priv->track_name,
+                                                        data->name, info);
 
-          channel->name = g_strdup (data->name);
-          channel->writer = hyscan_data_channel_writer_new (priv->db, priv->project_name, priv->track_name,
-                                                            data->name, info);
+      if (priv->chunk_size > 0)
+        hyscan_data_channel_writer_set_chunk_size (channel->writer, priv->chunk_size);
+      if (priv->save_time > 0)
+        hyscan_data_channel_writer_set_save_time (channel->writer, priv->save_time);
+      if (priv->save_size > 0)
+        hyscan_data_channel_writer_set_save_size (channel->writer, priv->save_size);
 
-          if (priv->chunk_size > 0)
-            hyscan_data_channel_writer_set_chunk_size (channel->writer, priv->chunk_size);
-          if (priv->save_time > 0)
-            hyscan_data_channel_writer_set_save_time (channel->writer, priv->save_time);
-          if (priv->save_size > 0)
-            hyscan_data_channel_writer_set_save_size (channel->writer, priv->save_size);
-
-          g_hash_table_insert (priv->data_channels, channel->name, channel);
-        }
-      g_rw_lock_writer_unlock (&control->priv->lock);
-
-      /* Проверяем, что канал существует. Его могут закрыть между вызовами unlonk/lock. */
-      g_rw_lock_reader_lock (&control->priv->lock);
-      channel = g_hash_table_lookup (priv->data_channels, data->name);
-      if (channel == NULL)
-        goto exit;
+      g_hash_table_insert (priv->data_channels, channel->name, channel);
     }
 
   /* Записываем данные. */
   status =  hyscan_data_channel_writer_add_data (channel->writer, data->time, data->data, data->size);
 
 exit:
-  g_rw_lock_reader_unlock (&control->priv->lock);
+  g_mutex_unlock (&control->priv->lock);
   return status;
 }

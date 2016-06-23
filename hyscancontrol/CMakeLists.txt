@@ -23,8 +23,11 @@ execute_process (COMMAND ${MARSHAL_COMPILER}
                          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library (hyscancontrol SHARED
+             hyscan-sonar-schema.c
+             hyscan-control-common.c
              hyscan-write-control.c
              hyscan-sensor-control.c
+             hyscan-generator-control.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.c)
 
 target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${HYSCAN_LIBRARIES})
