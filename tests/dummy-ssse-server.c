@@ -64,7 +64,7 @@ main (int    argc,
     g_strfreev (args);
   }
 
-  sonar = hyscan_sonar_dummy_ssse_new ();
+  sonar = hyscan_sonar_dummy_ssse_new (100000.0, 200000.0, 300000.0, 20.0);
   server = hyscan_sonar_server_new (sonar, sonar_address, sonar_port);
 
   if (!hyscan_sonar_server_start (server))

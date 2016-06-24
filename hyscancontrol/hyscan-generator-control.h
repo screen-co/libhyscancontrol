@@ -13,10 +13,9 @@
  * Класс HyScanGeneratorControl наследуется от класса \link HyScanSensorControl \endlink и используется
  * как базовый для классов управления локаторами.
  *
- * Каждый гидролокатор имеет некоторое число генераторов, каждый из которых связанных с одним и более
- * приёмных каналов. Для идентификации генератора используется типа источника данных
- * \link HyScanSourceType \endlink, связанных с этим генератором. Число генераторов зависит от
- * типа гидролокатора.
+ * Каждый гидролокатор имеет некоторое число бортов, с каждым из которых связан генератор.
+ * Для идентификации генераторов используются типы бортов гидролокатора \link HyScanBoardType \endlink.
+ * Число генераторов зависит от типа гидролокатора.
  *
  * Каждый генератор имеет несколько способов установки излучаемого сигнала. Для определения
  * возможностей генератора используются функции #hyscan_generator_control_get_capabilities и
@@ -53,6 +52,8 @@
  * технологических работ и экспериментов. Для этого предназначена функция
  * #hyscan_generator_control_set_enable. Если генератор выключен, излучение сигнала не производится.
  *
+ * Класс HyScanGeneratorControl поддерживает работу в многопоточном режиме.
+ *
  */
 
 #ifndef __HYSCAN_GENERATOR_CONTROL_H__
@@ -62,7 +63,7 @@
 
 G_BEGIN_DECLS
 
-/** \brief Режимы работы гинератора  */
+/** \brief Режимы работы гинератора */
 typedef enum
 {
   HYSCAN_GENERATOR_MODE_INVALID                = 0,            /**< Недопустимый тип, ошибка. */
@@ -115,28 +116,28 @@ GType                          hyscan_generator_control_get_type           (void
  * Функция возвращает флаги допустимых режимов работы генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
- * \param source тип источника данных (идентификатор генератора).
+ * \param board идентификатор борта гидролокатора.
  *
  * \return Флаги допустимых режимов работы генератора.
  *
  */
 HYSCAN_CONTROL_EXPORT
 HyScanGeneratorModeType        hyscan_generator_control_get_capabilities   (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source);
+                                                                            HyScanBoardType            board);
 
 /**
  *
  * Функция возвращает флаги допустимых сигналов генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
- * \param source тип источника данных (идентификатор генератора).
+ * \param board идентификатор борта гидролокатора.
  *
  * \return Флаги допустимых сигналов генератора.
  *
  */
 HYSCAN_CONTROL_EXPORT
 HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source);
+                                                                            HyScanBoardType            board);
 
 /**
  *
@@ -144,37 +145,37 @@ HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HySc
  * память, занимаемую списком, функцией \link hyscan_data_schema_free_enum_values \endlink.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора).
+ * \param board идентификатор борта гидролокатора.
  *
  * \return Список преднастроек генератора.
  *
  */
 HYSCAN_CONTROL_EXPORT
 HyScanDataSchemaEnumValue    **hyscan_generator_control_list_presets       (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source);
+                                                                            HyScanBoardType            board);
 
 /**
  *
  * Функция включает преднастроенный режим работы генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
- * \param preset_id идентификатор преднастройки.
+ * \param board идентификатор борта гидролокатора;
+ * \param preset идентификатор преднастройки.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_preset         (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
-                                                                            gint64                     preset_id);
+                                                                            HyScanBoardType            board,
+                                                                            gint64                     preset);
 
 /**
  *
  * Функция включает автоматический режим работы генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param signal тип сигнала.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -182,7 +183,7 @@ gboolean                       hyscan_generator_control_set_preset         (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_auto           (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             HyScanGeneratorSignalType  signal);
 
 /**
@@ -190,7 +191,7 @@ gboolean                       hyscan_generator_control_set_auto           (HySc
  * Функция включает упрощённый режим работы генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param signal тип сигнала;
  * \param power энергия сигнала, проценты.
  *
@@ -199,7 +200,7 @@ gboolean                       hyscan_generator_control_set_auto           (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_simple         (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             HyScanGeneratorSignalType  signal,
                                                                             gdouble                    power);
 
@@ -209,7 +210,7 @@ gboolean                       hyscan_generator_control_set_simple         (HySc
  * сформировать генератор.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param signal тип сигнала.
  *
  * \return Максимальная длительность сигнала, отрицательное число в случае ошибки.
@@ -217,7 +218,7 @@ gboolean                       hyscan_generator_control_set_simple         (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gdouble                        hyscan_generator_control_get_max_duration   (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             HyScanGeneratorSignalType  signal);
 
 /**
@@ -225,7 +226,7 @@ gdouble                        hyscan_generator_control_get_max_duration   (HySc
  * Функция включает тональный сигнал для излучения генератором.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param frequency частота излучаемого сигнала, Гц;
  * \param duration длительность сигнала, с;
  * \param power энергия сигнала, проценты.
@@ -235,7 +236,7 @@ gdouble                        hyscan_generator_control_get_max_duration   (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_tone           (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             gdouble                    frequency,
                                                                             gdouble                    duration,
                                                                             gdouble                    power);
@@ -245,7 +246,7 @@ gboolean                       hyscan_generator_control_set_tone           (HySc
  * Функция включает линейно-частотно модулированный сигнал для излучения генератором.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param decreasing увеличение (FALSE) или уменьшение (TRUE) частоты;
  * \param low_frequency нижняя частота излучаемого сигнала, Гц;
  * \param high_frequency верхняя частота излучаемого сигнала, Гц;
@@ -257,7 +258,7 @@ gboolean                       hyscan_generator_control_set_tone           (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_lfm            (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             gboolean                   decreasing,
                                                                             gdouble                    low_frequency,
                                                                             gdouble                    high_frequency,
@@ -269,7 +270,7 @@ gboolean                       hyscan_generator_control_set_lfm            (HySc
  * Функция включает или выключает формирование сигнала генератором.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param source тип источника данных (идентификатор генератора);
+ * \param board идентификатор борта гидролокатора;
  * \param enable включён или выключен.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -277,7 +278,7 @@ gboolean                       hyscan_generator_control_set_lfm            (HySc
  */
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_generator_control_set_enable         (HyScanGeneratorControl    *control,
-                                                                            HyScanSourceType           source,
+                                                                            HyScanBoardType            board,
                                                                             gboolean                   enable);
 
 G_END_DECLS

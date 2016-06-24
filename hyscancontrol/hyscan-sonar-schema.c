@@ -26,6 +26,7 @@ static void    hyscan_sonar_schema_enum_add_uart_devs          (HyScanSonarSchem
 static void    hyscan_sonar_schema_enum_add_uart_modes         (HyScanSonarSchema             *schema);
 
 static void    hyscan_sonar_schema_enum_add_signal_type        (HyScanSonarSchema             *schema);
+static void    hyscan_sonar_schema_enum_add_board_type         (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_source_type        (HyScanSonarSchema             *schema);
 
 G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarSchema, hyscan_sonar_schema, HYSCAN_TYPE_DATA_SCHEMA_BUILDER)
@@ -210,6 +211,48 @@ hyscan_sonar_schema_enum_add_signal_type (HyScanSonarSchema *schema)
                                                 "LFMD", NULL);
 }
 
+/* Функция создаёт enum значение board-type. */
+static void
+hyscan_sonar_schema_enum_add_board_type (HyScanSonarSchema *schema)
+{
+  HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+
+  hyscan_data_schema_builder_enum_create (builder, "board-type");
+
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_STARBOARD,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_STARBOARD),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_PORT,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_PORT),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_STARBOARD_HI,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_STARBOARD_HI),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_PORT_HI,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_PORT_HI),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_ECHOSOUNDER,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_ECHOSOUNDER),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_PROFILER,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_PROFILER),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_LOOK_AROUND,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_LOOK_AROUND),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "board-type",
+                                                HYSCAN_BOARD_FORWARD_LOOK,
+                                                hyscan_control_get_board_name (HYSCAN_BOARD_FORWARD_LOOK),
+                                                NULL);
+}
+
 /* Функция создаёт enum значение source-type. */
 static void
 hyscan_sonar_schema_enum_add_source_type (HyScanSonarSchema *schema)
@@ -219,48 +262,44 @@ hyscan_sonar_schema_enum_add_source_type (HyScanSonarSchema *schema)
   hyscan_data_schema_builder_enum_create (builder, "source-type");
 
   hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_SIDE_SCAN_STARBOARD,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_SIDE_SCAN_PORT,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_SIDE_SCAN_PORT_HI,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT_HI),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_BATHYMETRY_STARBOARD,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_BATHYMETRY_STARBOARD),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_BATHYMETRY_PORT,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_BATHYMETRY_PORT),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
                                                 HYSCAN_SOURCE_ECHOSOUNDER,
                                                 hyscan_control_get_source_name (HYSCAN_SOURCE_ECHOSOUNDER),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_SS_STARBOARD,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SS_STARBOARD),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_SS_PORT,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SS_PORT),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_SS_STARBOARD_HI,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SS_STARBOARD_HI),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_SS_PORT_HI,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_SS_PORT_HI),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_ISS_STARBOARD,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_ISS_STARBOARD),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_ISS_PORT,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_ISS_PORT),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_LA_STARBOARD,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_LA_STARBOARD),
-                                                NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_LA_PORT,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_LA_PORT),
                                                 NULL);
   hyscan_data_schema_builder_enum_value_create (builder, "source-type",
                                                 HYSCAN_SOURCE_PROFILER,
                                                 hyscan_control_get_source_name (HYSCAN_SOURCE_PROFILER),
                                                 NULL);
   hyscan_data_schema_builder_enum_value_create (builder, "source-type",
-                                                HYSCAN_SOURCE_FL,
-                                                hyscan_control_get_source_name (HYSCAN_SOURCE_FL),
+                                                HYSCAN_SOURCE_LOOK_AROUND,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_LOOK_AROUND),
+                                                NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "source-type",
+                                                HYSCAN_SOURCE_FORWARD_LOOK,
+                                                hyscan_control_get_source_name (HYSCAN_SOURCE_FORWARD_LOOK),
                                                 NULL);
 }
 
@@ -448,20 +487,65 @@ hyscan_sonar_schema_sensor_add_ip_address (HyScanSonarSchema *schema,
   return id;
 }
 
+/* Функция добавляет в схему описание борта гидролокатора. */
+gint
+hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
+                               HyScanBoardType    board)
+{
+  HyScanDataSchemaBuilder *builder;
+  const gchar *board_name;
+  gboolean status = FALSE;
+  gchar *prefix = NULL;
+  gchar *key = NULL;
+  gint32 id = -1;
+
+  g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), id);
+
+  builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+
+  board_name = hyscan_control_get_board_name (board);
+  if (board_name == NULL)
+    return FALSE;
+
+  prefix = g_strdup_printf ("/boards/%s/", board_name);
+
+  /* Тип борта гидролокатора. */
+  key = g_strdup_printf ("%s/type", prefix);
+  status = hyscan_data_schema_builder_key_enum_create (builder, key, "type", NULL, TRUE,
+                                                       "board-type", board);
+  g_free (key);
+
+  if (!status)
+    goto exit;
+
+  /* Идентификатор борта гидролокатора. */
+  key = g_strdup_printf ("%s/id", prefix);
+  id = schema->priv->id_counter++;
+  status = hyscan_data_schema_builder_key_integer_create (builder, key, "id", NULL, TRUE,
+                                                          id, id, id, 1);
+  g_free (key);
+
+  if (!status)
+    id = -1;
+
+exit:
+  g_clear_pointer (&prefix, g_free);
+
+  return id;
+}
+
 /* Функция добавляет описание генератора для борта. */
-gint32
+gint
 hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
-                                   HyScanSourceType           source,
+                                   HyScanBoardType            board,
                                    HyScanGeneratorModeType    capabilities,
                                    HyScanGeneratorSignalType  signals,
                                    gdouble                    low_frequency,
                                    gdouble                    high_frequency,
                                    gdouble                    max_duration)
 {
-  HyScanSonarSchemaPrivate *priv;
-
   HyScanDataSchemaBuilder *builder;
-  const gchar *generator_name;
+  const gchar *board_name;
   gboolean status = FALSE;
   gchar *prefix = NULL;
   gchar *preset = NULL;
@@ -470,23 +554,13 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), id);
 
-  priv = schema->priv;
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  generator_name = hyscan_control_get_source_name (source);
-  if (generator_name == NULL)
+  board_name = hyscan_control_get_board_name (board);
+  if (board_name == NULL)
     return FALSE;
 
-  prefix = g_strdup_printf ("/generators/%s", generator_name);
-
-  /* Тип источника данных. */
-  key = g_strdup_printf ("%s/source", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key, "source", NULL, TRUE,
-                                                       "source-type", source);
-  g_free (key);
-
-  if (!status)
-    goto exit;
+  prefix = g_strdup_printf ("/boards/%s/generator", board_name);
 
   /* Режимы работы генератора. */
   key = g_strdup_printf ("%s/capabilities", prefix);
@@ -533,7 +607,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   /* Преднастройки генератора. */
   if (capabilities | HYSCAN_GENERATOR_MODE_PRESET)
     {
-      preset = g_strdup_printf ("%s-generator-preset", generator_name);
+      preset = g_strdup_printf ("%s-generator-preset", board_name);
 
       status = hyscan_data_schema_builder_enum_create (builder, preset);
       if (!status)
@@ -676,7 +750,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   /* Идентификатор генератора. */
   key = g_strdup_printf ("%s/id", prefix);
-  id = priv->id_counter++;
+  id = schema->priv->id_counter++;
   status = hyscan_data_schema_builder_key_integer_create (builder, key, "id", NULL, TRUE,
                                                           id, id, id, 1);
   g_free (key);
@@ -694,22 +768,22 @@ exit:
 /* Функция добавляет преднастроенный режим генератора. */
 gint
 hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema    *schema,
-                                          HyScanSourceType      source,
+                                          HyScanBoardType       board,
                                           const gchar          *name)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *generator_name;
+  const gchar *board_name;
   gchar *preset = NULL;
   gint id = -1;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), id);
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
-  generator_name = hyscan_control_get_source_name (source);
-  if (generator_name == NULL)
+  board_name = hyscan_control_get_board_name (board);
+  if (board_name == NULL)
     return FALSE;
 
-  preset = g_strdup_printf ("%s-generator-preset", generator_name);
+  preset = g_strdup_printf ("%s-generator-preset", board_name);
 
   id = schema->priv->id_counter++;
   if (!hyscan_data_schema_builder_enum_value_create (builder, preset, id, name, NULL))

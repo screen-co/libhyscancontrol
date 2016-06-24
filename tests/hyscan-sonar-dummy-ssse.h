@@ -37,9 +37,12 @@ struct _HyScanSonarDummySSSEClass
   GObjectClass parent_class;
 };
 
-GType                  hyscan_sonar_dummy_ssse_get_type     (void);
+GType                  hyscan_sonar_dummy_ssse_get_type        (void);
 
-HyScanSonar           *hyscan_sonar_dummy_ssse_new          (void);
+HyScanSonar           *hyscan_sonar_dummy_ssse_new             (gdouble        echosounder_frequency,
+                                                                gdouble        starboard_frequency,
+                                                                gdouble        port_frequency,
+                                                                gdouble        frequency_deviation);
 
 G_END_DECLS
 

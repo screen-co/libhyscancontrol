@@ -29,14 +29,14 @@
  *
  * Значения, установленные этими функциями, применяются к текущему записываемому галсу и ко всем последующим.
  * Для того, что бы отменить действие установленных значений необходимо установить новые значения или
- * передеать отрицательное число. В этом случае будет установленно значение по умолчанию.
+ * передать отрицательное число. В этом случае будет установленно значение по умолчанию.
  *
  * Для записи данных предназначены функции:
  *
  * - #hyscan_write_control_add_sensor_data - записывает данные от датчиков;
  * - #hyscan_write_control_add_acoustic_data - записывает гидролокационные данные.
  *
- * Объекты класса HyScanWriteControl допускают использование в многопоточном режиме.
+ * Класс HyScanWriteControl поддерживает работу в многопоточном режиме.
  *
  */
 
@@ -49,10 +49,27 @@
 
 G_BEGIN_DECLS
 
+/** \brief Типы бортов гидролокаторов */
+typedef enum
+{
+  HYSCAN_BOARD_INVALID                              = 0,       /**< Недопустимый тип, ошибка. */
+
+  HYSCAN_BOARD_STARBOARD                            = 101,     /**< Правый борт. */
+  HYSCAN_BOARD_PORT                                 = 102,     /**< Левый борт. */
+  HYSCAN_BOARD_STARBOARD_HI                         = 103,     /**< Правый борт, высокое разрашение. */
+  HYSCAN_BOARD_PORT_HI                              = 104,     /**< Левый борт, высокое разрашение. */
+  HYSCAN_BOARD_ECHOSOUNDER                          = 105,     /**< Эхолот. */
+  HYSCAN_BOARD_PROFILER                             = 106,     /**< Профилограф. */
+  HYSCAN_BOARD_LOOK_AROUND                          = 107,     /**< Круговой обзор. */
+  HYSCAN_BOARD_FORWARD_LOOK                         = 108      /**< Вперёдсмотрящий гидролокатор. */
+} HyScanBoardType;
+
 /** \brief Данные для записи. */
 typedef struct
 {
-  const gchar                 *name;                           /**< Название целевого канала данных. */
+  HyScanSourceType             source;                         /**< Тип источника данных. */
+  gint                         channel;                        /**< Номер канала данных. */
+  gboolean                     raw;                            /**< Признак "сырых" данных. */
   gint64                       time;                           /**< Время приёма данных. */
   guint32                      size;                           /**< Размер данных. */
   gconstpointer                data;                           /**< Данные. */
@@ -61,17 +78,18 @@ typedef struct
 /** \brief Образ излучаемого сигнала для свёртки. */
 typedef struct
 {
-  HyScanSourceType             source;                         /**< Идентификатор генератора. */
+  HyScanBoardType              board;                          /**< Идентификатор борта гидролокатора. */
   gint64                       time;                           /**< Время начала действия сигнала. */
   guint32                      n_points;                       /**< Число точек образа. */
   HyScanComplexFloat          *points;                         /**< Образ сигнала для свёртки. */
 } HyScanWriteSignal;
 
-/** \brief Значения коэффициентов усиления системы ВАРУ. */
+/** \brief Значения параметров усиления системы ВАРУ. */
 typedef struct
 {
-  const gchar                 *name;                           /**< Название целевого канала данных. */
-  gint64                       time;                           /**< Время начала действия сигнала. */
+  HyScanSourceType             source;                         /**< Тип источника данных. */
+  gint                         channel;                        /**< Номер канала данных. */
+  gint64                       time;                           /**< Время начала действия параметров системы ВАРУ. */
   gfloat                       dtime;                          /**< Шаг времени изменения коэффициента передачи, с. */
   guint32                      n_gains;                        /**< Число коэффициентов передачи. */
   gfloat                      *gains;                          /**< Коэффициенты передачи приёмного тракта, дБ. */
@@ -198,7 +216,7 @@ gboolean               hyscan_write_control_set_save_size      (HyScanWriteContr
  *
  */
 HYSCAN_CONTROL_EXPORT
-gboolean               hyscan_write_control_add_sensor_data    (HyScanWriteControl            *control,
+gboolean               hyscan_write_control_sensor_add_data    (HyScanWriteControl            *control,
                                                                 HyScanWriteData               *data,
                                                                 HyScanSensorChannelInfo       *info);
 
@@ -214,9 +232,24 @@ gboolean               hyscan_write_control_add_sensor_data    (HyScanWriteContr
  *
  */
 HYSCAN_CONTROL_EXPORT
-gboolean               hyscan_write_control_add_acoustic_data  (HyScanWriteControl            *control,
+gboolean               hyscan_write_control_sonar_add_data     (HyScanWriteControl            *control,
                                                                 HyScanWriteData               *data,
                                                                 HyScanDataChannelInfo         *info);
+
+/**
+ *
+ * Функция записывает образ сигнала для свёртки во все каналы с гидролокационными
+ * данными, которые связаны с определённым бортом.
+ *
+ * \param control указатель на интерфейс \link HyScanWriteControl \endlink;
+ * \param signal образ сигнала для записи.
+ *
+ * \return TRUE - если данные успешно записаны, FALSE - в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_write_control_sonar_add_signal   (HyScanWriteControl            *control,
+                                                                HyScanWriteSignal             *signal);
 
 G_END_DECLS
 

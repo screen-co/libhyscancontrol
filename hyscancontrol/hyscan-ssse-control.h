@@ -1,7 +1,7 @@
 #ifndef __HYSCAN_SSSE_CONTROL_H__
 #define __HYSCAN_SSSE_CONTROL_H__
 
-#include <glib-object.h>
+#include <hyscan-sensor-control.h>
 
 G_BEGIN_DECLS
 
@@ -16,18 +16,16 @@ typedef struct _HyScanSSSEControl HyScanSSSEControl;
 typedef struct _HyScanSSSEControlPrivate HyScanSSSEControlPrivate;
 typedef struct _HyScanSSSEControlClass HyScanSSSEControlClass;
 
-/* !!! Change GObject to type of the base class. !!! */
 struct _HyScanSSSEControl
 {
-  GObject parent_instance;
+  HyScanSensorControl parent_instance;
 
   HyScanSSSEControlPrivate *priv;
 };
 
-/* !!! Change GObjectClass to type of the base class. !!! */
 struct _HyScanSSSEControlClass
 {
-  GObjectClass parent_class;
+  HyScanSensorControlClass parent_class;
 };
 
 GType                  hyscan_ssse_control_get_type         (void);

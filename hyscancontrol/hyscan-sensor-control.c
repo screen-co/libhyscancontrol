@@ -63,8 +63,7 @@ static void          hyscan_sensor_control_data_receiver       (HyScanSensorCont
 
 static gboolean      hyscan_sensor_control_check_nmea_crc      (const gchar               *nmea_str);
 
-static const gchar  *hyscan_sensor_control_get_channel_name    (const gchar               *nmea_str,
-                                                                gint                       channel);
+static HyScanSourceType hyscan_sensor_control_get_source_type  (const gchar               *nmea_str);
 
 static void          hyscan_sensor_control_free_port           (gpointer                   data);
 
@@ -296,12 +295,14 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
     goto exit;
 
   /* Данные. */
-  data.name = hyscan_sensor_control_get_channel_name (data_msg->data, port->channel);
+  data.source = hyscan_sensor_control_get_source_type (data_msg->data);
+  data.channel = port->channel;
+  data.raw = FALSE;
   data.time = data_msg->time;
   data.size = data_msg->data_size;
   data.data = data_msg->data;
 
-  hyscan_write_control_add_sensor_data (HYSCAN_WRITE_CONTROL (control), &data, &port->channel_info);
+  hyscan_write_control_sensor_add_data (HYSCAN_WRITE_CONTROL (control), &data, &port->channel_info);
 
   g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, &data, &port->channel_info);
 
@@ -329,22 +330,21 @@ hyscan_sensor_control_check_nmea_crc (const gchar *nmea_str)
 }
 
 /* Функция возвращает название канала, в которые необходимо записать данные. */
-static const gchar *
-hyscan_sensor_control_get_channel_name (const gchar *nmea_str,
-                                        gint         channel)
+HyScanSourceType
+hyscan_sensor_control_get_source_type (const gchar *nmea_str)
 {
-  HyScanSourceType data_type;
+  HyScanSourceType source;
 
   if (strncmp (nmea_str + 3, "GGA", 3) == 0)
-    data_type = HYSCAN_SOURCE_NMEA_GGA;
+    source = HYSCAN_SOURCE_NMEA_GGA;
   else if (strncmp (nmea_str + 3, "RMC", 3) == 0)
-    data_type = HYSCAN_SOURCE_NMEA_RMC;
+    source = HYSCAN_SOURCE_NMEA_RMC;
   else if (strncmp (nmea_str + 3, "DPT", 3) == 0)
-    data_type = HYSCAN_SOURCE_NMEA_DPT;
+    source = HYSCAN_SOURCE_NMEA_DPT;
   else
-    data_type = HYSCAN_SOURCE_NMEA_ANY;
+    source = HYSCAN_SOURCE_NMEA_ANY;
 
-  return hyscan_channel_get_name_by_types (data_type, FALSE, channel);
+  return source;
 }
 
 /* Функция освобождает память, занятую структурой HyScanSensorControlPort. */

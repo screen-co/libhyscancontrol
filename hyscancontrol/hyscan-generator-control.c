@@ -7,7 +7,6 @@
  * \license Проприетарная лицензия ООО "Экран"
  */
 
-#include <math.h>
 #include "hyscan-control-common.h"
 #include "hyscan-generator-control.h"
 
@@ -26,7 +25,7 @@ enum
 typedef struct
 {
   gint                         id;                             /* Идентификатор генератора. */
-  HyScanSourceType             source;                            /* Тип источника данных. */
+  HyScanBoardType              board;                          /* Тип борта гидролокатора. */
   gchar                       *path;                           /* Путь к описанию генератора в схеме. */
   HyScanGeneratorModeType      capabilities;                   /* Режимы работы. */
   HyScanGeneratorSignalType    signals;                        /* Возможные сигналы. */
@@ -40,7 +39,7 @@ struct _HyScanGeneratorControlPrivate
   HyScanDataSchemaNode        *params;                         /* Список параметров гидролокатора. */
 
   GHashTable                  *gens_by_id;                     /* Список генераторов гидролокатора. */
-  GHashTable                  *gens_by_source;                    /* Список генераторов гидролокатора. */
+  GHashTable                  *gens_by_board;                  /* Список генераторов гидролокатора. */
 
   GMutex                       lock;                           /* Блокировка. */
 };
@@ -79,7 +78,7 @@ hyscan_generator_control_class_init (HyScanGeneratorControlClass *klass)
     g_signal_new ("signal", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                   g_cclosure_marshal_VOID__POINTER,
                   G_TYPE_NONE,
-                  2, G_TYPE_POINTER, G_TYPE_POINTER);
+                  1, G_TYPE_POINTER);
 }
 
 static void
@@ -115,7 +114,7 @@ hyscan_generator_control_object_constructed (GObject *object)
   HyScanGeneratorControl *control = HYSCAN_GENERATOR_CONTROL (object);
   HyScanGeneratorControlPrivate *priv = control->priv;
 
-  HyScanDataSchemaNode *generators = NULL;
+  HyScanDataSchemaNode *boards = NULL;
   gint64 version;
   gint64 id;
   gint i;
@@ -161,23 +160,23 @@ hyscan_generator_control_object_constructed (GObject *object)
   /* Список генераторов. */
   priv->gens_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                             NULL, hyscan_generator_control_free_gen);
-  priv->gens_by_source = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->gens_by_board = g_hash_table_new (g_direct_hash, g_direct_equal);
 
-  /* Ветка схемы с описанием генераторов гидролокатора - "/generators". */
+  /* Ветка схемы с описанием бортов гидролокатора - "/boards". */
   for (i = 0; priv->params->n_nodes; i++)
     {
-      if (g_strcmp0 (priv->params->nodes[i]->path, "/generators") == 0)
+      if (g_strcmp0 (priv->params->nodes[i]->path, "/boards") == 0)
         {
-          generators = priv->params->nodes[i];
+          boards = priv->params->nodes[i];
           break;
         }
     }
 
-  if (generators == NULL)
+  if (boards == NULL)
     return;
 
   /* Считываем описания генераторов. */
-  for (i = 0; i < generators->n_nodes; i++)
+  for (i = 0; i < boards->n_nodes; i++)
     {
       HyScanGeneratorControlGen *generator;
 
@@ -185,28 +184,28 @@ hyscan_generator_control_object_constructed (GObject *object)
       gboolean status;
 
       gint64 id;
-      gint64 source;
+      gint64 board;
       gint64 capabilities;
       gint64 signals;
 
-      /* Идентификатор порта. */
-      key_name = g_strdup_printf ("%s/id", generators->nodes[i]->path);
+      /* Тип борта гидролокатора. */
+      key_name = g_strdup_printf ("%s/type", boards->nodes[i]->path);
+      status = hyscan_sonar_get_enum (priv->sonar, key_name, &board);
+      g_free (key_name);
+
+      if (!status)
+        continue;
+
+      /* Идентификатор генератора. */
+      key_name = g_strdup_printf ("%s/generator/id", boards->nodes[i]->path);
       status = hyscan_sonar_get_integer (priv->sonar, key_name, &id);
       g_free (key_name);
 
       if (!status || id <= 0 || id > G_MAXUINT32)
         continue;
 
-      /* Тип источника данных. */
-      key_name = g_strdup_printf ("%s/source", generators->nodes[i]->path);
-      status = hyscan_sonar_get_enum (priv->sonar, key_name, &source);
-      g_free (key_name);
-
-      if (!status)
-        continue;
-
       /* Режимы работы генератора. */
-      key_name = g_strdup_printf ("%s/capabilities", generators->nodes[i]->path);
+      key_name = g_strdup_printf ("%s/generator/capabilities", boards->nodes[i]->path);
       status = hyscan_sonar_get_integer (priv->sonar, key_name, &capabilities);
       g_free (key_name);
 
@@ -214,7 +213,7 @@ hyscan_generator_control_object_constructed (GObject *object)
         continue;
 
       /* Возможные сигналы. */
-      key_name = g_strdup_printf ("%s/signals", generators->nodes[i]->path);
+      key_name = g_strdup_printf ("%s/generator/signals", boards->nodes[i]->path);
       status = hyscan_sonar_get_integer (priv->sonar, key_name, &signals);
       g_free (key_name);
 
@@ -223,16 +222,16 @@ hyscan_generator_control_object_constructed (GObject *object)
 
       /* Описание генератора. */
       generator = g_new0 (HyScanGeneratorControlGen, 1);
-      generator->source = source;
-      generator->path = g_strdup (generators->nodes[i]->path);
+      generator->board = board;
+      generator->path = g_strdup_printf ("%s/generator", boards->nodes[i]->path);
       generator->capabilities = capabilities & 0xF;
       generator->signals = signals & 0xF;
 
       if (!g_hash_table_insert (priv->gens_by_id, GINT_TO_POINTER (id), generator))
         hyscan_generator_control_free_gen (generator);
 
-      if (!g_hash_table_insert (priv->gens_by_source, GINT_TO_POINTER (source), generator))
-        g_hash_table_remove (priv->gens_by_id, GINT_TO_POINTER (id));
+//      if (!g_hash_table_insert (priv->gens_by_source, GINT_TO_POINTER (source), generator))
+//        g_hash_table_remove (priv->gens_by_id, GINT_TO_POINTER (id));
     }
 
   /* Обработчик образов сигналов от гидролокатора. */
@@ -245,7 +244,7 @@ hyscan_generator_control_object_finalize (GObject *object)
   HyScanGeneratorControl *generator_control = HYSCAN_GENERATOR_CONTROL (object);
   HyScanGeneratorControlPrivate *priv = generator_control->priv;
 
-  g_clear_pointer (&priv->gens_by_source, g_hash_table_unref);
+  g_clear_pointer (&priv->gens_by_board, g_hash_table_unref);
   g_clear_pointer (&priv->gens_by_id, g_hash_table_unref);
 
   g_clear_pointer (&priv->params, hyscan_data_schema_free_nodes);
@@ -275,7 +274,7 @@ hyscan_generator_control_signal_receiver (HyScanGeneratorControl *control,
     goto exit;
 
   /* Образец сигнала. */
-  signal.source = generator->source;
+  signal.board = generator->board;
   signal.time = signal_msg->time;
   signal.n_points = signal_msg->n_points;
   signal.points = signal_msg->points;
@@ -301,13 +300,13 @@ hyscan_generator_control_free_gen (gpointer data)
 /* Функция возвращает флаги допустимых режимов работы генератора. */
 HyScanGeneratorModeType
 hyscan_generator_control_get_capabilities (HyScanGeneratorControl *control,
-                                           HyScanSourceType        source)
+                                           HyScanBoardType         board)
 {
   HyScanGeneratorControlGen *generator;
 
   g_return_val_if_fail (HYSCAN_IS_GENERATOR_CONTROL (control), HYSCAN_GENERATOR_MODE_INVALID);
 
-  generator = g_hash_table_lookup (control->priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (control->priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return HYSCAN_GENERATOR_MODE_INVALID;
 
@@ -317,13 +316,13 @@ hyscan_generator_control_get_capabilities (HyScanGeneratorControl *control,
 /* Функция возвращает флаги допустимых сигналов генератора. */
 HyScanGeneratorSignalType
 hyscan_generator_control_get_signals (HyScanGeneratorControl *control,
-                                      HyScanSourceType        source)
+                                      HyScanBoardType         board)
 {
   HyScanGeneratorControlGen *generator;
 
   g_return_val_if_fail (HYSCAN_IS_GENERATOR_CONTROL (control), HYSCAN_GENERATOR_SIGNAL_INVALID);
 
-  generator = g_hash_table_lookup (control->priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (control->priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return HYSCAN_GENERATOR_SIGNAL_INVALID;
 
@@ -333,7 +332,7 @@ hyscan_generator_control_get_signals (HyScanGeneratorControl *control,
 /* Функция возвращает список преднастроек генератора. */
 HyScanDataSchemaEnumValue **
 hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
-                                       HyScanSourceType        source)
+                                       HyScanBoardType         board)
 {
   HyScanGeneratorControlPrivate *priv;
 
@@ -348,7 +347,7 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
   if (priv->sonar == NULL)
     return NULL;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return NULL;
 
@@ -362,8 +361,8 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
 /* Функция включает преднастроенный режим работы генератора. */
 gboolean
 hyscan_generator_control_set_preset (HyScanGeneratorControl *control,
-                                     HyScanSourceType        source,
-                                     gint64                  preset_id)
+                                     HyScanBoardType         board,
+                                     gint64                  preset)
 {
   HyScanGeneratorControlPrivate *priv;
 
@@ -382,7 +381,7 @@ hyscan_generator_control_set_preset (HyScanGeneratorControl *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (control->priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (control->priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
 
@@ -396,21 +395,21 @@ hyscan_generator_control_set_preset (HyScanGeneratorControl *control,
   if (!status)
     goto exit;
 
-  if (enable && !hyscan_generator_control_set_enable (control, source, FALSE))
+  if (enable && !hyscan_generator_control_set_enable (control, board, FALSE))
     goto exit;
 
   key_name = g_strdup_printf ("%s/preset/id", generator->path);
-  hyscan_sonar_set_enum (priv->sonar, key_name, preset_id);
+  hyscan_sonar_set_enum (priv->sonar, key_name, preset);
   status = hyscan_sonar_get_enum (priv->sonar, key_name, &ivalue);
   g_free (key_name);
 
-  if (!status || ivalue != preset_id)
+  if (!status || ivalue != preset)
     goto exit;
 
   /* Включаем генератор. */
   if (enable)
     {
-      if (hyscan_generator_control_set_enable (control, source, enable))
+      if (hyscan_generator_control_set_enable (control, board, enable))
         rstatus = TRUE;
     }
   else
@@ -427,7 +426,7 @@ exit:
 /* Функция включает автоматический режим работы генератора. */
 gboolean
 hyscan_generator_control_set_auto (HyScanGeneratorControl    *control,
-                                   HyScanSourceType           source,
+                                   HyScanBoardType            board,
                                    HyScanGeneratorSignalType  signal)
 {
   HyScanGeneratorControlPrivate *priv;
@@ -447,7 +446,7 @@ hyscan_generator_control_set_auto (HyScanGeneratorControl    *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (control->priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (control->priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
   g_mutex_lock (&priv->lock);
@@ -460,7 +459,7 @@ hyscan_generator_control_set_auto (HyScanGeneratorControl    *control,
   if (!status)
     goto exit;
 
-  if (enable && !hyscan_generator_control_set_enable (control, source, FALSE))
+  if (enable && !hyscan_generator_control_set_enable (control, board, FALSE))
     goto exit;
 
   key_name = g_strdup_printf ("%s/auto/signal", generator->path);
@@ -474,7 +473,7 @@ hyscan_generator_control_set_auto (HyScanGeneratorControl    *control,
   /* Включаем генератор. */
   if (enable)
     {
-      if (hyscan_generator_control_set_enable (control, source, enable))
+      if (hyscan_generator_control_set_enable (control, board, enable))
         rstatus = TRUE;
     }
   else
@@ -491,7 +490,7 @@ exit:
 /* Функция включает упрощённый режим работы генератора. */
 gboolean
 hyscan_generator_control_set_simple (HyScanGeneratorControl    *control,
-                                     HyScanSourceType           source,
+                                     HyScanBoardType            board,
                                      HyScanGeneratorSignalType  type,
                                      gdouble                    power)
 {
@@ -513,7 +512,7 @@ hyscan_generator_control_set_simple (HyScanGeneratorControl    *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
 
@@ -525,7 +524,7 @@ hyscan_generator_control_set_simple (HyScanGeneratorControl    *control,
   if (!status)
     goto exit;
 
-  if (enable && !hyscan_generator_control_set_enable (control, source, FALSE))
+  if (enable && !hyscan_generator_control_set_enable (control, board, FALSE))
     goto exit;
 
   key_name = g_strdup_printf ("%s/simple/type", generator->path);
@@ -552,7 +551,7 @@ hyscan_generator_control_set_simple (HyScanGeneratorControl    *control,
   /* Включаем генератор. */
   if (enable)
     {
-      if (hyscan_generator_control_set_enable (control, source, enable))
+      if (hyscan_generator_control_set_enable (control, board, enable))
         rstatus = TRUE;
     }
   else
@@ -569,7 +568,7 @@ exit:
 /* Функция возвращает максимальную длительность сигнала. */
 gdouble
 hyscan_generator_control_get_max_duration (HyScanGeneratorControl    *control,
-                                           HyScanSourceType           source,
+                                           HyScanBoardType            board,
                                            HyScanGeneratorSignalType  signal)
 {
   HyScanGeneratorControlPrivate *priv;
@@ -585,7 +584,7 @@ hyscan_generator_control_get_max_duration (HyScanGeneratorControl    *control,
   if (priv->sonar == NULL)
     return -1.0;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return -1.0;
 
@@ -610,7 +609,7 @@ hyscan_generator_control_get_max_duration (HyScanGeneratorControl    *control,
 /* Функция включает тональный сигнал для излучения генератором. */
 gboolean
 hyscan_generator_control_set_tone (HyScanGeneratorControl *control,
-                                   HyScanSourceType        source,
+                                   HyScanBoardType         board,
                                    gdouble                 frequency,
                                    gdouble                 duration,
                                    gdouble                 power)
@@ -632,7 +631,7 @@ hyscan_generator_control_set_tone (HyScanGeneratorControl *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
 
@@ -644,7 +643,7 @@ hyscan_generator_control_set_tone (HyScanGeneratorControl *control,
   if (!status)
     goto exit;
 
-  if (enable && !hyscan_generator_control_set_enable (control, source, FALSE))
+  if (enable && !hyscan_generator_control_set_enable (control, board, FALSE))
     goto exit;
 
   key_name = g_strdup_printf ("%s/tone/frequency", generator->path);
@@ -680,7 +679,7 @@ hyscan_generator_control_set_tone (HyScanGeneratorControl *control,
   /* Включаем генератор. */
   if (enable)
     {
-      if (hyscan_generator_control_set_enable (control, source, enable))
+      if (hyscan_generator_control_set_enable (control, board, enable))
         rstatus = TRUE;
     }
   else
@@ -697,7 +696,7 @@ exit:
 /* Функция включает линейно-частотно модулированный сигнал для излучения генератором. */
 gboolean
 hyscan_generator_control_set_lfm (HyScanGeneratorControl *control,
-                                  HyScanSourceType        source,
+                                  HyScanBoardType         board,
                                   gboolean                decreasing,
                                   gdouble                 low_frequency,
                                   gdouble                 high_frequency,
@@ -722,7 +721,7 @@ hyscan_generator_control_set_lfm (HyScanGeneratorControl *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
 
@@ -734,7 +733,7 @@ hyscan_generator_control_set_lfm (HyScanGeneratorControl *control,
   if (!status)
     goto exit;
 
-  if (enable && !hyscan_generator_control_set_enable (control, source, FALSE))
+  if (enable && !hyscan_generator_control_set_enable (control, board, FALSE))
     goto exit;
 
   key_name = g_strdup_printf ("%s/lfm/decreasing", generator->path);
@@ -788,7 +787,7 @@ hyscan_generator_control_set_lfm (HyScanGeneratorControl *control,
   /* Включаем генератор. */
   if (enable)
     {
-      if (hyscan_generator_control_set_enable (control, source, enable))
+      if (hyscan_generator_control_set_enable (control, board, enable))
         rstatus = TRUE;
     }
   else
@@ -805,7 +804,7 @@ exit:
 /* Функция включает или выключает формирование сигнала генератором. */
 gboolean
 hyscan_generator_control_set_enable (HyScanGeneratorControl *control,
-                                     HyScanSourceType        source,
+                                     HyScanBoardType         board,
                                      gboolean                enable)
 {
   HyScanGeneratorControlPrivate *priv;
@@ -822,7 +821,7 @@ hyscan_generator_control_set_enable (HyScanGeneratorControl *control,
   if (priv->sonar == NULL)
     return FALSE;
 
-  generator = g_hash_table_lookup (priv->gens_by_source, GINT_TO_POINTER (source));
+  generator = g_hash_table_lookup (priv->gens_by_board, GINT_TO_POINTER (board));
   if (generator == NULL)
     return FALSE;
 

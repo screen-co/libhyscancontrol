@@ -21,6 +21,10 @@
  * - #hyscan_sonar_schema_sensor_add_uart_mode - функция добавляет определение режима работы UART устройства;
  * - #hyscan_sonar_schema_sensor_add_ip_address - функция добавляет определение IP адреса для IP порта.
  *
+ * Функция определения борта гидролокатора:
+ *
+ * - #hyscan_sonar_schema_board_add - функция добавляет определение борта гидролокатора;
+ *
  * Функции определения генераторов гидролокатора:
  *
  * - #hyscan_sonar_schema_generator_add - функция добавляет определение генератора;
@@ -130,10 +134,23 @@ gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSo
 
 /**
  *
+ * Функция добавляет в схему описание борта гидролокатора.
+ *
+ * \param schema указатель на объект \link HyScanSonarSchema \endlink;
+ * \param board тип борта гидролокатора.
+ *
+ * \return Уникальный идентификатор борта гидролокатора в схеме или отрицательное число в случае ошибки.
+ *
+ */
+gint                   hyscan_sonar_schema_board_add                   (HyScanSonarSchema             *schema,
+                                                                        HyScanBoardType                board);
+
+/**
+ *
  * Функция добавляет в схему описание генератора гидролокатора.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param source тип источника данных (идентификатор генератора);
+ * \param board тип борта гидролокатора;
  * \param capabilities флаги возможных режимов работы генератора;
  * \param signals флаги возможных типов сигналов;
  * \param low_frequency нижняя частота полосы излучаемого сигнала;
@@ -144,7 +161,7 @@ gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSo
  *
  */
 gint                   hyscan_sonar_schema_generator_add               (HyScanSonarSchema             *schema,
-                                                                        HyScanSourceType               source,
+                                                                        HyScanBoardType                board,
                                                                         HyScanGeneratorModeType        capabilities,
                                                                         HyScanGeneratorSignalType      signals,
                                                                         gdouble                        low_frequency,
@@ -156,14 +173,14 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  * Функция добавляет в схему вариант значения преднастройки генератора.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param source тип источника данных (идентификатор генератора);
+ * \param board тип борта гидролокатора;
  * \param name название варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
 gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSonarSchema             *schema,
-                                                                        HyScanSourceType               source,
+                                                                        HyScanBoardType                board,
                                                                         const gchar                   *name);
 
 G_END_DECLS

@@ -28,6 +28,7 @@ add_library (hyscancontrol SHARED
              hyscan-write-control.c
              hyscan-sensor-control.c
              hyscan-generator-control.c
+             hyscan-tvg-control.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.c)
 
 target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${HYSCAN_LIBRARIES})

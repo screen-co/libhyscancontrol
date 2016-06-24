@@ -8,6 +8,8 @@
  *
  */
 
+#include <string.h>
+
 #include "hyscan-write-control.h"
 #include <hyscan-data-channel-writer.h>
 
@@ -38,6 +40,7 @@ struct _HyScanWriteControlPrivate
 
   GHashTable                  *sensor_channels;                /* Список каналов для записи данных от датчиков. */
   GHashTable                  *data_channels;                  /* Список каналов для записи гидролокационных данных. */
+  GHashTable                  *signals;                        /* Список образов сигналов. */
 
   gchar                       *project_name;                   /* Название проекта для записи данных. */
   gchar                       *track_name;                     /* Название галса для записи данных. */
@@ -58,6 +61,7 @@ static void    hyscan_write_control_object_finalize            (GObject         
 
 static void    hyscan_write_control_close_sensor_channel       (gpointer               data);
 static void    hyscan_write_control_close_data_channel         (gpointer               data);
+static void    hyscan_write_control_free_signal                (gpointer               data);
 
 static void    hyscan_write_control_class_stop_int             (HyScanWriteControlPrivate *priv);
 
@@ -138,6 +142,10 @@ hyscan_write_control_object_constructed (GObject *object)
   /* Список каналов для записи гидролокационных данных. */
   priv->data_channels = g_hash_table_new_full (g_str_hash, g_str_equal,
                                                NULL, hyscan_write_control_close_data_channel);
+
+  /* Список образов сигналов. */
+  priv->signals = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                                         NULL, hyscan_write_control_free_signal);
 }
 
 static void
@@ -149,8 +157,9 @@ hyscan_write_control_object_finalize (GObject *object)
   g_free (priv->project_name);
   g_free (priv->track_name);
 
-  g_hash_table_unref (priv->sensor_channels);
-  g_hash_table_unref (priv->data_channels);
+  g_clear_pointer(&priv->sensor_channels, g_hash_table_unref);
+  g_clear_pointer(&priv->data_channels, g_hash_table_unref);
+  g_clear_pointer(&priv->signals, g_hash_table_unref);
 
   g_clear_object (&priv->db);
 
@@ -181,6 +190,16 @@ hyscan_write_control_close_data_channel (gpointer data)
 
   g_free (channel->name);
   g_free (channel);
+}
+
+/* Функция освобождает память занятую структурой HyScanWriteSignal. */
+static void
+hyscan_write_control_free_signal (gpointer data)
+{
+  HyScanWriteSignal *signal = data;
+
+  g_free (signal->points);
+  g_free (signal);
 }
 
 /* Внутренняя функция отключения записи данных. */
@@ -247,7 +266,10 @@ hyscan_write_control_class_stop (HyScanWriteControl *control)
     return;
 
   g_mutex_lock (&control->priv->lock);
+
   hyscan_write_control_class_stop_int (control->priv);
+  g_hash_table_remove_all (control->priv->signals);
+
   g_mutex_unlock (&control->priv->lock);
 }
 
@@ -297,7 +319,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_mutex_lock (&control->priv->lock);
+  g_mutex_lock (&priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -320,7 +342,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_mutex_unlock (&control->priv->lock);
+  g_mutex_unlock (&priv->lock);
   return status;
 }
 
@@ -342,7 +364,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_mutex_lock (&control->priv->lock);
+  g_mutex_lock (&priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -365,7 +387,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_mutex_unlock (&control->priv->lock);
+  g_mutex_unlock (&priv->lock);
   return status;
 }
 
@@ -387,7 +409,7 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_mutex_lock (&control->priv->lock);
+  g_mutex_lock (&priv->lock);
 
   g_hash_table_iter_init (&iter, priv->sensor_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
@@ -410,19 +432,20 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
   status = TRUE;
 
 exit:
-  g_mutex_unlock (&control->priv->lock);
+  g_mutex_unlock (&priv->lock);
   return status;
 }
 
 /* Функция записывает данные от датчиков в систему хранения. */
 gboolean
-hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
+hyscan_write_control_sensor_add_data (HyScanWriteControl      *control,
                                       HyScanWriteData         *data,
                                       HyScanSensorChannelInfo *info)
 {
   HyScanWriteControlPrivate *priv;
 
   HyScanWriteControlSensorChannel *channel;
+  const gchar *name;
   gboolean status = FALSE;
 
   g_return_val_if_fail (HYSCAN_IS_WRITE_CONTROL (control), FALSE);
@@ -432,21 +455,28 @@ hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_mutex_lock (&control->priv->lock);
+  /* Название канала для записи данных. */
+  name = hyscan_channel_get_name_by_types (data->source, data->raw, data->channel);
+  if (name == NULL)
+    return FALSE;
+
+  g_mutex_lock (&priv->lock);
 
   if (!priv->write)
     goto exit;
 
   /* Ищем канал для записи данных, при необходимости содаём новый. */
-  channel = g_hash_table_lookup (priv->sensor_channels, data->name);
+  channel = g_hash_table_lookup (priv->sensor_channels, name);
   if (channel == NULL)
     {
       channel = g_new (HyScanWriteControlSensorChannel, 1);
 
       channel->db = priv->db;
-      channel->name = g_strdup (data->name);
-      channel->id = hyscan_channel_sensor_create (priv->db, priv->project_name, priv->track_name,
-                                                  data->name, info);
+      channel->name = g_strdup (name);
+      channel->id = hyscan_channel_sensor_create (priv->db,
+                                                  priv->project_name,
+                                                  priv->track_name,
+                                                  name, info);
 
       if (priv->chunk_size > 0)
         hyscan_db_channel_set_chunk_size (priv->db, channel->id, priv->chunk_size);
@@ -465,19 +495,20 @@ hyscan_write_control_add_sensor_data (HyScanWriteControl      *control,
   status =  hyscan_db_channel_add_data (priv->db, channel->id, data->time, data->data, data->size, NULL);
 
 exit:
-  g_mutex_unlock (&control->priv->lock);
+  g_mutex_unlock (&priv->lock);
   return status;
 }
 
 /* Функция записывает гидролокационные данные. */
 gboolean
-hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
-                                        HyScanWriteData       *data,
-                                        HyScanDataChannelInfo *info)
+hyscan_write_control_sonar_add_data (HyScanWriteControl    *control,
+                                     HyScanWriteData       *data,
+                                     HyScanDataChannelInfo *info)
 {
   HyScanWriteControlPrivate *priv;
 
   HyScanWriteControlDataChannel *channel;
+  const gchar *name;
   gboolean status = FALSE;
 
   g_return_val_if_fail (HYSCAN_IS_WRITE_CONTROL (control), FALSE);
@@ -487,20 +518,27 @@ hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
   if (priv->db == NULL)
     return FALSE;
 
-  g_mutex_lock (&control->priv->lock);
+  /* Название канала для записи данных. */
+  name = hyscan_channel_get_name_by_types (data->source, data->raw, data->channel);
+  if (name == NULL)
+    return FALSE;
+
+  g_mutex_lock (&priv->lock);
 
   if (!priv->write)
     goto exit;
 
   /* Ищем канал для записи данных, при необходимости содаём новый. */
-  channel = g_hash_table_lookup (priv->data_channels, data->name);
+  channel = g_hash_table_lookup (priv->data_channels, name);
   if (channel == NULL)
     {
       channel = g_new (HyScanWriteControlDataChannel, 1);
 
-      channel->name = g_strdup (data->name);
-      channel->writer = hyscan_data_channel_writer_new (priv->db, priv->project_name, priv->track_name,
-                                                        data->name, info);
+      channel->name = g_strdup (name);
+      channel->writer = hyscan_data_channel_writer_new (priv->db,
+                                                        priv->project_name,
+                                                        priv->track_name,
+                                                        name, info);
 
       if (priv->chunk_size > 0)
         hyscan_data_channel_writer_set_chunk_size (channel->writer, priv->chunk_size);
@@ -509,6 +547,8 @@ hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
       if (priv->save_size > 0)
         hyscan_data_channel_writer_set_save_size (channel->writer, priv->save_size);
 
+      #warning "Save signal"
+
       g_hash_table_insert (priv->data_channels, channel->name, channel);
     }
 
@@ -516,6 +556,53 @@ hyscan_write_control_add_acoustic_data (HyScanWriteControl    *control,
   status =  hyscan_data_channel_writer_add_data (channel->writer, data->time, data->data, data->size);
 
 exit:
-  g_mutex_unlock (&control->priv->lock);
+  g_mutex_unlock (&priv->lock);
+  return status;
+}
+
+/* Функция записывает образ сигнала для свёртки. */
+gboolean
+hyscan_write_control_sonar_add_signal (HyScanWriteControl *control,
+                                       HyScanWriteSignal  *signal)
+{
+  HyScanWriteControlPrivate *priv;
+
+  HyScanWriteSignal *cur_signal;
+  gboolean status = FALSE;
+
+  g_return_val_if_fail (HYSCAN_IS_WRITE_CONTROL (control), FALSE);
+
+  priv = control->priv;
+
+  if (priv->db == NULL)
+    return FALSE;
+
+  g_mutex_lock (&priv->lock);
+
+  /* Текущий образ сигнала. */
+  cur_signal = g_hash_table_lookup (priv->signals, GINT_TO_POINTER (signal->board));
+  if (cur_signal == NULL)
+    {
+      cur_signal = g_new0 (HyScanWriteSignal, 1);
+      cur_signal->board = signal->board;
+      cur_signal->time = signal->time;
+    }
+
+  /* Сохраняем новый образ сигнала. */
+  cur_signal->time = signal->time;
+  cur_signal->n_points = signal->n_points;
+  g_clear_pointer (&cur_signal->points, g_free);
+
+  if (signal->n_points > 0)
+    {
+    cur_signal->points = g_new (HyScanComplexFloat, signal->n_points);
+    memcpy (cur_signal->points, signal->points, signal->n_points * sizeof (HyScanComplexFloat));
+    }
+
+  #warning "Save signal"
+  status = TRUE;
+
+exit:
+  g_mutex_unlock (&priv->lock);
   return status;
 }
