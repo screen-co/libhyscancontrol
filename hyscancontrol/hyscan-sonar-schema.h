@@ -16,28 +16,26 @@
  *
  * Функции определения портов для подключения датчиков:
  *
- * - #hyscan_sonar_schema_sensor_add - функция добаляет определение порта;
- * - #hyscan_sonar_schema_sensor_add_uart_device - функция добавляет определение UART устройства;
- * - #hyscan_sonar_schema_sensor_add_uart_mode - функция добавляет определение режима работы UART устройства;
- * - #hyscan_sonar_schema_sensor_add_ip_address - функция добавляет определение IP адреса для IP порта.
+ * - #hyscan_sonar_schema_sensor_add - функция добаляет описание порта;
+ * - #hyscan_sonar_schema_sensor_add_uart_device - функция добавляет вариант значения поля устройства для порта типа UART;
+ * - #hyscan_sonar_schema_sensor_add_uart_mode - функция добавляет вариант значения поля режима обмена данными с UART устройством;
+ * - #hyscan_sonar_schema_sensor_add_ip_address - функция добавляет вариант значения поля IP адреса для порта типа IP.
  *
- * Функция определения борта гидролокатора:
+ * Функция определения параметров гидролокатора:
  *
- * - #hyscan_sonar_schema_board_add - функция добавляет определение борта гидролокатора;
- *
- * Функции определения генераторов гидролокатора:
- *
- * - #hyscan_sonar_schema_generator_add - функция добавляет определение генератора;
- * - #hyscan_sonar_schema_generator_add_preset - функция добавляет определение преднастройки генератора.
+ * - #hyscan_sonar_schema_sync_add - функция добавляет описание системы синхронизации излучения;
+ * - #hyscan_sonar_schema_board_add - функция добавляет описание борта гидролокатора;
+ * - #hyscan_sonar_schema_generator_add - функция добавляет описание генератора;
+ * - #hyscan_sonar_schema_generator_add_preset - функция добавляет вариант значения преднастройки генератора;
+ * - #hyscan_sonar_schema_tvg_add - функция добавляет в схему описание системы ВАРУ для борта;
+ * - #hyscan_sonar_schema_channel_add - функция добавляет в схему описание приёмного канала борта.
  *
  */
 
 #ifndef __HYSCAN_SONAR_SCHEMA_H__
 #define __HYSCAN_SONAR_SCHEMA_H__
 
-#include <hyscan-core-types.h>
-#include <hyscan-sensor-control.h>
-#include <hyscan-generator-control.h>
+#include <hyscan-sonar-control.h>
 #include <hyscan-data-schema-builder.h>
 
 G_BEGIN_DECLS
@@ -65,6 +63,7 @@ struct _HyScanSonarSchemaClass
   HyScanDataSchemaBuilderClass parent_class;
 };
 
+HYSCAN_CONTROL_EXPORT
 GType                  hyscan_sonar_schema_get_type                    (void);
 
 /**
@@ -74,6 +73,7 @@ GType                  hyscan_sonar_schema_get_type                    (void);
  * \return Указатель на объект \link HyScanSonarSchema \endlink.
  *
  */
+HYSCAN_CONTROL_EXPORT
 HyScanSonarSchema     *hyscan_sonar_schema_new                         (void);
 
 /**
@@ -88,6 +88,7 @@ HyScanSonarSchema     *hyscan_sonar_schema_new                         (void);
  * \return Уникальный идентификатор порта в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_sensor_add                  (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name,
                                                                         HyScanSensorPortType           type,
@@ -103,6 +104,7 @@ gint                   hyscan_sonar_schema_sensor_add                  (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_sensor_add_uart_device      (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
 
@@ -116,6 +118,7 @@ gint                   hyscan_sonar_schema_sensor_add_uart_device      (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_sensor_add_uart_mode        (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
 
@@ -129,21 +132,43 @@ gint                   hyscan_sonar_schema_sensor_add_uart_mode        (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
+
+/**
+ *
+ * Функция добавляет в схему описание системы синхронизации излучения.
+ *
+ * \param schema указатель на объект \link HyScanSonarSchema \endlink;
+ * \param capabilities типы синхронизации излучения.
+ *
+ * \return TRUE - если функция успешно выполнена, FALSE - в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_sonar_schema_sync_add                    (HyScanSonarSchema             *schema,
+                                                                        HyScanSonarSyncType            capabilities);
 
 /**
  *
  * Функция добавляет в схему описание борта гидролокатора.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора.
+ * \param board тип борта гидролокатора;
+ * \param vertical_pattern диаграмма направленности в вертикальной плоскости;
+ * \param horizontal_pattern диаграмма направленности в горизонтальной плоскости;
+ * \param max_receive_time максимальное время приёма данных бортом, с.
  *
  * \return Уникальный идентификатор борта гидролокатора в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_board_add                   (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board);
+                                                                        HyScanBoardType                board,
+                                                                        gdouble                        vertical_pattern,
+                                                                        gdouble                        horizontal_pattern,
+                                                                        gdouble                        max_receive_time);
 
 /**
  *
@@ -153,20 +178,23 @@ gint                   hyscan_sonar_schema_board_add                   (HyScanSo
  * \param board тип борта гидролокатора;
  * \param capabilities флаги возможных режимов работы генератора;
  * \param signals флаги возможных типов сигналов;
- * \param low_frequency нижняя частота полосы излучаемого сигнала;
- * \param high_frequency верхняя частота полосы излучаемого сигнала;
- * \param max_duration максимальная длительность излучаемого сигнала.
+ * \param min_tone_duration минимальная длительность тонального сигнала;
+ * \param max_tone_duration максимальная длительность тонального сигнала;
+ * \param min_lfm_duration минимальная длительность ЛЧМ сигнала;
+ * \param max_lfm_duration максимальная длительность ЛЧМ сигнала.
  *
  * \return Уникальный идентификатор генератора в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_generator_add               (HyScanSonarSchema             *schema,
                                                                         HyScanBoardType                board,
                                                                         HyScanGeneratorModeType        capabilities,
                                                                         HyScanGeneratorSignalType      signals,
-                                                                        gdouble                        low_frequency,
-                                                                        gdouble                        high_frequency,
-                                                                        gdouble                        max_duration);
+                                                                        gdouble                        min_tone_duration,
+                                                                        gdouble                        max_tone_duration,
+                                                                        gdouble                        min_lfm_duration,
+                                                                        gdouble                        max_lfm_duration);
 
 /**
  *
@@ -179,9 +207,68 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
+HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSonarSchema             *schema,
                                                                         HyScanBoardType                board,
                                                                         const gchar                   *name);
+
+/**
+ *
+ * Функция добавляет в схему описание системы ВАРУ для борта.
+ *
+ * \param schema указатель на объект \link HyScanSonarSchema \endlink;
+ * \param board тип борта гидролокатора;
+ * \param capabilities флаги возможных режимов работы ВАРУ;
+ * \param min_gain минимальное значение коэффициента усиления, дБ;
+ * \param max_gain максимальное значение коэффициента усиления, дБ.
+ *
+ * \return Уникальный идентификатор ВАРУ в схеме или отрицательное число в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gint                   hyscan_sonar_schema_tvg_add                     (HyScanSonarSchema             *schema,
+                                                                        HyScanBoardType                board,
+                                                                        HyScanTVGModeType              capabilities,
+                                                                        gdouble                        min_gain,
+                                                                        gdouble                        max_gain);
+
+/**
+ *
+ * Функция добавляет в схему описание приёмного канала борта.
+ *
+ * \param schema указатель на объект \link HyScanSonarSchema \endlink;
+ * \param board тип борта гидролокатора;
+ * \param index индекс канала данных;
+ * \param discretization_type тип дискретизации \link HyScanDataType \endlink;
+ * \param discretization_frequency частота дискретизации, Гц.
+ *
+ * \return Уникальный идентификатор приёмного канала в схеме или отрицательное число в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gint                   hyscan_sonar_schema_channel_add                 (HyScanSonarSchema             *schema,
+                                                                        HyScanBoardType                board,
+                                                                        gint                           index,
+                                                                        HyScanDataType                 discretization_type,
+                                                                        gfloat                         discretization_frequency);
+
+/**
+ *
+ * Функция добавляет в схему описание источника "акустических" данных.
+ *
+ * \param schema указатель на объект \link HyScanSonarSchema \endlink;
+ * \param board тип борта гидролокатора;
+ * \param discretization_type тип дискретизации \link HyScanDataType \endlink;
+ * \param discretization_frequency частота дискретизации, Гц.
+ *
+ * \return Уникальный идентификатор источника "акустических" данных в схеме или отрицательное число в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gint                   hyscan_sonar_schema_source_add_acuostic         (HyScanSonarSchema             *schema,
+                                                                        HyScanBoardType                board,
+                                                                        HyScanDataType                 discretization_type,
+                                                                        gfloat                         discretization_frequency);
 
 G_END_DECLS
 

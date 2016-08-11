@@ -15,7 +15,7 @@
  *
  * Каждый гидролокатор имеет некоторое число бортов, с каждым из которых связан генератор.
  * Для идентификации генераторов используются типы бортов гидролокатора \link HyScanBoardType \endlink.
- * Число генераторов зависит от типа гидролокатора.
+ * Число бортов зависит от типа гидролокатора.
  *
  * Каждый генератор имеет несколько способов установки излучаемого сигнала. Для определения
  * возможностей генератора используются функции #hyscan_generator_control_get_capabilities и
@@ -36,17 +36,15 @@
  * При выборе автоматического режима работы, генератор автоматически установит характеристики сигнала.
  * Для включения этого режима предназначена функция #hyscan_generator_control_set_auto.
  *
- * В упрощённом режиме работы генератора необходимо выбрать тип сигнала и его энергию. Энергия сигнала
- * указывается в процентах, от 0 до 100 включительно. В этом случае не допускается автоматический выбор
- * сигнала, необходимо явным образом указать его тип. Включение упрощённого режима осуществляется
- * функцией #hyscan_generator_control_set_simple.
+ * В упрощённом режиме работы генератора необходимо выбрать тип сигнала и его энергию. Тип сигнала дожен
+ * быть указан явным образом, выбор автоматического типа сигнала не допустим. Энергия сигнала указывается
+ * в процентах, от 0 до 100 включительно. Включение упрощённого режима осуществляется функцией
+ * #hyscan_generator_control_set_simple.
  *
- * В расширенном режиме работы генератора возможно установить тип сигнала и его характеристики
- * самостоятельно. Функции #hyscan_generator_control_set_tone и #hyscan_generator_control_set_lfm
- * используются для установки излучения тонального или ЛЧМ сигнала соотвенно. Допустимые пределы
- * излучаемых частот зависят от модели гидролокатора. Энергия сигнала указывается в процентах,
- * от 0 до 100 включительно. Максимально возможную длительность сигнала можно узнать с помощью функции
- * #hyscan_generator_control_get_max_duration.
+ * В расширенном режиме работы генератора возможно установить тип сигнала, его энергию и длительность.
+ * Энергия и тип сигнала задаются аналогично упрощённому режиму. Диапазоны длительности сигнала
+ * можно узнать с помощью функции #hyscan_generator_control_get_duration_range. Включение упрощённого
+ * режима осуществляется функцией #hyscan_generator_control_set_extended.
  *
  * Любой из генераторов можно включить или выключить. Эта возможность полезна при проведении
  * технологических работ и экспериментов. Для этого предназначена функция
@@ -141,6 +139,27 @@ HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HySc
 
 /**
  *
+ * Функция возвращает максимальную длительность сигнала, которую может
+ * сформировать генератор.
+ *
+ * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
+ * \param board идентификатор борта гидролокатора;
+ * \param signal тип сигнала;
+ * \param min_duration минимальная длительность сигнала, с;
+ * \param max_duration максимальная длительность сигнала, с.
+ *
+ * \return TRUE - если функция выполнена успешно, FALSE - в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean                       hyscan_generator_control_get_duration_range (HyScanGeneratorControl    *control,
+                                                                            HyScanBoardType            board,
+                                                                            HyScanGeneratorSignalType  signal,
+                                                                            gdouble                   *min_duration,
+                                                                            gdouble                   *max_duration);
+
+/**
+ *
  * Функция возвращает список преднастроек генератора. Пользователь должен освободить
  * память, занимаемую списком, функцией \link hyscan_data_schema_free_enum_values \endlink.
  *
@@ -206,28 +225,11 @@ gboolean                       hyscan_generator_control_set_simple         (HySc
 
 /**
  *
- * Функция возвращает максимальную длительность сигнала, которую может
- * сформировать генератор.
- *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
- * \param board идентификатор борта гидролокатора;
- * \param signal тип сигнала.
- *
- * \return Максимальная длительность сигнала, отрицательное число в случае ошибки.
- *
- */
-HYSCAN_CONTROL_EXPORT
-gdouble                        hyscan_generator_control_get_max_duration   (HyScanGeneratorControl    *control,
-                                                                            HyScanBoardType            board,
-                                                                            HyScanGeneratorSignalType  signal);
-
-/**
- *
- * Функция включает тональный сигнал для излучения генератором.
+ * Функция включает расширенный режим работы генератора.
  *
  * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
  * \param board идентификатор борта гидролокатора;
- * \param frequency частота излучаемого сигнала, Гц;
+ * \param signal тип сигнала;
  * \param duration длительность сигнала, с;
  * \param power энергия сигнала, проценты.
  *
@@ -235,33 +237,9 @@ gdouble                        hyscan_generator_control_get_max_duration   (HySc
  *
  */
 HYSCAN_CONTROL_EXPORT
-gboolean                       hyscan_generator_control_set_tone           (HyScanGeneratorControl    *control,
+gboolean                       hyscan_generator_control_set_extended       (HyScanGeneratorControl    *control,
                                                                             HyScanBoardType            board,
-                                                                            gdouble                    frequency,
-                                                                            gdouble                    duration,
-                                                                            gdouble                    power);
-
-/**
- *
- * Функция включает линейно-частотно модулированный сигнал для излучения генератором.
- *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
- * \param board идентификатор борта гидролокатора;
- * \param decreasing увеличение (FALSE) или уменьшение (TRUE) частоты;
- * \param low_frequency нижняя частота излучаемого сигнала, Гц;
- * \param high_frequency верхняя частота излучаемого сигнала, Гц;
- * \param duration длительность сигнала, с,
- * \param power энергия сигнала, проценты.
- *
- * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
- *
- */
-HYSCAN_CONTROL_EXPORT
-gboolean                       hyscan_generator_control_set_lfm            (HyScanGeneratorControl    *control,
-                                                                            HyScanBoardType            board,
-                                                                            gboolean                   decreasing,
-                                                                            gdouble                    low_frequency,
-                                                                            gdouble                    high_frequency,
+                                                                            HyScanGeneratorSignalType  signal,
                                                                             gdouble                    duration,
                                                                             gdouble                    power);
 

@@ -33,8 +33,8 @@
  *
  * Для записи данных предназначены функции:
  *
- * - #hyscan_write_control_add_sensor_data - записывает данные от датчиков;
- * - #hyscan_write_control_add_acoustic_data - записывает гидролокационные данные.
+ * - #hyscan_write_control_sensor_add_data - записывает данные от датчиков;
+ * - #hyscan_write_control_sonar_add_data - записывает гидролокационные данные.
  *
  * Класс HyScanWriteControl поддерживает работу в многопоточном режиме.
  *
@@ -46,25 +46,11 @@
 #include <hyscan-db.h>
 #include <hyscan-core-types.h>
 #include <hyscan-control-exports.h>
+#include <hyscan-control.h>
 
 G_BEGIN_DECLS
 
-/** \brief Типы бортов гидролокаторов */
-typedef enum
-{
-  HYSCAN_BOARD_INVALID                              = 0,       /**< Недопустимый тип, ошибка. */
-
-  HYSCAN_BOARD_STARBOARD                            = 101,     /**< Правый борт. */
-  HYSCAN_BOARD_PORT                                 = 102,     /**< Левый борт. */
-  HYSCAN_BOARD_STARBOARD_HI                         = 103,     /**< Правый борт, высокое разрашение. */
-  HYSCAN_BOARD_PORT_HI                              = 104,     /**< Левый борт, высокое разрашение. */
-  HYSCAN_BOARD_ECHOSOUNDER                          = 105,     /**< Эхолот. */
-  HYSCAN_BOARD_PROFILER                             = 106,     /**< Профилограф. */
-  HYSCAN_BOARD_LOOK_AROUND                          = 107,     /**< Круговой обзор. */
-  HYSCAN_BOARD_FORWARD_LOOK                         = 108      /**< Вперёдсмотрящий гидролокатор. */
-} HyScanBoardType;
-
-/** \brief Данные для записи. */
+/** \brief Данные для записи */
 typedef struct
 {
   HyScanSourceType             source;                         /**< Тип источника данных. */
@@ -75,7 +61,7 @@ typedef struct
   gconstpointer                data;                           /**< Данные. */
 } HyScanWriteData;
 
-/** \brief Образ излучаемого сигнала для свёртки. */
+/** \brief Образ излучаемого сигнала для свёртки */
 typedef struct
 {
   HyScanBoardType              board;                          /**< Идентификатор борта гидролокатора. */
@@ -84,16 +70,14 @@ typedef struct
   HyScanComplexFloat          *points;                         /**< Образ сигнала для свёртки. */
 } HyScanWriteSignal;
 
-/** \brief Значения параметров усиления системы ВАРУ. */
+/** \brief Значения параметров усиления системы ВАРУ */
 typedef struct
 {
-  HyScanSourceType             source;                         /**< Тип источника данных. */
-  gint                         channel;                        /**< Номер канала данных. */
+  HyScanBoardType              board;                          /**< Идентификатор борта гидролокатора. */
   gint64                       time;                           /**< Время начала действия параметров системы ВАРУ. */
-  gfloat                       dtime;                          /**< Шаг времени изменения коэффициента передачи, с. */
   guint32                      n_gains;                        /**< Число коэффициентов передачи. */
   gfloat                      *gains;                          /**< Коэффициенты передачи приёмного тракта, дБ. */
-} HyScanWriteTVG;
+} HyScanWriteGain;
 
 #define HYSCAN_TYPE_WRITE_CONTROL             (hyscan_write_control_get_type ())
 #define HYSCAN_WRITE_CONTROL(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_WRITE_CONTROL, HyScanWriteControl))
@@ -116,12 +100,6 @@ struct _HyScanWriteControl
 struct _HyScanWriteControlClass
 {
   GObjectClass parent_class;
-
-  gboolean           (*start)                                  (HyScanWriteControl            *control,
-                                                                const gchar                   *project_name,
-                                                                const gchar                   *track_name);
-
-  void               (*stop)                                   (HyScanWriteControl            *control);
 };
 
 HYSCAN_CONTROL_EXPORT
@@ -250,6 +228,21 @@ gboolean               hyscan_write_control_sonar_add_data     (HyScanWriteContr
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_write_control_sonar_add_signal   (HyScanWriteControl            *control,
                                                                 HyScanWriteSignal             *signal);
+
+/**
+ *
+ * Функция записывает параметры системы ВАРУ во все каналы с сырыми гидролокационными
+ * данными, которые связаны с определённым бортом.
+ *
+ * \param control указатель на интерфейс \link HyScanWriteControl \endlink;
+ * \param gain параметры системы ВАРУ.
+ *
+ * \return TRUE - если данные успешно записаны, FALSE - в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_write_control_sonar_add_gain     (HyScanWriteControl            *control,
+                                                                HyScanWriteGain               *gain);
 
 G_END_DECLS
 

@@ -10,6 +10,7 @@
 
 #include <string.h>
 
+#include "hyscan-control-common.h"
 #include "hyscan-write-control.h"
 #include <hyscan-data-channel-writer.h>
 
@@ -29,6 +30,8 @@ typedef struct
 typedef struct
 {
   gchar                       *name;                           /* Название канала для записи данных. */
+  HyScanBoardType              board;                          /* Идентификатор борта. */
+  gboolean                     raw;                            /* Признак "сырых" данных. */
   HyScanDataChannelWriter     *writer;                         /* Объект записи данных. */
 } HyScanWriteControlDataChannel;
 
@@ -65,11 +68,6 @@ static void    hyscan_write_control_free_signal                (gpointer        
 
 static void    hyscan_write_control_class_stop_int             (HyScanWriteControlPrivate *priv);
 
-static gboolean  hyscan_write_control_class_start              (HyScanWriteControl    *control,
-                                                                const gchar           *project_name,
-                                                                const gchar           *track_name);
-static void    hyscan_write_control_class_stop                 (HyScanWriteControl    *control);
-
 G_DEFINE_TYPE_WITH_PRIVATE (HyScanWriteControl, hyscan_write_control, G_TYPE_OBJECT)
 
 static void
@@ -81,9 +79,6 @@ hyscan_write_control_class_init (HyScanWriteControlClass *klass)
 
   object_class->constructed = hyscan_write_control_object_constructed;
   object_class->finalize = hyscan_write_control_object_finalize;
-
-  klass->start = hyscan_write_control_class_start;
-  klass->stop = hyscan_write_control_class_stop;
 
   g_object_class_install_property (object_class, PROP_DB,
     g_param_spec_object ("db", "DB", "HyScanDB interface", HYSCAN_TYPE_DB,
@@ -216,10 +211,10 @@ hyscan_write_control_class_stop_int (HyScanWriteControlPrivate *priv)
 }
 
 /* Функция включает запись данных. */
-static gboolean
-hyscan_write_control_class_start (HyScanWriteControl *control,
-                                  const gchar        *project_name,
-                                  const gchar        *track_name)
+gboolean
+hyscan_write_control_start (HyScanWriteControl *control,
+                            const gchar        *project_name,
+                            const gchar        *track_name)
 {
   HyScanWriteControlPrivate *priv;
   gboolean status = FALSE;
@@ -229,7 +224,7 @@ hyscan_write_control_class_start (HyScanWriteControl *control,
   priv = control->priv;
 
   if (priv->db == NULL)
-    return FALSE;
+    return TRUE;
 
   g_mutex_lock (&priv->lock);
 
@@ -253,12 +248,13 @@ hyscan_write_control_class_start (HyScanWriteControl *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
 /* Функция отключает запись данных. */
-static void
-hyscan_write_control_class_stop (HyScanWriteControl *control)
+void
+hyscan_write_control_stop (HyScanWriteControl *control)
 {
   g_return_if_fail (HYSCAN_IS_WRITE_CONTROL (control));
 
@@ -271,34 +267,6 @@ hyscan_write_control_class_stop (HyScanWriteControl *control)
   g_hash_table_remove_all (control->priv->signals);
 
   g_mutex_unlock (&control->priv->lock);
-}
-
-/* Функция включает запись данных. */
-gboolean
-hyscan_write_control_start (HyScanWriteControl *control,
-                            const gchar        *project_name,
-                            const gchar        *track_name)
-{
-  HyScanWriteControlClass *klass;
-
-  g_return_val_if_fail (HYSCAN_IS_WRITE_CONTROL (control), FALSE);
-
-  klass = HYSCAN_WRITE_CONTROL_GET_CLASS (control);
-
-  return klass->start (control, project_name, track_name);
-}
-
-/* Функция отключает запись данных. */
-void
-hyscan_write_control_stop (HyScanWriteControl *control)
-{
-  HyScanWriteControlClass *klass;
-
-  g_return_if_fail (HYSCAN_IS_WRITE_CONTROL (control));
-
-  klass = HYSCAN_WRITE_CONTROL_GET_CLASS (control);
-
-  klass->stop (control);
 }
 
 /* Функция устанавливает максимальный размер файлов в галсе. */
@@ -329,7 +297,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
         goto exit;
     }
 
-  g_hash_table_iter_init (&iter, control->priv->sensor_channels);
+  g_hash_table_iter_init (&iter, priv->data_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
     {
       HyScanWriteControlDataChannel *channel = data;
@@ -343,6 +311,7 @@ hyscan_write_control_set_chunk_size (HyScanWriteControl *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
@@ -374,7 +343,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
         goto exit;
     }
 
-  g_hash_table_iter_init (&iter, control->priv->sensor_channels);
+  g_hash_table_iter_init (&iter, priv->data_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
     {
       HyScanWriteControlDataChannel *channel = data;
@@ -388,6 +357,7 @@ hyscan_write_control_set_save_time (HyScanWriteControl *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
@@ -419,7 +389,7 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
         goto exit;
     }
 
-  g_hash_table_iter_init (&iter, control->priv->sensor_channels);
+  g_hash_table_iter_init (&iter, priv->data_channels);
   while (g_hash_table_iter_next (&iter, NULL, &data))
     {
       HyScanWriteControlDataChannel *channel = data;
@@ -433,6 +403,7 @@ hyscan_write_control_set_save_size (HyScanWriteControl *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
@@ -496,6 +467,7 @@ hyscan_write_control_sensor_add_data (HyScanWriteControl      *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
@@ -532,9 +504,13 @@ hyscan_write_control_sonar_add_data (HyScanWriteControl    *control,
   channel = g_hash_table_lookup (priv->data_channels, name);
   if (channel == NULL)
     {
+      HyScanWriteSignal *signal;
+
       channel = g_new (HyScanWriteControlDataChannel, 1);
 
       channel->name = g_strdup (name);
+      channel->board = hyscan_control_get_board_type_by_source (data->source);
+      channel->raw = data->raw;
       channel->writer = hyscan_data_channel_writer_new (priv->db,
                                                         priv->project_name,
                                                         priv->track_name,
@@ -547,9 +523,18 @@ hyscan_write_control_sonar_add_data (HyScanWriteControl    *control,
       if (priv->save_size > 0)
         hyscan_data_channel_writer_set_save_size (channel->writer, priv->save_size);
 
-      #warning "Save signal"
-
       g_hash_table_insert (priv->data_channels, channel->name, channel);
+
+      if (channel->raw)
+        {
+          signal = g_hash_table_lookup (priv->signals, GINT_TO_POINTER (channel->board));
+
+          if (signal != NULL && signal-> points != NULL)
+            hyscan_data_channel_writer_add_signal_image (channel->writer,
+                                                         signal->time,
+                                                         signal->points,
+                                                         signal->n_points);
+        }
     }
 
   /* Записываем данные. */
@@ -557,6 +542,7 @@ hyscan_write_control_sonar_add_data (HyScanWriteControl    *control,
 
 exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
 }
 
@@ -568,6 +554,8 @@ hyscan_write_control_sonar_add_signal (HyScanWriteControl *control,
   HyScanWriteControlPrivate *priv;
 
   HyScanWriteSignal *cur_signal;
+  GHashTableIter iter;
+  gpointer data;
   gboolean status = FALSE;
 
   g_return_val_if_fail (HYSCAN_IS_WRITE_CONTROL (control), FALSE);
@@ -585,7 +573,6 @@ hyscan_write_control_sonar_add_signal (HyScanWriteControl *control,
     {
       cur_signal = g_new0 (HyScanWriteSignal, 1);
       cur_signal->board = signal->board;
-      cur_signal->time = signal->time;
     }
 
   /* Сохраняем новый образ сигнала. */
@@ -595,14 +582,37 @@ hyscan_write_control_sonar_add_signal (HyScanWriteControl *control,
 
   if (signal->n_points > 0)
     {
-    cur_signal->points = g_new (HyScanComplexFloat, signal->n_points);
-    memcpy (cur_signal->points, signal->points, signal->n_points * sizeof (HyScanComplexFloat));
+      cur_signal->points = g_new (HyScanComplexFloat, signal->n_points);
+      memcpy (cur_signal->points, signal->points, signal->n_points * sizeof (HyScanComplexFloat));
     }
 
-  #warning "Save signal"
+  g_hash_table_iter_init (&iter, priv->data_channels);
+  while (g_hash_table_iter_next (&iter, NULL, &data))
+    {
+      HyScanWriteControlDataChannel *channel = data;
+
+      if (channel->board != cur_signal->board || !channel->raw)
+        continue;
+
+      if (cur_signal-> points != NULL)
+        hyscan_data_channel_writer_add_signal_image (channel->writer,
+                                                     cur_signal->time,
+                                                     cur_signal->points,
+                                                     cur_signal->n_points);
+    }
+
   status = TRUE;
 
-exit:
   g_mutex_unlock (&priv->lock);
+
   return status;
+}
+
+gboolean
+hyscan_write_control_sonar_add_gain (HyScanWriteControl *control,
+                                     HyScanWriteGain    *gain)
+{
+  #warning "Add implementation"
+
+  return FALSE;
 }

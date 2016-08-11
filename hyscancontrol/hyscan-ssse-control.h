@@ -1,7 +1,26 @@
+/**
+ * \file hyscan-ssse-control.h
+ *
+ * \brief Заголовочный файл класса управления ГБОЭ
+ * \author Andrei Fadeev (andrei@webcontrol.ru)
+ * \date 2016
+ * \license Проприетарная лицензия ООО "Экран"
+ *
+ * \defgroup HyScanSSSEControl HyScanSSSEControl - класс управления ГБОЭ
+ *
+ * Класс HyScanSSSEControl наследуется от класса \link HyScanSonarControl \endlink и
+ * реализует управление и приём данных гидролокаторами бокового обзора с эхолотом (или без).
+ *
+ * Создание объекта HyScanSSSEControl производится функцией #hyscan_ssse_control_new.
+ *
+ * Определить наличие эхолота можно с помощью функции #hyscan_ssse_control_has_echosounder.
+ *
+ */
+
 #ifndef __HYSCAN_SSSE_CONTROL_H__
 #define __HYSCAN_SSSE_CONTROL_H__
 
-#include <hyscan-sensor-control.h>
+#include <hyscan-sonar-control.h>
 
 G_BEGIN_DECLS
 
@@ -18,22 +37,44 @@ typedef struct _HyScanSSSEControlClass HyScanSSSEControlClass;
 
 struct _HyScanSSSEControl
 {
-  HyScanSensorControl parent_instance;
+  HyScanSonarControl parent_instance;
 
   HyScanSSSEControlPrivate *priv;
 };
 
 struct _HyScanSSSEControlClass
 {
-  HyScanSensorControlClass parent_class;
+  HyScanSonarControlClass parent_class;
 };
 
+HYSCAN_CONTROL_EXPORT
 GType                  hyscan_ssse_control_get_type         (void);
 
-void                   hyscan_ssse_control_set_a            (HyScanSSSEControl *ssse_control,
-                                                        gint           a);
+/**
+ *
+ * Функция создаёт новый объект \link HyScanSSSEControl \endlink;
+ *
+ * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
+ * \param db указатель на интерфейс \link HyScanDB \endlink.
+ *
+ * \return Указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar           *sonar,
+                                                                HyScanDB              *db);
 
-gint                   hyscan_ssse_control_get_a            (HyScanSSSEControl *ssse_control);
+/**
+ *
+ * Функция определяет наличие эхолота.
+ *
+ * \param control указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ * \return TRUE - если эхолот присутствует, иначе - FALSE.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_ssse_control_has_echosounder     (HyScanSSSEControl     *control);
 
 G_END_DECLS
 

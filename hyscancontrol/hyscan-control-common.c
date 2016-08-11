@@ -116,6 +116,45 @@ hyscan_control_get_board_type (const gchar *name)
   return HYSCAN_BOARD_INVALID;
 }
 
+/* Функция возвращает идентификатор борта гидролокатора по типу источника данных. */
+HyScanBoardType
+hyscan_control_get_board_type_by_source (HyScanSourceType source)
+{
+  switch (source)
+    {
+    case HYSCAN_SOURCE_SIDE_SCAN_STARBOARD:
+    case HYSCAN_SOURCE_BATHYMETRY_STARBOARD:
+      return HYSCAN_BOARD_STARBOARD;
+
+    case HYSCAN_SOURCE_SIDE_SCAN_PORT:
+    case HYSCAN_SOURCE_BATHYMETRY_PORT:
+      return HYSCAN_BOARD_PORT;
+
+    case HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI:
+      return HYSCAN_BOARD_STARBOARD_HI;
+
+    case HYSCAN_SOURCE_SIDE_SCAN_PORT_HI:
+      return HYSCAN_BOARD_PORT_HI;
+
+    case HYSCAN_SOURCE_ECHOSOUNDER:
+      return HYSCAN_BOARD_ECHOSOUNDER;
+
+    case HYSCAN_SOURCE_PROFILER:
+      return HYSCAN_BOARD_PROFILER;
+
+    case HYSCAN_SOURCE_LOOK_AROUND:
+      return HYSCAN_BOARD_LOOK_AROUND;
+
+    case HYSCAN_SOURCE_FORWARD_LOOK:
+      return HYSCAN_BOARD_FORWARD_LOOK;
+
+    default:
+      break;
+    }
+
+  return HYSCAN_BOARD_INVALID;
+}
+
 /* Функция возвращает название источника данных по его идентификатору. */
 const gchar *
 hyscan_control_get_source_name (HyScanSourceType source)
@@ -153,4 +192,144 @@ hyscan_control_get_source_type (const gchar *name)
       return hyscan_source_type_info[i].source;
 
   return HYSCAN_SOURCE_INVALID;
+}
+
+/* Функция аккумулирует boolean ответы всех callback'ов .
+ * Здесь действует обратная логика, если какой-либо из callback'ов
+ * вернёт FALSE, аккумулятор вернёт TRUE. Это будет сигналом
+ * прекратить обработку запроса. */
+gboolean
+hyscan_control_boolean_accumulator (GSignalInvocationHint *ihint,
+                                    GValue                *return_accu,
+                                    const GValue          *handler_return,
+                                    gpointer              data)
+{
+  if (!g_value_get_boolean (handler_return))
+    {
+      g_value_set_boolean (return_accu, TRUE);
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+/* Функция ищет boolean параметр в списке и считывает его значение. */
+gboolean
+hyscan_control_find_boolean_param (const gchar         *name,
+                                   const gchar *const  *names,
+                                   GVariant           **values,
+                                   gboolean            *value)
+{
+  guint n_names;
+  guint i;
+
+  n_names = g_strv_length ((gchar**)names);
+  for (i = 0; i < n_names; i++)
+    {
+      if (g_strcmp0 (names[i], name) == 0)
+        {
+          if (values[i] == NULL)
+            return FALSE;
+
+          if (g_variant_classify (values[i]) != G_VARIANT_CLASS_BOOLEAN)
+            return FALSE;
+
+          *value = g_variant_get_boolean (values[i]);
+
+          return TRUE;
+        }
+
+    }
+
+  return FALSE;
+}
+
+/* Функция ищет integer параметр в списке и считывает его значение. */
+gboolean
+hyscan_control_find_integer_param (const gchar         *name,
+                                   const gchar *const  *names,
+                                   GVariant           **values,
+                                   gint64              *value)
+{
+  guint n_names;
+  guint i;
+
+  n_names = g_strv_length ((gchar**)names);
+  for (i = 0; i < n_names; i++)
+    {
+      if (g_strcmp0 (names[i], name) == 0)
+        {
+          if (values[i] == NULL)
+            return FALSE;
+
+          if (g_variant_classify (values[i]) != G_VARIANT_CLASS_INT64)
+            return FALSE;
+
+          *value = g_variant_get_int64 (values[i]);
+
+          return TRUE;
+        }
+
+    }
+
+  return FALSE;
+}
+
+/* Функция ищет double параметр в списке и считывает его значение. */
+gboolean
+hyscan_control_find_double_param (const gchar         *name,
+                                  const gchar *const  *names,
+                                  GVariant           **values,
+                                  gdouble             *value)
+{
+  guint n_names;
+  guint i;
+
+  n_names = g_strv_length ((gchar**)names);
+  for (i = 0; i < n_names; i++)
+    {
+      if (g_strcmp0 (names[i], name) == 0)
+        {
+          if (values[i] == NULL)
+            return FALSE;
+
+          if (g_variant_classify (values[i]) != G_VARIANT_CLASS_DOUBLE)
+            return FALSE;
+
+          *value = g_variant_get_double (values[i]);
+
+          return TRUE;
+        }
+
+    }
+
+  return FALSE;
+}
+
+/* Функция ищет string параметр в списке и считывает его значение. */
+const gchar *
+hyscan_control_find_string_param (const gchar         *name,
+                                  const gchar *const  *names,
+                                  GVariant           **values)
+{
+  guint n_names;
+  guint i;
+
+  n_names = g_strv_length ((gchar**)names);
+  for (i = 0; i < n_names; i++)
+    {
+      if (g_strcmp0 (names[i], name) == 0)
+        {
+          if (values[i] == NULL)
+            return NULL;
+
+          if (g_variant_classify (values[i]) != G_VARIANT_CLASS_STRING)
+            return NULL;
+
+          return g_variant_get_string (values[i], NULL);
+        }
+
+    }
+
+  return NULL;
 }
