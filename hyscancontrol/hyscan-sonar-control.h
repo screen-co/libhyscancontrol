@@ -116,6 +116,33 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
 
 /**
  *
+ * Функция устанавливает информацию о местоположении приёмных антенн относительно центра масс судна.
+ * Подробное описание параметров приводится в \link HyScanCoreTypes \endlink.
+ *
+ * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param board идентификатор борта гидролокатора;
+ * \param x смещение антенны по оси X, метры;
+ * \param y смещение антенны по оси Y, метры;
+ * \param z смещение антенны по оси Z, метры;
+ * \param psi угол поворота антенны по курсу, радианы;
+ * \param gamma угол поворота антенны по крену, радианы;
+ * \param theta угол поворота антенны по дифференту, радианы.
+ *
+ * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_sonar_control_set_position               (HyScanSonarControl    *control,
+                                                                        HyScanBoardType        board,
+                                                                        gdouble                x,
+                                                                        gdouble                y,
+                                                                        gdouble                z,
+                                                                        gdouble                psi,
+                                                                        gdouble                gamma,
+                                                                        gdouble                theta);
+
+/**
+ *
  * Функция задаёт время приёма эхосигнала бортом гидролокатора.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;

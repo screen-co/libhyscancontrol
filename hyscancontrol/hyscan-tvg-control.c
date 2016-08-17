@@ -24,7 +24,7 @@ enum
 
 typedef struct
 {
-  gint                         id;                             /* Идентификатор источника данных. */
+  guint32                      id;                             /* Идентификатор источника данных. */
   HyScanBoardType              board;                          /* Тип борта гидролокатора. */
   gchar                       *path;                           /* Путь к описанию источника данных в схеме. */
   HyScanTVGModeType            capabilities;                   /* Режимы работы системы ВАРУ. */
@@ -247,10 +247,10 @@ hyscan_tvg_control_object_finalize (GObject *object)
   if (priv->signal_id > 0)
     g_signal_handler_disconnect (priv->sonar, priv->signal_id);
 
-  g_clear_pointer (&priv->tvgs_by_board, g_hash_table_unref);
-  g_clear_pointer (&priv->tvgs_by_id, g_hash_table_unref);
-
   g_clear_object (&priv->sonar);
+
+  g_hash_table_unref (priv->tvgs_by_board);
+  g_hash_table_unref (priv->tvgs_by_id);
 
   G_OBJECT_CLASS (hyscan_tvg_control_parent_class)->finalize (object);
 }
@@ -264,6 +264,10 @@ hyscan_tvg_control_tvg_receiver (HyScanTVGControl   *control,
 
   HyScanWriteGain gain;
 
+  /* Проверяем тип данных. */
+  if (message->type != HYSCAN_DATA_FLOAT)
+    return;
+
   /* Ищем систему ВАРУ. */
   tvg = g_hash_table_lookup (control->priv->tvgs_by_id, GINT_TO_POINTER (message->id));
   if (tvg == NULL)
@@ -272,6 +276,7 @@ hyscan_tvg_control_tvg_receiver (HyScanTVGControl   *control,
   /* Параметры ВАРУ. */
   gain.board = tvg->board;
   gain.time = message->time;
+  gain.rate = message->rate;
   gain.n_gains = message->size / sizeof (gfloat);
   gain.gains = message->data;
 
@@ -328,8 +333,8 @@ hyscan_tvg_control_get_gain_range (HyScanTVGControl     *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/constant/gain", tvg->path);
-  min_gain_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control), param_name);
-  max_gain_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control), param_name);
+  min_gain_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  max_gain_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
   g_free (param_name);
 
   if (min_gain_value != NULL && max_gain_value != NULL)

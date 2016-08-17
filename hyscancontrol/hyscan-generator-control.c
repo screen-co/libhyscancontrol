@@ -25,7 +25,7 @@ enum
 
 typedef struct
 {
-  gint                         id;                             /* Идентификатор генератора. */
+  guint32                      id;                             /* Идентификатор генератора. */
   HyScanBoardType              board;                          /* Тип борта гидролокатора. */
   gchar                       *path;                           /* Путь к описанию генератора в схеме. */
   HyScanGeneratorModeType      capabilities;                   /* Режимы работы. */
@@ -180,7 +180,7 @@ hyscan_generator_control_object_constructed (GObject *object)
           GVariant *param_values[4];
 
           gchar **pathv;
-          gint board;
+          guint board;
 
           gint64 id;
           gint64 capabilities;
@@ -255,10 +255,10 @@ hyscan_generator_control_object_finalize (GObject *object)
   if (priv->signal_id > 0)
     g_signal_handler_disconnect (priv->sonar, priv->signal_id);
 
-  g_clear_pointer (&priv->gens_by_board, g_hash_table_unref);
-  g_clear_pointer (&priv->gens_by_id, g_hash_table_unref);
-
   g_clear_object (&priv->sonar);
+
+  g_hash_table_unref (priv->gens_by_board);
+  g_hash_table_unref (priv->gens_by_id);
 
   G_OBJECT_CLASS (hyscan_generator_control_parent_class)->finalize (object);
 }
@@ -272,6 +272,10 @@ hyscan_generator_control_signal_receiver (HyScanGeneratorControl *control,
 
   HyScanWriteSignal signal;
 
+  /* Проверяем тип данных. */
+  if (message->type != HYSCAN_DATA_COMPLEX_FLOAT)
+    return;
+
   /* Ищем генератор. */
   generator = g_hash_table_lookup (control->priv->gens_by_id, GINT_TO_POINTER (message->id));
   if (generator == NULL)
@@ -280,6 +284,7 @@ hyscan_generator_control_signal_receiver (HyScanGeneratorControl *control,
   /* Образец сигнала. */
   signal.board = generator->board;
   signal.time = message->time;
+  signal.rate = message->rate;
   signal.n_points = message->size / sizeof (HyScanComplexFloat);
   signal.points = message->data;
 
@@ -361,13 +366,13 @@ hyscan_generator_control_get_duration_range (HyScanGeneratorControl    *control,
   else
     return FALSE;
 
-  min_duration_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control), param_name);
-  max_duration_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control), param_name);
+  min_duration_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  max_duration_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
 
   if (min_duration_value != NULL && max_duration_value != NULL)
     {
-      *max_duration = g_variant_get_double (min_duration_value);
-      *min_duration = g_variant_get_double (max_duration_value);
+      *min_duration = g_variant_get_double (min_duration_value);
+      *max_duration = g_variant_get_double (max_duration_value);
 
       status = TRUE;
     }
@@ -400,7 +405,7 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
     return NULL;
 
   params_name = g_strdup_printf ("%s/preset/id", generator->path);
-  param_values = hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control), params_name);
+  param_values = hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), params_name);
   g_free (params_name);
 
   return param_values;

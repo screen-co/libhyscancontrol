@@ -26,11 +26,8 @@ HyScanBoardType        hyscan_control_get_board_type           (const gchar     
 /* Функция возвращает идентификатор борта гидролокатора по типу источника данных. */
 HyScanBoardType        hyscan_control_get_board_type_by_source (HyScanSourceType               source);
 
-/* Функция возвращает название источника данных по его идентификатору. */
-const gchar           *hyscan_control_get_source_name          (HyScanSourceType               source);
-
-/* Функция возвращает идентификатор источника данных по его названию. */
-HyScanSourceType       hyscan_control_get_source_type          (const gchar                   *name);
+/* Функция возвращает идентификатор источника "сырых" данных для борта. */
+HyScanSourceType       hyscan_control_get_raw_source_type      (HyScanBoardType                board);
 
 /* Функция аккумулирует boolean результаты работы callback'ов. */
 gboolean               hyscan_control_boolean_accumulator      (GSignalInvocationHint         *ihint,

@@ -111,6 +111,7 @@ GType                  hyscan_generator_control_server_get_type        (void);
  * \param server указатель на интерфейс \link HyScanGeneratorControlServer \endlink;
  * \param time время начала действия сигнала, мкс;
  * \param board идентификатор борта;
+ * \param rate частота дискретизации сигнала, Гц;
  * \param size размер образа сигнала, байт;
  * \param signal образ сигнала.
  *
@@ -121,6 +122,7 @@ HYSCAN_CONTROL_EXPORT
 void                   hyscan_generator_control_server_send_signal     (HyScanGeneratorControlServer  *server,
                                                                         gint64                         time,
                                                                         HyScanBoardType                board,
+                                                                        gfloat                         rate,
                                                                         guint32                        size,
                                                                         gpointer                       signal);
 

@@ -22,7 +22,8 @@
  * - "sonar-set-receive-time" - при установке времни приёма эхосигнала гидролокатором;
  * - "sonar-start" - при включении гидролокатора в рабочий режим;
  * - "sonar-stop" - при выключении рабочего режима гидролокатора;
- * - "sonar-ping" - при программном запуске цикла зондирования.
+ * - "sonar-ping" - при программном запуске цикла зондирования;
+ * - "sonar-alive-timeout" - при превышении времени ожидания команды alive от клиента.
  *
  * Прототипы обработчиков сигналов:
  *
@@ -46,10 +47,13 @@
  *                                     const gchar                *track_name,
  *                                     gpointer                    user_data);
  *
- * gboolean sonar_stop_cb             (HyScanSonarControlServer   *server.
+ * gboolean sonar_stop_cb             (HyScanSonarControlServer   *server,
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_ping_cb             (HyScanSonarControlServer   *server,
+ *                                     gpointer                    user_data);
+ *
+ * void sonar_alive_timeout_cb        (HyScanSonarControlServer   *server,
  *                                     gpointer                    user_data);
  *
  * \endcode

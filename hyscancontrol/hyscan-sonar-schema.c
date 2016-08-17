@@ -11,9 +11,17 @@
 #include "hyscan-sonar-schema.h"
 #include "hyscan-control-common.h"
 
+enum
+{
+  PROP_0,
+  PROP_TIMEOUT
+};
+
 struct _HyScanSonarSchemaPrivate
 {
   gint                         id_counter;                     /* Счётчик идентификаторов объектов. */
+
+  gdouble                      timeout;                        /* Таймаут ожидания команд от клиента. */
 
   GHashTable                  *boards;                         /* Наличие бортов. */
   GHashTable                  *generators;                     /* Наличие генераторов. */
@@ -22,6 +30,10 @@ struct _HyScanSonarSchemaPrivate
   GHashTable                  *acoustics;                      /* Наличие источника "акустических" данных. */
 };
 
+static void    hyscan_sonar_schema_set_property                (GObject                       *object,
+                                                                guint                          prop_id,
+                                                                const GValue                  *value,
+                                                                GParamSpec                    *pspec);
 static void    hyscan_sonar_schema_object_constructed          (GObject                       *object);
 static void    hyscan_sonar_schema_object_finalize             (GObject                       *object);
 
@@ -34,7 +46,6 @@ static void    hyscan_sonar_schema_enum_add_uart_modes         (HyScanSonarSchem
 
 static void    hyscan_sonar_schema_enum_add_sync_type          (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_signal_type        (HyScanSonarSchema             *schema);
-static void    hyscan_sonar_schema_enum_add_discretization_type(HyScanSonarSchema             *schema);
 
 G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarSchema, hyscan_sonar_schema, HYSCAN_TYPE_DATA_SCHEMA_BUILDER)
 
@@ -43,14 +54,44 @@ hyscan_sonar_schema_class_init (HyScanSonarSchemaClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
+  object_class->set_property = hyscan_sonar_schema_set_property;
+
   object_class->constructed = hyscan_sonar_schema_object_constructed;
   object_class->finalize = hyscan_sonar_schema_object_finalize;
+
+  g_object_class_install_property (object_class, PROP_TIMEOUT,
+    g_param_spec_double ("timeout", "AliveTimeout", "Alive timeout",
+                         HYSCAN_SONAR_SCHEMA_MIN_TIMEOUT,
+                         HYSCAN_SONAR_SCHEMA_MAX_TIMEOUT,
+                         HYSCAN_SONAR_SCHEMA_DEFAULT_TIMEOUT,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
 hyscan_sonar_schema_init (HyScanSonarSchema *schema)
 {
   schema->priv = hyscan_sonar_schema_get_instance_private (schema);
+}
+
+static void
+hyscan_sonar_schema_set_property (GObject      *object,
+                                  guint         prop_id,
+                                  const GValue *value,
+                                  GParamSpec   *pspec)
+{
+  HyScanSonarSchema *schema = HYSCAN_SONAR_SCHEMA (object);
+  HyScanSonarSchemaPrivate *priv = schema->priv;
+
+  switch (prop_id)
+    {
+    case PROP_TIMEOUT:
+      priv->timeout = g_value_get_double (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+    }
 }
 
 static void
@@ -81,7 +122,6 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_sonar_schema_enum_add_uart_modes (schema);
   hyscan_sonar_schema_enum_add_sync_type (schema);
   hyscan_sonar_schema_enum_add_signal_type (schema);
-  hyscan_sonar_schema_enum_add_discretization_type (schema);
 
   /* Версия и идентификатор схемы данных гидролокатора. */
   hyscan_data_schema_builder_key_integer_create (builder, "/schema/id",
@@ -96,6 +136,14 @@ hyscan_sonar_schema_object_constructed (GObject *object)
                                                  HYSCAN_SONAR_SCHEMA_VERSION,
                                                  HYSCAN_SONAR_SCHEMA_VERSION,
                                                  0);
+
+  /* Таймаут команд от пользователя. */
+  hyscan_data_schema_builder_key_double_create (builder, "/info/alive-timeout",
+                                                "alive-timeout", "Alive timeout", TRUE,
+                                                priv->timeout,
+                                                priv->timeout,
+                                                priv->timeout,
+                                                0.0);
 
   /* Параметры управления. */
   hyscan_data_schema_builder_key_boolean_create (builder, "/control/alive",
@@ -287,45 +335,14 @@ hyscan_sonar_schema_enum_add_signal_type (HyScanSonarSchema *schema)
                                                 "LFMD", NULL);
 }
 
-/* Функция создаёт enum значение discretization-type. */
-static void
-hyscan_sonar_schema_enum_add_discretization_type (HyScanSonarSchema *schema)
-{
-  HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
-
-  hyscan_data_schema_builder_enum_create (builder, "discretization-type");
-
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_ADC_14LE,
-                                                "ADC 14LE", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_ADC_16LE,
-                                                "ADC 16LE", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_ADC_24LE,
-                                                "ADC 24LE", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_COMPLEX_ADC_14LE,
-                                                "ADC 14LE COMPLEX", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_COMPLEX_ADC_16LE,
-                                                "ADC 16LE COMPLEX", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_COMPLEX_ADC_24LE,
-                                                "ADC 24LE COMPLEX", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_FLOAT,
-                                                "FLOAT", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "discretization-type",
-                                                HYSCAN_DATA_COMPLEX_FLOAT,
-                                                "FLOAT COMPLEX", NULL);
-}
-
 /* Функция создаёт новый объект HyScanSonarSchema. */
 HyScanSonarSchema *
-hyscan_sonar_schema_new (void)
+hyscan_sonar_schema_new (gdouble timeout)
 {
-  return g_object_new (HYSCAN_TYPE_SONAR_SCHEMA, "schema-id", "sonar", NULL);
+  return g_object_new (HYSCAN_TYPE_SONAR_SCHEMA,
+                       "schema-id", "sonar",
+                       "timeout", timeout,
+                       NULL);
 }
 
 /* Функция добавляет описание порта для подключения датчика. */
@@ -574,7 +591,7 @@ hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
   prefix = g_strdup_printf ("/boards/%s", board_name);
 
   /* Диаграмма направленности в вертикальной плоскости. */
-  key_id = g_strdup_printf ("%s/info/pattern/vertical", prefix);
+  key_id = g_strdup_printf ("%s/info/antenna-pattern/vertical", prefix);
   status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-pattern", NULL, TRUE,
                                                           vertical_pattern,
                                                           vertical_pattern,
@@ -586,7 +603,7 @@ hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
     goto exit;
 
   /* Диаграмма направленности в горизонтальной плоскости. */
-  key_id = g_strdup_printf ("%s/info/pattern/horizontal", prefix);
+  key_id = g_strdup_printf ("%s/info/antenna-pattern/horizontal", prefix);
   status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-pattern", NULL, TRUE,
                                                           horizontal_pattern,
                                                           horizontal_pattern,
@@ -992,11 +1009,12 @@ exit:
 
 /* Функция добавляет в схему описание приёмного канала борта. */
 gint
-hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
-                                 HyScanBoardType    board,
-                                 gint               index,
-                                 HyScanDataType     discretization_type,
-                                 gfloat             discretization_frequency)
+hyscan_sonar_schema_raw_add (HyScanSonarSchema *schema,
+                             HyScanBoardType    board,
+                             guint              channel,
+                             gfloat             antenna_offset,
+                             gint               adc_offset,
+                             gfloat             adc_vref)
 {
   HyScanDataSchemaBuilder *builder;
   const gchar *board_name;
@@ -1013,31 +1031,46 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
   if (board_name == NULL)
     return -1;
 
-  if (index < 1 || index > 3)
+  if (channel < 1 || channel > 3)
     return -1;
 
   if (!g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s/sources/channel%d", board_name, index);
+  prefix = g_strdup_printf ("/boards/%s/sources/raw.%d", board_name, channel);
   if (g_hash_table_contains (schema->priv->channels, GINT_TO_POINTER (g_str_hash (prefix))))
     goto exit;
 
-  /* Тип дискретизации данных. */
-  key_id = g_strdup_printf ("%s/discretization/type", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "discretization-type", NULL, TRUE,
-                                                       "discretization-type", discretization_type);
+  /* Смещение антенны в блоке. */
+  key_id = g_strdup_printf ("%s/antenna/offset", prefix);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "offset", NULL, TRUE,
+                                                         antenna_offset,
+                                                         antenna_offset,
+                                                         antenna_offset,
+                                                         0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
-  /* Частота дискретизации данных. */
-  key_id = g_strdup_printf ("%s/discretization/frequency", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "discretization-frequency", NULL, TRUE,
-                                                         discretization_frequency,
-                                                         discretization_frequency,
-                                                         discretization_frequency,
+  /* Смещение 0 АЦП. */
+  key_id = g_strdup_printf ("%s/adc/offset", prefix);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "offset", NULL, TRUE,
+                                                          adc_offset,
+                                                          adc_offset,
+                                                          adc_offset,
+                                                          0);
+  g_free (key_id);
+
+  if (!status)
+    goto exit;
+
+  /* Опорное напряжение АЦП. */
+  key_id = g_strdup_printf ("%s/adc/vref", prefix);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vref", NULL, TRUE,
+                                                         adc_vref,
+                                                         adc_vref,
+                                                         adc_vref,
                                                          0.0);
   g_free (key_id);
 
@@ -1066,9 +1099,7 @@ exit:
 /* Функция добавляет в схему описание источника "акустических" данных. */
 gint
 hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
-                                         HyScanBoardType    board,
-                                         HyScanDataType     discretization_type,
-                                         gfloat             discretization_frequency)
+                                         HyScanBoardType    board)
 {
   HyScanDataSchemaBuilder *builder;
   const gchar *board_name;
@@ -1093,27 +1124,6 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
 
   prefix = g_strdup_printf ("/boards/%s/sources/acoustic", board_name);
 
-  /* Тип дискретизации данных. */
-  key_id = g_strdup_printf ("%s/discretization/type", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "discretization-type", NULL, TRUE,
-                                                       "discretization-type", discretization_type);
-  g_free (key_id);
-
-  if (!status)
-    goto exit;
-
-  /* Частота дискретизации данных. */
-  key_id = g_strdup_printf ("%s/discretization/frequency", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "discretization-frequency", NULL, TRUE,
-                                                         discretization_frequency,
-                                                         discretization_frequency,
-                                                         discretization_frequency,
-                                                         0.0);
-  g_free (key_id);
-
-  if (!status)
-    goto exit;
-
   /* Идентификатор источника "акустических" данных. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
@@ -1126,10 +1136,10 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
   else
     id = -1;
 
-exit:
   g_clear_pointer (&prefix, g_free);
 
   return id;
 }
 
 #warning "make magic constants tunable"
+#warning "id -> guint32"

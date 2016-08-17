@@ -28,7 +28,8 @@
  * - #hyscan_sonar_schema_generator_add - функция добавляет описание генератора;
  * - #hyscan_sonar_schema_generator_add_preset - функция добавляет вариант значения преднастройки генератора;
  * - #hyscan_sonar_schema_tvg_add - функция добавляет в схему описание системы ВАРУ для борта;
- * - #hyscan_sonar_schema_channel_add - функция добавляет в схему описание приёмного канала борта.
+ * - #hyscan_sonar_schema_raw_add - функция добавляет в схему описание приёмного канала борта;
+ * - #hyscan_sonar_schema_source_add_acuostic - функция добавляет в схему описание источника акустических данных;
  *
  */
 
@@ -39,6 +40,10 @@
 #include <hyscan-data-schema-builder.h>
 
 G_BEGIN_DECLS
+
+#define HYSCAN_SONAR_SCHEMA_MIN_TIMEOUT      5.0       /**< Минимальное время ожидания команд от клиента - 5.0 секунд. */
+#define HYSCAN_SONAR_SCHEMA_MAX_TIMEOUT      60.0      /**< Максимальное время ожидания команд от клиента - 60 секунд. */
+#define HYSCAN_SONAR_SCHEMA_DEFAULT_TIMEOUT  10.0      /**< Время ожидания команд от клиента по умолчанию - 10 секунд. */
 
 #define HYSCAN_TYPE_SONAR_SCHEMA             (hyscan_sonar_schema_get_type ())
 #define HYSCAN_SONAR_SCHEMA(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_SONAR_SCHEMA, HyScanSonarSchema))
@@ -70,11 +75,13 @@ GType                  hyscan_sonar_schema_get_type                    (void);
  *
  * Функция создаёт новый объект \link HyScanSonarSchema \endlink.
  *
+ * \param timeout таймаут ожидания команд от клиента, с.
+ *
  * \return Указатель на объект \link HyScanSonarSchema \endlink.
  *
  */
 HYSCAN_CONTROL_EXPORT
-HyScanSonarSchema     *hyscan_sonar_schema_new                         (void);
+HyScanSonarSchema     *hyscan_sonar_schema_new                         (gdouble                        timeout);
 
 /**
  *
@@ -238,37 +245,35 @@ gint                   hyscan_sonar_schema_tvg_add                     (HyScanSo
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
  * \param board тип борта гидролокатора;
- * \param index индекс канала данных;
- * \param discretization_type тип дискретизации \link HyScanDataType \endlink;
- * \param discretization_frequency частота дискретизации, Гц.
+ * \param channel индекс канала данных;
+ * \param antenna_offset смещение антенны в блоке, м;
+ * \param adc_offset смещение 0 АЦП;
+ * \param adc_vref опорное напряжение АЦП, В.
  *
  * \return Уникальный идентификатор приёмного канала в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_CONTROL_EXPORT
-gint                   hyscan_sonar_schema_channel_add                 (HyScanSonarSchema             *schema,
+gint                   hyscan_sonar_schema_raw_add                     (HyScanSonarSchema             *schema,
                                                                         HyScanBoardType                board,
-                                                                        gint                           index,
-                                                                        HyScanDataType                 discretization_type,
-                                                                        gfloat                         discretization_frequency);
+                                                                        guint                          channel,
+                                                                        gfloat                         antenna_offset,
+                                                                        gint                           adc_offset,
+                                                                        gfloat                         adc_vref);
 
 /**
  *
  * Функция добавляет в схему описание источника "акустических" данных.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
- * \param discretization_type тип дискретизации \link HyScanDataType \endlink;
- * \param discretization_frequency частота дискретизации, Гц.
+ * \param board тип борта гидролокатора.
  *
  * \return Уникальный идентификатор источника "акустических" данных в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_source_add_acuostic         (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
-                                                                        HyScanDataType                 discretization_type,
-                                                                        gfloat                         discretization_frequency);
+                                                                        HyScanBoardType                board);
 
 G_END_DECLS
 

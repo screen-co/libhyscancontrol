@@ -66,6 +66,7 @@ typedef struct
 {
   HyScanBoardType              board;                          /**< Идентификатор борта гидролокатора. */
   gint64                       time;                           /**< Время начала действия сигнала. */
+  gfloat                       rate;                           /**< Частота дискретизации, Гц. */
   guint32                      n_points;                       /**< Число точек образа. */
   HyScanComplexFloat          *points;                         /**< Образ сигнала для свёртки. */
 } HyScanWriteSignal;
@@ -75,6 +76,7 @@ typedef struct
 {
   HyScanBoardType              board;                          /**< Идентификатор борта гидролокатора. */
   gint64                       time;                           /**< Время начала действия параметров системы ВАРУ. */
+  gfloat                       rate;                           /**< Частота дискретизации, Гц. */
   guint32                      n_gains;                        /**< Число коэффициентов передачи. */
   gfloat                      *gains;                          /**< Коэффициенты передачи приёмного тракта, дБ. */
 } HyScanWriteGain;

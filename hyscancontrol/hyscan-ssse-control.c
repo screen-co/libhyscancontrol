@@ -22,6 +22,10 @@ struct _HyScanSSSEControlPrivate
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
   gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
+  guint32                      starboard_acoustic_id;          /* Идентификатор источника акустических данных правого борта. */
+  guint32                      port_acoustic_id;               /* Идентификатор источника акустических данных левого борта. */
+  guint32                      echosounder_acoustic_id;        /* Идентификатор источника акустических данных эхолота. */
+
   gboolean                     has_echosounder;                /* Есть или нет эхолот. */
 };
 
@@ -83,12 +87,10 @@ hyscan_ssse_control_object_constructed (GObject *object)
   HyScanSSSEControl *control = HYSCAN_SSSE_CONTROL (object);
   HyScanSSSEControlPrivate *priv = control->priv;
 
-  HyScanDataSchemaNode *params;
-  HyScanDataSchemaNode *boards;
+  gchar *key_id;
 
   gint64 version;
   gint64 id;
-  gint i;
 
   G_OBJECT_CLASS (hyscan_ssse_control_parent_class)->constructed (object);
 
@@ -122,38 +124,27 @@ hyscan_ssse_control_object_constructed (GObject *object)
       return;
     }
 
-  /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
+  /* Наличие эхолота. */
+  key_id = g_strdup_printf ("/boards/%s/id", hyscan_control_get_board_name (HYSCAN_BOARD_ECHOSOUNDER));
+  if (hyscan_data_schema_has_key (HYSCAN_DATA_SCHEMA (priv->sonar), key_id))
+    priv->has_echosounder = TRUE;
+  g_free (key_id);
 
-  /* Ветка схемы с описанием бортов - "/boards". */
-  for (i = 0, boards = NULL; params->n_nodes; i++)
-    {
-      if (g_strcmp0 (params->nodes[i]->path, "/boards") == 0)
-        {
-          boards = params->nodes[i];
-          break;
-        }
-    }
+  /* Идентификаторы источников акустических данных. */
+  key_id = g_strdup_printf ("/boards/%s/sources/acoustic/id", hyscan_control_get_board_name (HYSCAN_BOARD_STARBOARD));
+  if (hyscan_sonar_get_integer (priv->sonar, key_id, &id) && (id > 0) && (id <= G_MAXUINT32))
+    priv->starboard_acoustic_id = id;
+  g_free (key_id);
 
-  if (boards != NULL)
-    {
-      /* Проверяем наличие бортов. */
-      for (i = 0; i < boards->n_nodes; i++)
-        {
-          gchar **pathv;
-          gint board;
+  key_id = g_strdup_printf ("/boards/%s/sources/acoustic/id", hyscan_control_get_board_name (HYSCAN_BOARD_PORT));
+  if (hyscan_sonar_get_integer (priv->sonar, key_id, &id) && (id > 0) && (id <= G_MAXUINT32))
+    priv->port_acoustic_id = id;
+  g_free (key_id);
 
-          /* Тип борта гидролокатора. */
-          pathv = g_strsplit (boards->nodes[i]->path, "/", -1);
-          board = hyscan_control_get_board_type (pathv[2]);
-          g_strfreev (pathv);
-
-          if (board == HYSCAN_BOARD_ECHOSOUNDER)
-            priv->has_echosounder = TRUE;
-        }
-    }
-
-  hyscan_data_schema_free_nodes (params);
+  key_id = g_strdup_printf ("/boards/%s/sources/acoustic/id", hyscan_control_get_board_name (HYSCAN_BOARD_ECHOSOUNDER));
+  if (hyscan_sonar_get_integer (priv->sonar, key_id, &id) && (id > 0) && (id <= G_MAXUINT32))
+    priv->echosounder_acoustic_id = id;
+  g_free (key_id);
 }
 
 static void

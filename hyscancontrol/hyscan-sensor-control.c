@@ -36,7 +36,7 @@ typedef struct
   HyScanSensorPortType         type;                           /* Тип порта. */
   HyScanSensorProtocolType     protocol;                       /* Протокол передачи данных. */
   gint64                       time_offset;                    /* Коррекция времени. */
-  gint                         channel;                        /* Номер канала данных. */
+  guint                        channel;                        /* Номер канала данных. */
   HyScanSensorChannelInfo      channel_info;                   /* Параметры канала записи данных. */
 } HyScanSensorControlPort;
 
@@ -280,10 +280,10 @@ hyscan_sensor_control_object_finalize (GObject *object)
   if (priv->signal_id > 0)
     g_signal_handler_disconnect (priv->sonar, priv->signal_id);
 
-  g_clear_pointer (&priv->ports_by_id, g_hash_table_unref);
-  g_clear_pointer (&priv->ports_by_name, g_hash_table_unref);
-
   g_clear_object (&priv->sonar);
+
+  g_hash_table_unref (priv->ports_by_id);
+  g_hash_table_unref (priv->ports_by_name);
 
   g_rw_lock_clear (&priv->lock);
 
@@ -298,21 +298,24 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
   HyScanSensorControlPort *port;
 
   HyScanWriteData data;
-
-  g_rw_lock_reader_lock (&control->priv->lock);
+  HyScanSensorChannelInfo info;
 
   /* Ищем источник данных. */
   port = g_hash_table_lookup (control->priv->ports_by_id, GINT_TO_POINTER (message->id));
   if (port == NULL)
-    goto exit;
+    return;
 
   /* Пока поддерживаем только протокол NMEA 0183. */
   if (port->protocol != HYSCAN_SENSOR_PROTOCOL_NMEA_0183)
-    goto exit;
+    return;
+
+  #warning "Split nmea block to individual sentences"
 
   /* Проверяем контрольную сумму NMEA строки. */
-  if (!hyscan_sensor_control_check_nmea_crc (message->data))
-    goto exit;
+  if ((message->type != HYSCAN_DATA_STRING) || !hyscan_sensor_control_check_nmea_crc (message->data))
+    return;
+
+  g_rw_lock_reader_lock (&control->priv->lock);
 
   /* Данные. */
   data.source = hyscan_sensor_control_get_source_type (message->data);
@@ -322,12 +325,13 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
   data.size = message->size;
   data.data = message->data;
 
-  hyscan_write_control_sensor_add_data (HYSCAN_WRITE_CONTROL (control), &data, &port->channel_info);
+  info = port->channel_info;
 
-  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, &data, &port->channel_info);
-
-exit:
   g_rw_lock_reader_unlock (&control->priv->lock);
+
+  hyscan_write_control_sensor_add_data (HYSCAN_WRITE_CONTROL (control), &data, &info);
+
+  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, &data, &info);
 }
 
 /* Функция проверяет контрольную сумму NMEA сообщения. */
@@ -501,7 +505,7 @@ hyscan_sensor_control_get_port_status (HyScanSensorControl *control,
 gboolean
 hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
                                               const gchar             *name,
-                                              gint                     channel,
+                                              guint                    channel,
                                               gint64                   time_offset)
 {
   HyScanSensorControlPrivate *priv;
@@ -541,7 +545,7 @@ hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
 gboolean
 hyscan_sensor_control_set_uart_port_param (HyScanSensorControl      *control,
                                            const gchar              *name,
-                                           gint                      channel,
+                                           guint                     channel,
                                            gint64                    time_offset,
                                            HyScanSensorProtocolType  protocol,
                                            gint64                    uart_device,
@@ -618,7 +622,7 @@ hyscan_sensor_control_set_uart_port_param (HyScanSensorControl      *control,
 gboolean
 hyscan_sensor_control_set_udp_ip_port_param (HyScanSensorControl      *control,
                                              const gchar              *name,
-                                             gint                      channel,
+                                             guint                     channel,
                                              gint64                    time_offset,
                                              HyScanSensorProtocolType  protocol,
                                              gint64                    ip_address,

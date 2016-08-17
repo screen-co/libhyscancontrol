@@ -501,6 +501,7 @@ void
 hyscan_sensor_control_server_send_data (HyScanSensorControlServer   *server,
                                         gint64                       time,
                                         const gchar                 *name,
+                                        guint32                      type,
                                         guint32                      size,
                                         gpointer                     data)
 {
@@ -513,5 +514,5 @@ hyscan_sensor_control_server_send_data (HyScanSensorControlServer   *server,
     return;
 
   hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params),
-                         time, GPOINTER_TO_INT (id), size, data);
+                         time, GPOINTER_TO_INT (id), type, 1.0, size, data);
 }

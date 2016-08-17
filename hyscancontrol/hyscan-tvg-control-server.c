@@ -594,6 +594,7 @@ void
 hyscan_tvg_control_server_send_tvg (HyScanTVGControlServer *server,
                                     gint64                  time,
                                     HyScanBoardType         board,
+                                    gfloat                  rate,
                                     guint32                 size,
                                     gpointer                tvg)
 {
@@ -606,5 +607,5 @@ hyscan_tvg_control_server_send_tvg (HyScanTVGControlServer *server,
     return;
 
   hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params),
-                         time, GPOINTER_TO_INT (id), size, tvg);
+                         time, GPOINTER_TO_INT (id), HYSCAN_DATA_FLOAT, rate, size, tvg);
 }

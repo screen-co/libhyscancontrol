@@ -68,6 +68,8 @@ void
 hyscan_sonar_box_send (HyScanSonarBox *sonar,
                        gint64          time,
                        guint32         id,
+                       guint32         type,
+                       gfloat          rate,
                        guint32         size,
                        gpointer        data)
 {
@@ -75,6 +77,8 @@ hyscan_sonar_box_send (HyScanSonarBox *sonar,
 
   message.time = time;
   message.id = id;
+  message.type = type;
+  message.rate = rate;
   message.size = size;
   message.data = data;
 

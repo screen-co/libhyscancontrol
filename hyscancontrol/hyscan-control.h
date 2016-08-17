@@ -27,14 +27,14 @@ typedef enum
 {
   HYSCAN_BOARD_INVALID                         = 0,            /**< Недопустимый тип, ошибка. */
 
-  HYSCAN_BOARD_STARBOARD                       = (1 << 0),     /**< Правый борт. */
-  HYSCAN_BOARD_PORT                            = (1 << 1),     /**< Левый борт. */
-  HYSCAN_BOARD_STARBOARD_HI                    = (1 << 2),     /**< Правый борт, высокое разрашение. */
-  HYSCAN_BOARD_PORT_HI                         = (1 << 3),     /**< Левый борт, высокое разрашение. */
-  HYSCAN_BOARD_ECHOSOUNDER                     = (1 << 4),     /**< Эхолот. */
-  HYSCAN_BOARD_PROFILER                        = (1 << 5),     /**< Профилограф. */
-  HYSCAN_BOARD_LOOK_AROUND                     = (1 << 6),     /**< Круговой обзор. */
-  HYSCAN_BOARD_FORWARD_LOOK                    = (1 << 7)      /**< Вперёдсмотрящий гидролокатор. */
+  HYSCAN_BOARD_STARBOARD                       = 101,          /**< Правый борт. */
+  HYSCAN_BOARD_PORT                            = 102,          /**< Левый борт. */
+  HYSCAN_BOARD_STARBOARD_HI                    = 103,          /**< Правый борт, высокое разрашение. */
+  HYSCAN_BOARD_PORT_HI                         = 104,          /**< Левый борт, высокое разрашение. */
+  HYSCAN_BOARD_ECHOSOUNDER                     = 105,          /**< Эхолот. */
+  HYSCAN_BOARD_PROFILER                        = 106,          /**< Профилограф. */
+  HYSCAN_BOARD_LOOK_AROUND                     = 107,          /**< Круговой обзор. */
+  HYSCAN_BOARD_FORWARD_LOOK                    = 108           /**< Вперёдсмотрящий гидролокатор. */
 } HyScanBoardType;
 
 HYSCAN_CONTROL_EXPORT

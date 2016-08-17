@@ -232,7 +232,7 @@ HyScanSensorPortStatus         hyscan_sensor_control_get_port_status           (
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_sensor_control_set_virtual_port_param    (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
-                                                                                gint                       channel,
+                                                                                guint                      channel,
                                                                                 gint64                     time_offset);
 
 /**
@@ -257,7 +257,7 @@ gboolean                       hyscan_sensor_control_set_virtual_port_param    (
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_sensor_control_set_uart_port_param       (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
-                                                                                gint                       channel,
+                                                                                guint                      channel,
                                                                                 gint64                     time_offset,
                                                                                 HyScanSensorProtocolType   protocol,
                                                                                 gint64                     uart_device,
@@ -284,7 +284,7 @@ gboolean                       hyscan_sensor_control_set_uart_port_param       (
 HYSCAN_CONTROL_EXPORT
 gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
-                                                                                gint                       channel,
+                                                                                guint                      channel,
                                                                                 gint64                     time_offset,
                                                                                 HyScanSensorProtocolType   protocol,
                                                                                 gint64                     ip_address,

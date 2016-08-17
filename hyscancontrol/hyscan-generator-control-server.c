@@ -656,6 +656,7 @@ void
 hyscan_generator_control_server_send_signal (HyScanGeneratorControlServer  *server,
                                              gint64                         time,
                                              HyScanBoardType                board,
+                                             gfloat                         rate,
                                              guint32                        size,
                                              gpointer                       signal)
 {
@@ -668,5 +669,5 @@ hyscan_generator_control_server_send_signal (HyScanGeneratorControlServer  *serv
     return;
 
   hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params),
-                         time, GPOINTER_TO_INT (id), size, signal);
+                         time, GPOINTER_TO_INT (id), HYSCAN_DATA_COMPLEX_FLOAT, rate, size, signal);
 }

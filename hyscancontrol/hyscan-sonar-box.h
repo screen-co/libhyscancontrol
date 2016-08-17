@@ -76,6 +76,8 @@ HyScanSonarBox        *hyscan_sonar_box_new                    (const gchar     
  * \param sonar указатель на объект \link HyScanSonarBox \endlink;
  * \param time время приёма данных гидролокатором, мкс;
  * \param id идентификатор источника данных;
+ * \param type тип данных, \link HyScanDataType \endlink;
+ * \param rate частота дискретизации данных, Гц;
  * \param size размер данных, байт;
  * \param data данные.
  *
@@ -86,6 +88,8 @@ HYSCAN_CONTROL_EXPORT
 void                   hyscan_sonar_box_send                   (HyScanSonarBox        *sonar,
                                                                 gint64                 time,
                                                                 guint32                id,
+                                                                guint32                type,
+                                                                gfloat                 rate,
                                                                 guint32                size,
                                                                 gpointer               data);
 

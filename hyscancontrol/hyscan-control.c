@@ -6,4 +6,5 @@ HyScanSonarType
 hyscan_control_sonar_probe (HyScanSonar *sonar)
 {
 
+  return HYSCAN_SONAR_INVALID;
 }

@@ -98,6 +98,7 @@ GType                  hyscan_sensor_control_server_get_type           (void);
  * \param server указатель на интерфейс \link HyScanSensorControlServer \endlink;
  * \param time время приёма данных датчиком, мкс;
  * \param name название порта;
+ * \param type тип данных, \link HyScanDataType \endlink;
  * \param size размер данных, байт;
  * \param data данные.
  *
@@ -108,6 +109,7 @@ HYSCAN_CONTROL_EXPORT
 void                   hyscan_sensor_control_server_send_data          (HyScanSensorControlServer   *server,
                                                                         gint64                       time,
                                                                         const gchar                 *name,
+                                                                        guint32                      type,
                                                                         guint32                      size,
                                                                         gpointer                     data);
 

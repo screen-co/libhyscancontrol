@@ -1,3 +1,12 @@
+/*
+ * \file hyscan-sonar-control-server.c
+ *
+ * \brief Исходный файл класса сервера управления гидролокатором
+ * \author Andrei Fadeev (andrei@webcontrol.ru)
+ * \date 2016
+ * \license Проприетарная лицензия ООО "Экран"
+ *
+ */
 
 #include "hyscan-sonar-control-server.h"
 #include "hyscan-sonar-control.h"
@@ -19,6 +28,7 @@ enum
   SIGNAL_SONAR_START,
   SIGNAL_SONAR_STOP,
   SIGNAL_SONAR_PING,
+  SIGNAL_SONAR_ALIVE_TIMEOUT,
   SIGNAL_LAST
 };
 
@@ -41,10 +51,16 @@ struct _HyScanSonarControlServerCtl
 struct _HyScanSonarControlServerPrivate
 {
   HyScanDataBox                           *params;                     /* Параметры гидролокатора. */
-  gulong                                   signal_id;                  /* Идентификатор обработчика сигнала set. */
+  gulong                                   set_signal_id;              /* Идентификатор обработчика сигнала set. */
+  gulong                                   changed_signal_id;          /* Идентификатор обработчика сигнала changed. */
 
   GHashTable                              *operations;                 /* Таблица возможных запросов. */
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
+
+  gdouble                                  alive_timeout;              /* Интервал отправки сигнала alive. */
+  GTimer                                  *alive_timer;                /* Таймер проверки таймаута сигнала alive. */
+  GThread                                 *guard;                      /* Поток проверки таймаута сигнала alive. */
+  gint                                     shutdown;                   /* Признак завершения работы. */
 };
 
 static void        hyscan_sonar_control_server_set_property            (GObject                     *object,
@@ -53,6 +69,8 @@ static void        hyscan_sonar_control_server_set_property            (GObject 
                                                                         GParamSpec                  *pspec);
 static void        hyscan_sonar_control_server_object_constructed      (GObject                     *object);
 static void        hyscan_sonar_control_server_object_finalize         (GObject                     *object);
+
+static gpointer    hyscan_sonar_control_server_quard                   (gpointer                     data);
 
 static gboolean    hyscan_sonar_control_server_set_cb                  (HyScanDataBox               *params,
                                                                         const gchar *const          *names,
@@ -137,6 +155,10 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
                   hyscan_control_boolean_accumulator, NULL,
                   g_cclosure_user_marshal_BOOLEAN__VOID,
                   G_TYPE_BOOLEAN, 0);
+
+  hyscan_sonar_control_server_signals[SIGNAL_SONAR_ALIVE_TIMEOUT] =
+    g_signal_new ("sonar-alive-timeout", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
+                  NULL, NULL, g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
 }
 
 static void
@@ -205,6 +227,12 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
     {
       g_warning ("HyScanSonarControlServer: sonar schema version mismatch");
       return;
+    }
+
+  if (hyscan_data_box_get_double (priv->params, "/info/alive-timeout", &priv->alive_timeout))
+    {
+      priv->alive_timer = g_timer_new ();
+      priv->guard = g_thread_new ("sonar-control-server-alive", hyscan_sonar_control_server_quard, server);
     }
 
   /* Параметры гидролокатора. */
@@ -294,11 +322,16 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       operation_path = g_strdup ("/sync/ping");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
-      priv->signal_id = g_signal_connect (priv->params,
+      priv->set_signal_id = g_signal_connect (priv->params,
                                           "set",
                                           G_CALLBACK (hyscan_sonar_control_server_set_cb),
                                           server);
     }
+
+  priv->changed_signal_id = g_signal_connect_swapped (priv->params,
+                                                      "changed",
+                                                      G_CALLBACK (g_timer_start),
+                                                      priv->alive_timer);
 
   hyscan_data_schema_free_nodes (params);
 }
@@ -309,8 +342,18 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   HyScanSonarControlServer *server = HYSCAN_SONAR_CONTROL_SERVER (object);
   HyScanSonarControlServerPrivate *priv = server->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->params, priv->signal_id);
+  if (priv->guard != NULL)
+    {
+      g_atomic_int_set (&priv->shutdown, 1);
+      g_thread_join (priv->guard);
+      g_timer_destroy (priv->alive_timer);
+    }
+
+  if (priv->set_signal_id > 0)
+    g_signal_handler_disconnect (priv->params, priv->set_signal_id);
+
+  if (priv->changed_signal_id > 0)
+    g_signal_handler_disconnect (priv->params, priv->changed_signal_id);
 
   g_hash_table_unref (priv->paths);
   g_hash_table_unref (priv->operations);
@@ -318,6 +361,28 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   g_clear_object (&priv->params);
 
   G_OBJECT_CLASS (hyscan_sonar_control_server_parent_class)->finalize (object);
+}
+
+/* Поток проверки таймаута сигнала alive. */
+static gpointer
+hyscan_sonar_control_server_quard (gpointer data)
+{
+  HyScanSonarControlServer *server = data;
+  HyScanSonarControlServerPrivate *priv = server->priv;
+
+  while (!g_atomic_int_get (&priv->shutdown))
+    {
+      if (g_timer_elapsed (priv->alive_timer, NULL) >= priv->alive_timeout)
+        {
+          g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_ALIVE_TIMEOUT], 0);
+
+          g_timer_start (priv->alive_timer);
+        }
+
+      g_usleep (100000);
+    }
+
+  return NULL;
 }
 
 /* Функция - обработчик параметров. */
@@ -420,7 +485,7 @@ hyscan_sonar_control_server_set_receive_time (HyScanSonarControlServer     *serv
     return FALSE;
 
   g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_RECEIVE_TIME], 0,
-                 receive_time, &cancel);
+                 ctl->board, receive_time, &cancel);
   if (cancel)
     return FALSE;
 
