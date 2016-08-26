@@ -28,30 +28,30 @@
  * \code
  *
  * gboolean generator_set_preset_cb     (HyScanGeneratorControlServer  *server,
- *                                       gint                           board,
- *                                       gint64                         preset,
+ *                                       HyScanSourceType               source,
+ *                                       guint                          preset,
  *                                       gpointer                       user_data);
  *
  * gboolean generator_set_auto_cb       (HyScanGeneratorControlServer  *server,
- *                                       gint                           board,
- *                                       gint64                         signal,
+ *                                       HyScanSourceType               source,
+ *                                       HyScanGeneratorSignalType      signal,
  *                                       gpointer                       user_data);
  *
  * gboolean generator_set_simple_cb     (HyScanGeneratorControlServer  *server,
- *                                       gint                           board,
- *                                       gint64                         signal,
+ *                                       HyScanSourceType               source,
+ *                                       HyScanGeneratorSignalType      signal,
  *                                       gdouble                        power,
  *                                       gpointer                       user_data);
  *
  * gboolean generator_set_extended_cb   (HyScanGeneratorControlServer  *server,
- *                                       gint                           board,
- *                                       gint64                         signal,
+ *                                       HyScanSourceType               source,
+ *                                       HyScanGeneratorSignalType      signal,
  *                                       gdouble                        duration,
  *                                       gdouble                        power,
  *                                       gpointer                       user_data);
  *
  * gboolean generator_set_enable_cb     (HyScanGeneratorControlServer  *server,
- *                                       gint                           board,
+ *                                       HyScanSourceType               source,
  *                                       gboolean                       enable,
  *                                       gpointer                       user_data);
  *
@@ -74,7 +74,7 @@
 #define __HYSCAN_GENERATOR_CONTROL_SERVER_H__
 
 #include <hyscan-sensor-control-server.h>
-#include <hyscan-control.h>
+#include <hyscan-core-types.h>
 
 G_BEGIN_DECLS
 
@@ -109,10 +109,7 @@ GType                  hyscan_generator_control_server_get_type        (void);
  * Функция передаёт образы излучаемых сигналов, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
  *
  * \param server указатель на интерфейс \link HyScanGeneratorControlServer \endlink;
- * \param time время начала действия сигнала, мкс;
- * \param board идентификатор борта;
- * \param rate частота дискретизации сигнала, Гц;
- * \param size размер образа сигнала, байт;
+ * \param source идентификатор источника данных;
  * \param signal образ сигнала.
  *
  * \return Нет.
@@ -120,11 +117,8 @@ GType                  hyscan_generator_control_server_get_type        (void);
  */
 HYSCAN_CONTROL_EXPORT
 void                   hyscan_generator_control_server_send_signal     (HyScanGeneratorControlServer  *server,
-                                                                        gint64                         time,
-                                                                        HyScanBoardType                board,
-                                                                        gfloat                         rate,
-                                                                        guint32                        size,
-                                                                        gpointer                       signal);
+                                                                        HyScanSourceType               source,
+                                                                        HyScanDataWriterSignal        *signal);
 
 G_END_DECLS
 

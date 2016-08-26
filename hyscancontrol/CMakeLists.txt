@@ -25,7 +25,6 @@ execute_process (COMMAND ${MARSHAL_COMPILER}
 add_library (hyscancontrol SHARED
              hyscan-control.c
              hyscan-control-common.c
-             hyscan-write-control.c
              hyscan-sensor-control.c
              hyscan-generator-control.c
              hyscan-tvg-control.c
@@ -36,6 +35,7 @@ add_library (hyscancontrol SHARED
              hyscan-generator-control-server.c
              hyscan-tvg-control-server.c
              hyscan-sonar-control-server.c
+             hyscan-ssse-control-server.c
              hyscan-sonar-schema.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.c)
 

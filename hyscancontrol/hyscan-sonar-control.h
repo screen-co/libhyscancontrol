@@ -28,6 +28,21 @@
  *
  * Функция #hyscan_sonar_control_ping используется для программного управления зондированием.
  *
+ * При получении "сырых" данных от гидролокатора, класс посылает сигнал "raw-data", в котором
+ * передаёт их пользователю. Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * void    data_cb    (HyScanSonarControl     *control,
+ *                     HyScanSourceType        source,
+ *                     guint                   channel,
+ *                     HyScanAcousticDataInfo *info,
+ *                     HyScanDataWriterData   *data);
+ *
+ * \endcode
+ *
+ * Где source - идентификатор источника данных, channel - индекс канала данных.
+ *
  * Класс HyScanSonarControl поддерживает работу в многопоточном режиме.
  *
  */
@@ -120,7 +135,7 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
  * Подробное описание параметров приводится в \link HyScanCoreTypes \endlink.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param x смещение антенны по оси X, метры;
  * \param y смещение антенны по оси Y, метры;
  * \param z смещение антенны по оси Z, метры;
@@ -133,7 +148,7 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_sonar_control_set_position               (HyScanSonarControl    *control,
-                                                                        HyScanBoardType        board,
+                                                                        HyScanSourceType       source,
                                                                         gdouble                x,
                                                                         gdouble                y,
                                                                         gdouble                z,
@@ -143,10 +158,10 @@ gboolean               hyscan_sonar_control_set_position               (HyScanSo
 
 /**
  *
- * Функция задаёт время приёма эхосигнала бортом гидролокатора.
+ * Функция задаёт время приёма эхосигнала источником данных.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param receive_time время приёма эхосигнала, секунды.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -154,7 +169,7 @@ gboolean               hyscan_sonar_control_set_position               (HyScanSo
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_sonar_control_set_receive_time           (HyScanSonarControl    *control,
-                                                                        HyScanBoardType        board,
+                                                                        HyScanSourceType       source,
                                                                         gdouble                receive_time);
 
 /**
@@ -171,7 +186,8 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_sonar_control_start                      (HyScanSonarControl    *control,
                                                                         const gchar           *project_name,
-                                                                        const gchar           *track_name);
+                                                                        const gchar           *track_name,
+                                                                        HyScanTrackType        track_type);
 
 /**
  *

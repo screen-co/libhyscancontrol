@@ -28,31 +28,31 @@
  * \code
  *
  * gboolean tvg_set_auto_cb          (HyScanTVGControlServer    *server,
- *                                    gint                       board,
+ *                                    HyScanSourceType           source,
  *                                    gdouble                    level,
  *                                    gdouble                    sensitivity,
  *                                    gpointer                   user_data);
  *
  * gboolean tvg_set_constant_cb      (HyScanTVGControlServer    *server,
- *                                    gint                       board,
+ *                                    HyScanSourceType           source,
  *                                    gdouble                    gain,
  *                                    gpointer                   user_data);
  *
  * gboolean tvg_set_linear_db_cb     (HyScanTVGControlServer    *server,
- *                                    gint                       board,
+ *                                    HyScanSourceType           source,
  *                                    gdouble                    gain0,
  *                                    gdouble                    step,
  *                                    gpointer                   user_data);
  *
  * gboolean tvg_set_logarithmic_cb   (HyScanTVGControlServer    *server,
- *                                    gint                       board,
+ *                                    HyScanSourceType           source,
  *                                    gdouble                    gain0,
  *                                    gdouble                    beta,
  *                                    gdouble                    alpha,
  *                                    gpointer                   user_data);
  *
  * gboolean tvg_set_enable_cb        (HyScanTVGControlServer    *server,
- *                                    gint                       board,
+ *                                    HyScanSourceType           source,
  *                                    gboolean                   enable,
  *                                    gpointer                   user_data);
  *
@@ -108,10 +108,7 @@ GType                  hyscan_tvg_control_server_get_type              (void);
  * Функция передаёт параметры ВАРУ, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
- * \param time время начала действия ВАРУ, мкс;
- * \param board идентификатор борта;
- * \param rate частота дискретизации кривой ВАРУ, Гц;
- * \param size размер параметров ВАРУ, байт;
+ * \param source идентификатор источника данных;
  * \param tvg параметры ВАРУ.
  *
  * \return Нет.
@@ -119,11 +116,8 @@ GType                  hyscan_tvg_control_server_get_type              (void);
  */
 HYSCAN_CONTROL_EXPORT
 void                   hyscan_tvg_control_server_send_tvg              (HyScanTVGControlServer    *server,
-                                                                        gint64                     time,
-                                                                        HyScanBoardType            board,
-                                                                        gfloat                     rate,
-                                                                        guint32                    size,
-                                                                        gpointer                   tvg);
+                                                                        HyScanSourceType           source,
+                                                                        HyScanDataWriterTVG       *tvg);
 
 G_END_DECLS
 

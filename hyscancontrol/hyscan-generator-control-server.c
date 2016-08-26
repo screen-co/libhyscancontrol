@@ -12,7 +12,7 @@
 #include "hyscan-generator-control.h"
 #include "hyscan-control-common.h"
 #include "hyscan-marshallers.h"
-#include <hyscan-sonar-box.h>
+#include "hyscan-sonar-box.h"
 
 enum
 {
@@ -41,8 +41,8 @@ typedef gboolean (*hyscan_generator_control_server_operation)            (HyScan
 /* Операция над генератором. */
 struct _HyScanGeneratorControlServerGen
 {
-  gint                                      board;                       /* Тип борта. */
-  const gchar                              *name;                        /* Название борта. */
+  HyScanSourceType                          source;                      /* Тип источника данных. */
+  const gchar                              *name;                        /* Название источника данных. */
   hyscan_generator_control_server_operation func;                        /* Функция выполнения операции. */
 };
 
@@ -108,36 +108,36 @@ hyscan_generator_control_server_class_init (HyScanGeneratorControlServerClass *k
   object_class->finalize = hyscan_generator_control_server_object_finalize;
 
   g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanDataBox", HYSCAN_TYPE_DATA_BOX,
+    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_PRESET] =
     g_signal_new ("generator-set-preset", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT64,
+                  g_cclosure_user_marshal_BOOLEAN__INT_UINT,
                   G_TYPE_BOOLEAN,
-                  2, G_TYPE_INT, G_TYPE_INT64);
+                  2, G_TYPE_INT, G_TYPE_UINT);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_AUTO] =
     g_signal_new ("generator-set-auto", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT64,
+                  g_cclosure_user_marshal_BOOLEAN__INT_INT,
                   G_TYPE_BOOLEAN,
-                  2, G_TYPE_INT, G_TYPE_INT64);
+                  2, G_TYPE_INT, G_TYPE_INT);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_SIMPLE] =
     g_signal_new ("generator-set-simple", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT64_DOUBLE,
+                  g_cclosure_user_marshal_BOOLEAN__INT_INT_DOUBLE,
                   G_TYPE_BOOLEAN,
-                  3, G_TYPE_INT, G_TYPE_INT64, G_TYPE_DOUBLE);
+                  3, G_TYPE_INT, G_TYPE_INT, G_TYPE_DOUBLE);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_EXTENDED] =
     g_signal_new ("generator-set-extended", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT64_DOUBLE_DOUBLE,
+                  g_cclosure_user_marshal_BOOLEAN__INT_INT_DOUBLE_DOUBLE,
                   G_TYPE_BOOLEAN,
-                  4, G_TYPE_INT, G_TYPE_INT64, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+                  4, G_TYPE_INT, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_ENABLE] =
     g_signal_new ("generator-set-enable", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
@@ -182,7 +182,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
   HyScanGeneratorControlServerPrivate *priv = server->priv;
 
   HyScanDataSchemaNode *params;
-  HyScanDataSchemaNode *boards;
+  HyScanDataSchemaNode *sources;
 
   gint64 version;
   gint64 id;
@@ -194,45 +194,49 @@ hyscan_generator_control_server_object_constructed (GObject *object)
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
+  /* Обязательно должны быть переданы параметры гидролокатора. */
+  if (priv->params == NULL)
+    return;
+
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
     {
-      g_warning ("HyScanGeneratorControlServer: unknown sonar schema id");
+      g_clear_object (&priv->params);
       return;
     }
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     {
-      g_warning ("HyScanGeneratorControlServer: sonar schema id mismatch");
+      g_clear_object (&priv->params);
       return;
     }
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
     {
-      g_warning ("HyScanGeneratorControlServer: unknown sonar schema version");
+      g_clear_object (&priv->params);
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
-      g_warning ("HyScanGeneratorControlServer: sonar schema version mismatch");
+      g_clear_object (&priv->params);
       return;
     }
 
   /* Параметры гидролокатора. */
   params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
 
-  /* Ветка схемы с описанием портов - "/boards". */
-  for (i = 0, boards = NULL; params->n_nodes; i++)
+  /* Ветка схемы с описанием источников данных - "/sources". */
+  for (i = 0, sources = NULL; i < params->n_nodes; i++)
     {
-      if (g_strcmp0 (params->nodes[i]->path, "/boards") == 0)
+      if (g_strcmp0 (params->nodes[i]->path, "/sources") == 0)
         {
-          boards = params->nodes[i];
+          sources = params->nodes[i];
           break;
         }
     }
 
-  if (boards != NULL)
+  if (sources != NULL)
     {
       /* Считываем описания генераторов. */
-      for (i = 0; i < boards->n_nodes; i++)
+      for (i = 0; i < sources->n_nodes; i++)
         {
           HyScanGeneratorControlServerGen *operation;
           gchar *operation_path;
@@ -241,7 +245,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           GVariant *param_values[4];
 
           gchar **pathv;
-          gint board;
+          HyScanSourceType source;
 
           gint64 id;
           gint64 capabilities;
@@ -249,17 +253,17 @@ hyscan_generator_control_server_object_constructed (GObject *object)
 
           gboolean status;
 
-          /* Тип борта гидролокатора. */
-          pathv = g_strsplit (boards->nodes[i]->path, "/", -1);
-          board = hyscan_control_get_board_type (pathv[2]);
+          /* Тип источника данных. */
+          pathv = g_strsplit (sources->nodes[i]->path, "/", -1);
+          source = hyscan_control_get_source_type (pathv[2]);
           g_strfreev (pathv);
 
-          if (board == HYSCAN_BOARD_INVALID)
+          if (source == HYSCAN_SOURCE_INVALID)
             continue;
 
-          param_names[0] = g_strdup_printf ("%s/generator/id", boards->nodes[i]->path);
-          param_names[1] = g_strdup_printf ("%s/generator/capabilities", boards->nodes[i]->path);
-          param_names[2] = g_strdup_printf ("%s/generator/signals", boards->nodes[i]->path);
+          param_names[0] = g_strdup_printf ("%s/generator/id", sources->nodes[i]->path);
+          param_names[1] = g_strdup_printf ("%s/generator/capabilities", sources->nodes[i]->path);
+          param_names[2] = g_strdup_printf ("%s/generator/signals", sources->nodes[i]->path);
           param_names[3] = NULL;
 
           status = hyscan_data_box_get (HYSCAN_DATA_BOX (priv->params), (const gchar **)param_names, param_values);
@@ -289,12 +293,12 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_GENERATOR_MODE_PRESET)
             {
               operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_generator_control_server_set_preset;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/generator/preset/id", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/generator/preset/id", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -302,12 +306,12 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_GENERATOR_MODE_AUTO)
             {
               operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_generator_control_server_set_auto;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/generator/auto/signal", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/generator/auto/signal", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -315,14 +319,14 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_GENERATOR_MODE_SIMPLE)
             {
               operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_generator_control_server_set_simple;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/generator/simple/signal", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/generator/simple/signal", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-              operation_path = g_strdup_printf ("/boards/%s/generator/simple/power", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/generator/simple/power", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -332,14 +336,14 @@ hyscan_generator_control_server_object_constructed (GObject *object)
               if (signals & HYSCAN_GENERATOR_SIGNAL_TONE)
                 {
                   operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-                  operation->board = board;
-                  operation->name = hyscan_control_get_board_name (board);
+                  operation->source = source;
+                  operation->name = hyscan_control_get_source_name (source);
                   operation->func = hyscan_generator_control_server_set_tone;
                   g_hash_table_insert (priv->operations, operation, operation);
 
-                  operation_path = g_strdup_printf ("/boards/%s/generator/tone/duration", operation->name);
+                  operation_path = g_strdup_printf ("/sources/%s/generator/tone/duration", operation->name);
                   g_hash_table_insert (priv->paths, operation_path, operation);
-                  operation_path = g_strdup_printf ("/boards/%s/generator/tone/power", operation->name);
+                  operation_path = g_strdup_printf ("/sources/%s/generator/tone/power", operation->name);
                   g_hash_table_insert (priv->paths, operation_path, operation);
                 }
 
@@ -347,16 +351,16 @@ hyscan_generator_control_server_object_constructed (GObject *object)
               if ((signals & HYSCAN_GENERATOR_SIGNAL_LFM) || (signals & HYSCAN_GENERATOR_SIGNAL_LFMD))
                 {
                   operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-                  operation->board = board;
-                  operation->name = hyscan_control_get_board_name (board);
+                  operation->source = source;
+                  operation->name = hyscan_control_get_source_name (source);
                   operation->func = hyscan_generator_control_server_set_lfm;
                   g_hash_table_insert (priv->operations, operation, operation);
 
-                  operation_path = g_strdup_printf ("/boards/%s/generator/lfm/decreasing", operation->name);
+                  operation_path = g_strdup_printf ("/sources/%s/generator/lfm/decreasing", operation->name);
                   g_hash_table_insert (priv->paths, operation_path, operation);
-                  operation_path = g_strdup_printf ("/boards/%s/generator/lfm/duration", operation->name);
+                  operation_path = g_strdup_printf ("/sources/%s/generator/lfm/duration", operation->name);
                   g_hash_table_insert (priv->paths, operation_path, operation);
-                  operation_path = g_strdup_printf ("/boards/%s/generator/lfm/power", operation->name);
+                  operation_path = g_strdup_printf ("/sources/%s/generator/lfm/power", operation->name);
                   g_hash_table_insert (priv->paths, operation_path, operation);
                 }
             }
@@ -365,16 +369,16 @@ hyscan_generator_control_server_object_constructed (GObject *object)
             {
               /* Команда - hyscan_generator_control_set_enable. */
               operation = g_new0 (HyScanGeneratorControlServerGen, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_generator_control_server_set_enable;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/generator/enable", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/generator/enable", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
               /* Идентификатор генератора. */
-              g_hash_table_insert (priv->ids, GINT_TO_POINTER (board), GINT_TO_POINTER (id));
+              g_hash_table_insert (priv->ids, GINT_TO_POINTER (source), GINT_TO_POINTER (id));
 }
         }
 
@@ -435,7 +439,7 @@ hyscan_generator_control_server_set_cb (HyScanDataBox                 *params,
       if (gen0 != genn)
         return FALSE;
 
-      if (gen0->board != genn->board)
+      if (gen0->source != genn->source)
         return FALSE;
     }
 
@@ -450,20 +454,18 @@ hyscan_generator_control_server_set_preset (HyScanGeneratorControlServer    *ser
                                             GVariant                       **values)
 {
   gchar *name = NULL;
-  gboolean status;
   gboolean cancel;
 
-  gint64 preset;
+  gint64 value64;
+  guint preset = 0;
 
-  name = g_strdup_printf ("/boards/%s/generator/preset/id", gen->name);
-  status = hyscan_control_find_integer_param (name, names, values, &preset);
+  name = g_strdup_printf ("/sources/%s/generator/preset/id", gen->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    preset = value64;
   g_free (name);
 
-  if (!status)
-    return FALSE;
-
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_PRESET], 0,
-                 gen->board, preset, &cancel);
+                 gen->source, preset, &cancel);
   if (cancel)
     return FALSE;
 
@@ -478,20 +480,21 @@ hyscan_generator_control_server_set_auto (HyScanGeneratorControlServer    *serve
                                           GVariant                       **values)
 {
   gchar *name = NULL;
-  gboolean status;
   gboolean cancel;
 
-  gint64 signal;
+  gint64 value64;
+  HyScanGeneratorSignalType signal = 0;
 
-  name = g_strdup_printf ("/boards/%s/generator/auto/signal", gen->name);
-  status = hyscan_control_find_integer_param (name, names, values, &signal);
+  name = g_strdup_printf ("/sources/%s/generator/auto/signal", gen->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    signal = value64;
   g_free (name);
 
-  if (!status)
+  if (signal == 0)
     return FALSE;
 
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_AUTO], 0,
-                 gen->board, signal, &cancel);
+                 gen->source, signal, &cancel);
   if (cancel)
     return FALSE;
 
@@ -509,25 +512,24 @@ hyscan_generator_control_server_set_simple (HyScanGeneratorControlServer    *ser
   gboolean status;
   gboolean cancel;
 
-  gint64 signal;
+  gint64 value64;
+  HyScanGeneratorSignalType signal = 0;
   gdouble power;
 
-  name = g_strdup_printf ("/boards/%s/generator/simple/signal", gen->name);
-  status = hyscan_control_find_integer_param (name, names, values, &signal);
+  name = g_strdup_printf ("/sources/%s/generator/simple/signal", gen->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    signal = value64;
   g_free (name);
 
-  if (!status)
-    return FALSE;
-
-  name = g_strdup_printf ("/boards/%s/generator/simple/power", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/simple/power", gen->name);
   status = hyscan_control_find_double_param (name, names, values, &power);
   g_free (name);
 
-  if (!status)
+  if (signal == 0 || !status)
     return FALSE;
 
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_SIMPLE], 0,
-                 gen->board, signal, power, &cancel);
+                 gen->source, signal, power, &cancel);
   if (cancel)
     return FALSE;
 
@@ -545,28 +547,26 @@ hyscan_generator_control_server_set_tone (HyScanGeneratorControlServer    *serve
   gboolean status;
   gboolean cancel;
 
-  gint signal;
+  HyScanGeneratorSignalType signal = HYSCAN_GENERATOR_SIGNAL_TONE;
   gdouble duration;
   gdouble power;
 
-  name = g_strdup_printf ("/boards/%s/generator/tone/duration", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/tone/duration", gen->name);
   status = hyscan_control_find_double_param (name, names, values, &duration);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/generator/tone/power", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/tone/power", gen->name);
   status = hyscan_control_find_double_param (name, names, values, &power);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  signal = HYSCAN_GENERATOR_SIGNAL_TONE;
-
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_EXTENDED], 0,
-                 gen->board, signal, duration, power, &cancel);
+                 gen->source, signal, duration, power, &cancel);
   if (cancel)
     return FALSE;
 
@@ -584,26 +584,26 @@ hyscan_generator_control_server_set_lfm (HyScanGeneratorControlServer    *server
   gboolean status;
   gboolean cancel;
 
+  HyScanGeneratorSignalType signal;
   gboolean decreasing;
-  gint signal;
   gdouble duration;
   gdouble power;
 
-  name = g_strdup_printf ("/boards/%s/generator/lfm/decreasing", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/lfm/decreasing", gen->name);
   status = hyscan_control_find_boolean_param (name, names, values, &decreasing);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/generator/lfm/duration", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/lfm/duration", gen->name);
   status = hyscan_control_find_double_param (name, names, values, &duration);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/generator/lfm/power", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/lfm/power", gen->name);
   status = hyscan_control_find_double_param (name, names, values, &power);
   g_free (name);
 
@@ -616,7 +616,7 @@ hyscan_generator_control_server_set_lfm (HyScanGeneratorControlServer    *server
     signal = HYSCAN_GENERATOR_SIGNAL_LFM;
 
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_EXTENDED], 0,
-                 gen->board, signal, duration, power, &cancel);
+                 gen->source, signal, duration, power, &cancel);
   if (cancel)
     return FALSE;
 
@@ -636,7 +636,7 @@ hyscan_generator_control_server_set_enable (HyScanGeneratorControlServer    *ser
 
   gboolean enable;
 
-  name = g_strdup_printf ("/boards/%s/generator/enable", gen->name);
+  name = g_strdup_printf ("/sources/%s/generator/enable", gen->name);
   status = hyscan_control_find_boolean_param (name, names, values, &enable);
   g_free (name);
 
@@ -644,7 +644,7 @@ hyscan_generator_control_server_set_enable (HyScanGeneratorControlServer    *ser
     return FALSE;
 
   g_signal_emit (server, hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_ENABLE], 0,
-                 gen->board, enable, &cancel);
+                 gen->source, enable, &cancel);
   if (cancel)
     return FALSE;
 
@@ -654,20 +654,27 @@ hyscan_generator_control_server_set_enable (HyScanGeneratorControlServer    *ser
 /* Функция передаёт образы излучаемых сигналов. */
 void
 hyscan_generator_control_server_send_signal (HyScanGeneratorControlServer  *server,
-                                             gint64                         time,
-                                             HyScanBoardType                board,
-                                             gfloat                         rate,
-                                             guint32                        size,
-                                             gpointer                       signal)
+                                             HyScanSourceType               source,
+                                             HyScanDataWriterSignal        *signal)
 {
+  HyScanSonarMessage message;
   gpointer id;
 
   g_return_if_fail (HYSCAN_IS_GENERATOR_CONTROL_SERVER (server));
 
-  id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (board));
+  if (server->priv->params == NULL)
+    return;
+
+  id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (source));
   if (id == NULL)
     return;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params),
-                         time, GPOINTER_TO_INT (id), HYSCAN_DATA_COMPLEX_FLOAT, rate, size, signal);
+  message.time = signal->time;
+  message.id   = GPOINTER_TO_INT (id);
+  message.type = HYSCAN_DATA_COMPLEX_FLOAT;
+  message.rate = signal->rate;
+  message.size = signal->n_points * hyscan_data_get_point_size (HYSCAN_DATA_COMPLEX_FLOAT);
+  message.data = signal->points;
+
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
 }

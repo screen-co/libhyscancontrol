@@ -16,7 +16,7 @@ typedef struct
   GQuark                       quark;
   const gchar                 *name;
 
-  HyScanBoardType              board;
+  HyScanSourceType             source;
 } HyScanBoardTypeInfo;
 
 /* Типы источников данных и их названия. */
@@ -30,16 +30,17 @@ typedef struct
 
 static HyScanBoardTypeInfo hyscan_board_type_info[] =
 {
-  { 0, "starboard",            HYSCAN_BOARD_STARBOARD },
-  { 0, "port",                 HYSCAN_BOARD_PORT },
-  { 0, "starboard-hi",         HYSCAN_BOARD_STARBOARD_HI },
-  { 0, "port-hi",              HYSCAN_BOARD_PORT_HI },
-  { 0, "echosounder",          HYSCAN_BOARD_ECHOSOUNDER },
-  { 0, "profiler",             HYSCAN_BOARD_PROFILER },
-  { 0, "look-around",          HYSCAN_BOARD_LOOK_AROUND },
-  { 0, "forward-look",         HYSCAN_BOARD_FORWARD_LOOK },
+  { 0, "side-scan-starboard",    HYSCAN_SOURCE_SIDE_SCAN_STARBOARD },
+  { 0, "side-scan-port",         HYSCAN_SOURCE_SIDE_SCAN_PORT },
+  { 0, "side-scan-starboard-hi", HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI },
+  { 0, "side-scan-port-hi",      HYSCAN_SOURCE_SIDE_SCAN_PORT_HI },
+  { 0, "echosounder",            HYSCAN_SOURCE_ECHOSOUNDER },
+  { 0, "profiler",               HYSCAN_SOURCE_PROFILER },
+  { 0, "look-around-starboard",  HYSCAN_SOURCE_LOOK_AROUND_STARBOARD },
+  { 0, "look-around-port",       HYSCAN_SOURCE_LOOK_AROUND_PORT },
+  { 0, "forward-look",           HYSCAN_SOURCE_FORWARD_LOOK },
 
-  { 0, NULL,                   HYSCAN_SOURCE_INVALID }
+  { 0, NULL,                     HYSCAN_SOURCE_INVALID }
 };
 
 /* Функция инициализации статических данных. */
@@ -60,7 +61,7 @@ hyscan_control_types_initialize (void)
 
 /* Функция возвращает название борта гидролокатора по его идентификатору. */
 const gchar *
-hyscan_control_get_board_name (HyScanBoardType board)
+hyscan_control_get_source_name (HyScanSourceType source)
 {
   gint i;
 
@@ -70,7 +71,7 @@ hyscan_control_get_board_name (HyScanBoardType board)
   /* Ищем название типа. */
   for (i = 0; hyscan_board_type_info[i].quark != 0; i++)
     {
-      if (hyscan_board_type_info[i].board != board)
+      if (hyscan_board_type_info[i].source != source)
         continue;
       return hyscan_board_type_info[i].name;
     }
@@ -79,8 +80,8 @@ hyscan_control_get_board_name (HyScanBoardType board)
 }
 
 /* Функция возвращает идентификатор борта гидролокатора по его названию. */
-HyScanBoardType
-hyscan_control_get_board_type (const gchar *name)
+HyScanSourceType
+hyscan_control_get_source_type (const gchar *name)
 {
   GQuark quark;
   gint i;
@@ -92,83 +93,7 @@ hyscan_control_get_board_type (const gchar *name)
   quark = g_quark_try_string (name);
   for (i = 0; hyscan_board_type_info[i].quark != 0; i++)
     if (hyscan_board_type_info[i].quark == quark)
-      return hyscan_board_type_info[i].board;
-
-  return HYSCAN_BOARD_INVALID;
-}
-
-/* Функция возвращает идентификатор борта гидролокатора по типу источника данных. */
-HyScanBoardType
-hyscan_control_get_board_type_by_source (HyScanSourceType source)
-{
-  switch (source)
-    {
-    case HYSCAN_SOURCE_SIDE_SCAN_STARBOARD:
-    case HYSCAN_SOURCE_BATHYMETRY_STARBOARD:
-      return HYSCAN_BOARD_STARBOARD;
-
-    case HYSCAN_SOURCE_SIDE_SCAN_PORT:
-    case HYSCAN_SOURCE_BATHYMETRY_PORT:
-      return HYSCAN_BOARD_PORT;
-
-    case HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI:
-      return HYSCAN_BOARD_STARBOARD_HI;
-
-    case HYSCAN_SOURCE_SIDE_SCAN_PORT_HI:
-      return HYSCAN_BOARD_PORT_HI;
-
-    case HYSCAN_SOURCE_ECHOSOUNDER:
-      return HYSCAN_BOARD_ECHOSOUNDER;
-
-    case HYSCAN_SOURCE_PROFILER:
-      return HYSCAN_BOARD_PROFILER;
-
-    case HYSCAN_SOURCE_LOOK_AROUND:
-      return HYSCAN_BOARD_LOOK_AROUND;
-
-    case HYSCAN_SOURCE_FORWARD_LOOK:
-      return HYSCAN_BOARD_FORWARD_LOOK;
-
-    default:
-      break;
-    }
-
-  return HYSCAN_BOARD_INVALID;
-}
-
-/* Функция возвращает идентификатор источника "сырых" данных для борта. */
-HyScanSourceType
-hyscan_control_get_raw_source_type (HyScanBoardType board)
-{
-  switch (board)
-    {
-    case HYSCAN_BOARD_STARBOARD:
-      return HYSCAN_SOURCE_SIDE_SCAN_STARBOARD;
-
-    case HYSCAN_BOARD_PORT:
-      return HYSCAN_SOURCE_SIDE_SCAN_PORT;
-
-    case HYSCAN_BOARD_STARBOARD_HI:
-      return HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI;
-
-    case HYSCAN_BOARD_PORT_HI:
-      return HYSCAN_SOURCE_SIDE_SCAN_PORT_HI;
-
-    case HYSCAN_BOARD_ECHOSOUNDER:
-      return HYSCAN_SOURCE_ECHOSOUNDER;
-
-    case HYSCAN_BOARD_PROFILER:
-      return HYSCAN_SOURCE_PROFILER;
-
-    case HYSCAN_BOARD_LOOK_AROUND:
-      return HYSCAN_SOURCE_LOOK_AROUND;
-
-    case HYSCAN_BOARD_FORWARD_LOOK:
-      return HYSCAN_SOURCE_FORWARD_LOOK;
-
-    default:
-      break;
-    }
+      return hyscan_board_type_info[i].source;
 
   return HYSCAN_SOURCE_INVALID;
 }

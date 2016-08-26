@@ -1,7 +1,6 @@
 
 #include "hyscan-sonar-schema.h"
-#include "hyscan-sonar-box.h"
-#include "hyscan-sonar-control-server.h"
+#include "hyscan-ssse-control-server.h"
 #include "hyscan-ssse-control.h"
 
 #include <string.h>
@@ -40,7 +39,7 @@
 #define TVG_MAX_MIN_GAIN                       10.0
 #define TVG_MAX_MAX_GAIN                       90.0
 
-#define TVG_N_POINTS                           1024
+#define TVG_N_GAINS                            512
 
 typedef struct
 {
@@ -113,7 +112,7 @@ typedef struct
     gdouble            cur_alpha;
     gdouble            cur_beta;
   } tvg;
-} BoardInfo;
+} SourceInfo;
 
 typedef struct
 {
@@ -136,38 +135,38 @@ gchar                 *ip_address_names[SENSOR_N_IP_ADDRESSES];
 
 GHashTable            *ports;
 
-BoardInfo              starboard;
-BoardInfo              port;
-BoardInfo              echosounder;
+SourceInfo             starboard;
+SourceInfo             port;
+SourceInfo             echosounder;
 
 SonarInfo              sonar_info;
 
 /* Функция возвращает информацию о борте по его типу. */
-BoardInfo *
-select_board (HyScanBoardType type)
+SourceInfo *
+select_board (HyScanSourceType type)
 {
-  if (type == HYSCAN_BOARD_STARBOARD)
+  if (type == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
     return &starboard;
 
-  if (type == HYSCAN_BOARD_PORT)
+  if (type == HYSCAN_SOURCE_SIDE_SCAN_PORT)
     return &port;
 
-  if (type == HYSCAN_BOARD_ECHOSOUNDER)
+  if (type == HYSCAN_SOURCE_ECHOSOUNDER)
     return &echosounder;
 
   return NULL;
 }
 
 const gchar *
-board_name (HyScanBoardType type)
+board_name (HyScanSourceType type)
 {
-  if (type == HYSCAN_BOARD_STARBOARD)
+  if (type == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
     return "starboard";
 
-  if (type == HYSCAN_BOARD_PORT)
+  if (type == HYSCAN_SOURCE_SIDE_SCAN_PORT)
     return "port";
 
-  if (type == HYSCAN_BOARD_ECHOSOUNDER)
+  if (type == HYSCAN_SOURCE_ECHOSOUNDER)
     return "echosounder";
 
   return NULL;
@@ -247,7 +246,7 @@ generator_set_preset_cb (HyScanGeneratorControlServer *server,
                          gpointer                      user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -268,7 +267,7 @@ generator_set_auto_cb (HyScanGeneratorControlServer *server,
                        gpointer                      user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -290,7 +289,7 @@ generator_set_simple_cb (HyScanGeneratorControlServer *server,
                          gpointer                      user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -314,7 +313,7 @@ generator_set_extended_cb (HyScanGeneratorControlServer *server,
                            gpointer                      user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -337,26 +336,32 @@ generator_set_enable_cb (HyScanGeneratorControlServer *server,
                          gpointer                      user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
 
   if (enable)
     {
-      HyScanComplexFloat *signal = g_new (HyScanComplexFloat, GENERATOR_SIGNAL_N_POINTS);
+      HyScanDataWriterSignal signal;
+      HyScanComplexFloat *signal_points = g_new (HyScanComplexFloat, GENERATOR_SIGNAL_N_POINTS);
       guint i;
 
       for (i = 0; i < GENERATOR_SIGNAL_N_POINTS; i++)
         {
-          signal[i].re =  1.0 * board * i;
-          signal[i].im = -1.0 * board * i;
+          signal_points[i].re =  1.0 * board * i;
+          signal_points[i].im = -1.0 * board * i;
         }
 
       #warning "Fix signal rate (discretization frequency)"
-      hyscan_generator_control_server_send_signal (server, 0, board, 123.456, GENERATOR_SIGNAL_N_POINTS * sizeof (HyScanComplexFloat), signal);
+      signal.time = 0;
+      signal.rate = 123.456;
+      signal.n_points = GENERATOR_SIGNAL_N_POINTS;
+      signal.points = signal_points;
 
-      g_free (signal);
+      hyscan_generator_control_server_send_signal (server, board, &signal);
+
+      g_free (signal_points);
     }
 
   info->generator.enable = enable;
@@ -375,7 +380,7 @@ tvg_set_auto_cb (HyScanTVGControlServer *server,
                  gpointer                user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -397,7 +402,7 @@ tvg_set_constant_cb (HyScanTVGControlServer *server,
                      gpointer                user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -419,7 +424,7 @@ tvg_set_linear_db_cb (HyScanTVGControlServer *server,
                       gpointer                user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -443,7 +448,7 @@ tvg_set_logarithmic_cb (HyScanTVGControlServer *server,
                         gpointer                user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -466,23 +471,28 @@ tvg_set_enable_cb (HyScanTVGControlServer *server,
                    gpointer                user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
 
   if (enable)
     {
-      gfloat *tvg = g_new (gfloat, GENERATOR_SIGNAL_N_POINTS);
+      HyScanDataWriterTVG tvg;
+      gfloat *tvg_gains = g_new (gfloat, TVG_N_GAINS);
       guint i;
 
-      for (i = 0; i < TVG_N_POINTS; i++)
-          tvg[i] = ((i % 2) ? 1.0 : -1.0) * board * i;
+      for (i = 0; i < TVG_N_GAINS; i++)
+          tvg_gains[i] = ((i % 2) ? 1.0 : -1.0) * board * i;
 
       #warning "Fix tvg rate (discretization frequency)"
-      hyscan_tvg_control_server_send_tvg (server, 0, board, 123.456, TVG_N_POINTS * sizeof (gfloat), tvg);
+      tvg.time = 0;
+      tvg.rate = 123.456;
+      tvg.n_gains = TVG_N_GAINS;
+      tvg.gains = tvg_gains;
+      hyscan_tvg_control_server_send_tvg (server, board, &tvg);
 
-      g_free (tvg);
+      g_free (tvg_gains);
     }
 
   info->tvg.enable = enable;
@@ -528,7 +538,7 @@ sonar_set_receive_time_cb (HyScanSonarControlServer *server,
                            gpointer                  user_data)
 {
   gint64 *counter = user_data;
-  BoardInfo *info = select_board (board);
+  SourceInfo *info = select_board (board);
 
   if (info == NULL)
     return FALSE;
@@ -727,10 +737,10 @@ check_sensor_control (HyScanSensorControl *control)
 /* Функция проверяет управление генератором. */
 void
 check_generator_control (HyScanGeneratorControl *control,
-                         HyScanBoardType         board)
+                         HyScanSourceType        source)
 {
-  BoardInfo *info = select_board (board);
-  const gchar *name = board_name (board);
+  SourceInfo *info = select_board (source);
+  const gchar *name = board_name (source);
 
   HyScanGeneratorModeType capabilities;
   HyScanGeneratorSignalType signals;
@@ -743,40 +753,40 @@ check_generator_control (HyScanGeneratorControl *control,
   guint i, j;
 
   if (info == NULL)
-    g_error ("unknown board type %d", board);
+    g_error ("unknown board type %d", source);
 
   /* Возможности генератора. */
-  capabilities = hyscan_generator_control_get_capabilities (control, board);
+  capabilities = hyscan_generator_control_get_capabilities (control, source);
   if (capabilities != info->generator.capabilities)
     g_error ("%s.generator.capabilities: mismatch", name);
 
   /* Допустимые сигналы. */
-  signals = hyscan_generator_control_get_signals (control, board);
+  signals = hyscan_generator_control_get_signals (control, source);
   if (signals != info->generator.signals)
     g_error ("%s.generator.signals: mismatch", name);
 
   /* Диапазон длительностей тонального сигнала. */
-  if (!hyscan_generator_control_get_duration_range (control, board, HYSCAN_GENERATOR_SIGNAL_TONE, &min_duration, &max_duration))
+  if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_TONE, &min_duration, &max_duration))
     g_error ("%s.generator.duration_range (tone): can't get", name);
 
   if (min_duration != info->generator.min_tone_duration || max_duration != info->generator.max_tone_duration)
     g_error ("%s.generator.duration_range (tone): mismatch", name);
 
   /* Диапазон длительностей ЛЧМ сигнала. */
-  if (!hyscan_generator_control_get_duration_range (control, board, HYSCAN_GENERATOR_SIGNAL_LFM, &min_duration, &max_duration))
+  if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_LFM, &min_duration, &max_duration))
     g_error ("%s.generator.duration_range (lfm): can't get", name);
 
   if (min_duration != info->generator.min_lfm_duration || max_duration != info->generator.max_lfm_duration)
     g_error ("%s.generator.duration_range (lfm): mismatch", name);
 
-  if (!hyscan_generator_control_get_duration_range (control, board, HYSCAN_GENERATOR_SIGNAL_LFMD, &min_duration, &max_duration))
+  if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_LFMD, &min_duration, &max_duration))
     g_error ("%s.generator.duration_range (lfmd): can't get", name);
 
   if (min_duration != info->generator.min_lfm_duration || max_duration != info->generator.max_lfm_duration)
     g_error ("%s.generator.duration_range (lfmd): mismatch", name);
 
   /* Преднастройки генератора. */
-  presets = hyscan_generator_control_list_presets (control, board);
+  presets = hyscan_generator_control_list_presets (control, source);
   if (presets == NULL)
     g_error ("%s.generator.presets: can't get", name);
 
@@ -799,7 +809,7 @@ check_generator_control (HyScanGeneratorControl *control,
   for (i = 0; presets[i] != NULL; i++)
     {
       prev_counter = counter;
-      if (!hyscan_generator_control_set_preset (control, board, presets[i]->value) ||
+      if (!hyscan_generator_control_set_preset (control, source, presets[i]->value) ||
           (info->generator.cur_mode != HYSCAN_GENERATOR_MODE_PRESET) ||
           (info->generator.cur_preset != presets[i]->value) ||
           (prev_counter + 1 != counter))
@@ -816,7 +826,7 @@ check_generator_control (HyScanGeneratorControl *control,
       HyScanGeneratorSignalType signal = 1 << i;
 
       prev_counter = counter;
-      if (!hyscan_generator_control_set_auto (control, board, signal) ||
+      if (!hyscan_generator_control_set_auto (control, source, signal) ||
           (info->generator.cur_mode != HYSCAN_GENERATOR_MODE_AUTO) ||
           (info->generator.cur_signal != signal) ||
           (prev_counter + 1 != counter))
@@ -832,7 +842,7 @@ check_generator_control (HyScanGeneratorControl *control,
       gdouble power = g_random_double_range (0.0, 100.0);
 
       prev_counter = counter;
-      if (!hyscan_generator_control_set_simple (control, board, signal, power) ||
+      if (!hyscan_generator_control_set_simple (control, source, signal, power) ||
           (info->generator.cur_mode != HYSCAN_GENERATOR_MODE_SIMPLE) ||
           (info->generator.cur_signal != signal) ||
           (info->generator.cur_power != power) ||
@@ -850,15 +860,15 @@ check_generator_control (HyScanGeneratorControl *control,
       gdouble duration;
 
       if (signal == HYSCAN_GENERATOR_SIGNAL_TONE)
-        hyscan_generator_control_get_duration_range (control, board, HYSCAN_GENERATOR_SIGNAL_TONE, &min_duration, &max_duration);
+        hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_TONE, &min_duration, &max_duration);
 
       if (signal == HYSCAN_GENERATOR_SIGNAL_LFM || signal == HYSCAN_GENERATOR_SIGNAL_LFMD)
-        hyscan_generator_control_get_duration_range (control, board, HYSCAN_GENERATOR_SIGNAL_LFM, &min_duration, &max_duration);
+        hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_LFM, &min_duration, &max_duration);
 
       duration = g_random_double_range (min_duration, max_duration);
 
       prev_counter = counter;
-      if (!hyscan_generator_control_set_extended (control, board, signal, duration, power) ||
+      if (!hyscan_generator_control_set_extended (control, source, signal, duration, power) ||
           (info->generator.cur_mode != HYSCAN_GENERATOR_MODE_EXTENDED) ||
           (info->generator.cur_signal != signal) ||
           (info->generator.cur_duration != duration) ||
@@ -871,14 +881,14 @@ check_generator_control (HyScanGeneratorControl *control,
 
   /* Включение / выключение. */
   prev_counter = counter;
-  if (!hyscan_generator_control_set_enable (control, board, TRUE) ||
+  if (!hyscan_generator_control_set_enable (control, source, TRUE) ||
       (info->generator.enable != TRUE) ||
       (prev_counter + 1 != counter))
     {
       g_error ("%s.generator.enable: can't enable", name);
     }
   prev_counter = counter;
-  if (!hyscan_generator_control_set_enable (control, board, FALSE) ||
+  if (!hyscan_generator_control_set_enable (control, source, FALSE) ||
       (info->generator.enable != FALSE) ||
       (prev_counter + 1 != counter))
     {
@@ -889,10 +899,10 @@ check_generator_control (HyScanGeneratorControl *control,
 /* Функция проверяет управление системой ВАРУ. */
 void
 check_tvg_control (HyScanTVGControl *control,
-                   HyScanBoardType   board)
+                   HyScanSourceType  source)
 {
-  BoardInfo *info = select_board (board);
-  const gchar *name = board_name (board);
+  SourceInfo *info = select_board (source);
+  const gchar *name = board_name (source);
 
   HyScanTVGModeType capabilities;
 
@@ -903,15 +913,15 @@ check_tvg_control (HyScanTVGControl *control,
   guint i;
 
   if (info == NULL)
-    g_error ("unknown board type %d", board);
+    g_error ("unknown board type %d", source);
 
   /* Возможности ВАРУ. */
-  capabilities = hyscan_tvg_control_get_capabilities (control, board);
+  capabilities = hyscan_tvg_control_get_capabilities (control, source);
   if (capabilities != info->tvg.capabilities)
     g_error ("%s.tvg.capabilities: mismatch", name);
 
   /* Диапазон значений коэффициентов усилений ВАРУ. */
-  if (!hyscan_tvg_control_get_gain_range (control, board, &min_gain, &max_gain))
+  if (!hyscan_tvg_control_get_gain_range (control, source, &min_gain, &max_gain))
     g_error ("%s.tvg.gain_range: can't get", name);
 
   if (min_gain != info->tvg.min_gain || max_gain != info->tvg.max_gain)
@@ -924,7 +934,7 @@ check_tvg_control (HyScanTVGControl *control,
       gdouble sensitivity = g_random_double_range (0.0, 1.0);
 
       prev_counter = counter;
-      if (!hyscan_tvg_control_set_auto (control, board, level, sensitivity) ||
+      if (!hyscan_tvg_control_set_auto (control, source, level, sensitivity) ||
           (info->tvg.cur_mode != HYSCAN_TVG_MODE_AUTO) ||
           (info->tvg.cur_level != level) ||
           (info->tvg.cur_sensitivity != sensitivity) ||
@@ -940,7 +950,7 @@ check_tvg_control (HyScanTVGControl *control,
       gdouble gain = g_random_double_range (min_gain, max_gain);
 
       prev_counter = counter;
-      if (!hyscan_tvg_control_set_constant (control, board, gain) ||
+      if (!hyscan_tvg_control_set_constant (control, source, gain) ||
           (info->tvg.cur_mode != HYSCAN_TVG_MODE_CONSTANT) ||
           (info->tvg.cur_gain != gain) ||
           (prev_counter + 1 != counter))
@@ -956,7 +966,7 @@ check_tvg_control (HyScanTVGControl *control,
       gdouble step = g_random_double_range (0.0, 100.0);
 
       prev_counter = counter;
-      if (!hyscan_tvg_control_set_linear_db (control, board, gain0, step) ||
+      if (!hyscan_tvg_control_set_linear_db (control, source, gain0, step) ||
           (info->tvg.cur_mode != HYSCAN_TVG_MODE_LINEAR_DB) ||
           (info->tvg.cur_gain0 != gain0) ||
           (info->tvg.cur_step != step) ||
@@ -974,7 +984,7 @@ check_tvg_control (HyScanTVGControl *control,
       gdouble alpha = g_random_double_range (0.0, 1.0);
 
       prev_counter = counter;
-      if (!hyscan_tvg_control_set_logarithmic (control, board, gain0, beta, alpha) ||
+      if (!hyscan_tvg_control_set_logarithmic (control, source, gain0, beta, alpha) ||
           (info->tvg.cur_mode != HYSCAN_TVG_MODE_LOGARITHMIC) ||
           (info->tvg.cur_gain0 != gain0) ||
           (info->tvg.cur_beta != beta) ||
@@ -987,14 +997,14 @@ check_tvg_control (HyScanTVGControl *control,
 
   /* Включение / выключение. */
   prev_counter = counter;
-  if (!hyscan_tvg_control_set_enable (control, board, TRUE) ||
+  if (!hyscan_tvg_control_set_enable (control, source, TRUE) ||
       (info->tvg.enable != TRUE) ||
       (prev_counter + 1 != counter))
     {
       g_error ("%s.tvg.enable: can't enable", name);
     }
   prev_counter = counter;
-  if (!hyscan_tvg_control_set_enable (control, board, FALSE) ||
+  if (!hyscan_tvg_control_set_enable (control, source, FALSE) ||
       (info->tvg.enable != FALSE) ||
       (prev_counter + 1 != counter))
     {
@@ -1050,7 +1060,7 @@ check_sonar_control (HyScanSonarControl *control,
 
       receive_time = g_random_double_range (0.001, starboard.max_receive_time);
       prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_BOARD_STARBOARD, receive_time) ||
+      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD, receive_time) ||
           (starboard.cur_receive_time != receive_time) ||
           (prev_counter + 1 != counter))
         {
@@ -1059,7 +1069,7 @@ check_sonar_control (HyScanSonarControl *control,
 
       receive_time = g_random_double_range (0.001, port.max_receive_time);
       prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_BOARD_PORT, receive_time) ||
+      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_SIDE_SCAN_PORT, receive_time) ||
           (port.cur_receive_time != receive_time) ||
           (prev_counter + 1 != counter))
         {
@@ -1068,7 +1078,7 @@ check_sonar_control (HyScanSonarControl *control,
 
       receive_time = g_random_double_range (0.001, echosounder.max_receive_time);
       prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_BOARD_ECHOSOUNDER, receive_time) ||
+      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_ECHOSOUNDER, receive_time) ||
           (echosounder.cur_receive_time != receive_time) ||
           (prev_counter + 1 != counter))
         {
@@ -1082,7 +1092,7 @@ check_sonar_control (HyScanSonarControl *control,
       gchar *track_name = g_strdup_printf ("test-track-%d", i);
 
       prev_counter = counter;
-      if (!hyscan_sonar_control_start (control, project_name, track_name) ||
+      if (!hyscan_sonar_control_start (control, project_name, track_name, HYSCAN_TRACK_SURVEY) ||
           (g_strcmp0 (sonar_info.project_name, project_name) != 0) ||
           (g_strcmp0 (sonar_info.track_name, track_name) != 0) ||
           (prev_counter + 1 != counter))
@@ -1114,12 +1124,13 @@ main (int    argc,
   gchar *schema_data;
 
   HyScanSonarBox *sonar;
-  HyScanSonarControlServer *server;
+  HyScanSSSEControlServer *server;
   HyScanSSSEControl *control;
 
   gchar *db_uri = NULL;
   HyScanDB *db;
   gchar *project_name = "project";
+  gint32 project_id;
 
   guint pow2;
   guint i;
@@ -1384,12 +1395,12 @@ main (int    argc,
   hyscan_sonar_schema_sync_add (schema, sonar_info.sync_capabilities);
 
   /* Правый борт. */
-  hyscan_sonar_schema_board_add     (schema, HYSCAN_BOARD_STARBOARD,
+  hyscan_sonar_schema_source_add    (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD,
                                              starboard.vertical_pattern,
                                              starboard.horizontal_pattern,
                                              starboard.max_receive_time);
 
-  hyscan_sonar_schema_generator_add (schema, HYSCAN_BOARD_STARBOARD,
+  hyscan_sonar_schema_generator_add (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD,
                                              starboard.generator.capabilities,
                                              starboard.generator.signals,
                                              starboard.generator.min_tone_duration,
@@ -1404,27 +1415,27 @@ main (int    argc,
       gchar *preset_name = g_strdup_printf ("starboard.preset.%d", i + 1);
 
       starboard.generator.preset_ids[i] =
-        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_BOARD_STARBOARD, preset_name);
+        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD, preset_name);
 
       starboard.generator.preset_names[i] = preset_name;
     }
 
-  hyscan_sonar_schema_tvg_add (schema, HYSCAN_BOARD_STARBOARD,
+  hyscan_sonar_schema_tvg_add (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD,
                                        starboard.tvg.capabilities,
                                        starboard.tvg.min_gain,
                                        starboard.tvg.max_gain);
 
-  hyscan_sonar_schema_raw_add (schema, HYSCAN_BOARD_STARBOARD, 1, 0.0, 0, 1.0);
-  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_BOARD_STARBOARD);
+  hyscan_sonar_schema_channel_add (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD, 1, 0.0, 0.0, 0, 1.0);
+  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD);
 
 
   /* Левый борт. */
-  hyscan_sonar_schema_board_add     (schema, HYSCAN_BOARD_PORT,
+  hyscan_sonar_schema_source_add    (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT,
                                              port.vertical_pattern,
                                              port.horizontal_pattern,
                                              port.max_receive_time);
 
-  hyscan_sonar_schema_generator_add (schema, HYSCAN_BOARD_PORT,
+  hyscan_sonar_schema_generator_add (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT,
                                              port.generator.capabilities,
                                              port.generator.signals,
                                              port.generator.min_tone_duration,
@@ -1439,26 +1450,26 @@ main (int    argc,
       gchar *preset_name = g_strdup_printf ("port.preset.%d", i + 1);
 
       port.generator.preset_ids[i] =
-        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_BOARD_PORT, preset_name);
+        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT, preset_name);
 
       port.generator.preset_names[i] = preset_name;
     }
 
-  hyscan_sonar_schema_tvg_add (schema, HYSCAN_BOARD_PORT,
+  hyscan_sonar_schema_tvg_add (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT,
                                        port.tvg.capabilities,
                                        port.tvg.min_gain,
                                        port.tvg.max_gain);
 
-  hyscan_sonar_schema_raw_add (schema, HYSCAN_BOARD_PORT, 1, 0.0, 0, 1.0);
-  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_BOARD_PORT);
+  hyscan_sonar_schema_channel_add (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT, 1, 0.0, 0.0, 0, 1.0);
+  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT);
 
   /* Эхолот. */
-  hyscan_sonar_schema_board_add     (schema, HYSCAN_BOARD_ECHOSOUNDER,
+  hyscan_sonar_schema_source_add    (schema, HYSCAN_SOURCE_ECHOSOUNDER,
                                              echosounder.vertical_pattern,
                                              echosounder.horizontal_pattern,
                                              echosounder.max_receive_time);
 
-  hyscan_sonar_schema_generator_add (schema, HYSCAN_BOARD_ECHOSOUNDER,
+  hyscan_sonar_schema_generator_add (schema, HYSCAN_SOURCE_ECHOSOUNDER,
                                              echosounder.generator.capabilities,
                                              echosounder.generator.signals,
                                              echosounder.generator.min_tone_duration,
@@ -1473,18 +1484,18 @@ main (int    argc,
       gchar *preset_name = g_strdup_printf ("echosounder.preset.%d", i + 1);
 
       echosounder.generator.preset_ids[i] =
-        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_BOARD_ECHOSOUNDER, preset_name);
+        hyscan_sonar_schema_generator_add_preset (schema, HYSCAN_SOURCE_ECHOSOUNDER, preset_name);
 
       echosounder.generator.preset_names[i] = preset_name;
     }
 
-  hyscan_sonar_schema_tvg_add (schema, HYSCAN_BOARD_ECHOSOUNDER,
+  hyscan_sonar_schema_tvg_add (schema, HYSCAN_SOURCE_ECHOSOUNDER,
                                        echosounder.tvg.capabilities,
                                        echosounder.tvg.min_gain,
                                        echosounder.tvg.max_gain);
 
-  hyscan_sonar_schema_raw_add (schema, HYSCAN_BOARD_ECHOSOUNDER, 1, 0.0, 0, 1.0);
-  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_BOARD_ECHOSOUNDER);
+  hyscan_sonar_schema_channel_add (schema, HYSCAN_SOURCE_ECHOSOUNDER, 1, 0.0, 0.0, 0, 1.0);
+  hyscan_sonar_schema_source_add_acuostic (schema, HYSCAN_SOURCE_ECHOSOUNDER);
 
   /* Схема гидролокатора. */
   schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (schema));
@@ -1503,8 +1514,7 @@ main (int    argc,
   g_free (schema_data);
 
   /* Сервер управления. */
-  server = g_object_new (HYSCAN_TYPE_SONAR_CONTROL_SERVER,
-                         "params", sonar, NULL);
+  server = hyscan_ssse_control_server_new (sonar);
 
   g_signal_connect (server, "sensor-uart-port-param", G_CALLBACK (sensor_uart_port_param_cb), &counter);
   g_signal_connect (server, "sensor-udp-ip-port-param", G_CALLBACK (sensor_udp_ip_port_param_cb), &counter);
@@ -1534,7 +1544,9 @@ main (int    argc,
   if (db == NULL)
     g_error ("can't open db at: %s", db_uri);
 
-  hyscan_db_project_create (db, project_name, NULL);
+  project_id = hyscan_db_project_create (db, project_name, NULL);
+  if (project_id < 0)
+    g_error ("can't create prject '%s'", project_name);
 
   /* Управление ГБОЭ. */
   control = hyscan_ssse_control_new (HYSCAN_SONAR (sonar), db);
@@ -1547,14 +1559,14 @@ main (int    argc,
   check_sensor_control (HYSCAN_SENSOR_CONTROL (control));
 
   /* Проверка управления генераторами. */
-  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_BOARD_STARBOARD);
-  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_BOARD_PORT);
-  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_BOARD_ECHOSOUNDER);
+  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_SOURCE_SIDE_SCAN_STARBOARD);
+  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_SOURCE_SIDE_SCAN_PORT);
+  check_generator_control (HYSCAN_GENERATOR_CONTROL (control), HYSCAN_SOURCE_ECHOSOUNDER);
 
   /* Проверка управления системой ВАРУ. */
-  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_BOARD_STARBOARD);
-  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_BOARD_PORT);
-  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_BOARD_ECHOSOUNDER);
+  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_SOURCE_SIDE_SCAN_STARBOARD);
+  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_SOURCE_SIDE_SCAN_PORT);
+  check_tvg_control (HYSCAN_TVG_CONTROL (control), HYSCAN_SOURCE_ECHOSOUNDER);
 
   /* Проверка управления гидролокатором. */
   check_sonar_control (HYSCAN_SONAR_CONTROL (control), project_name);
@@ -1569,6 +1581,10 @@ main (int    argc,
   /* Выключаем запись. */
 //  hyscan_sonar_control_stop (HYSCAN_SONAR_CONTROL (control));
 
+  /* Освобождаем память. */
+  hyscan_db_close (db, project_id);
+  hyscan_db_project_remove (db, project_name);
+
   g_hash_table_unref (ports);
 
   g_strfreev (starboard.generator.preset_names);
@@ -1582,6 +1598,7 @@ main (int    argc,
   g_object_unref (control);
   g_object_unref (server);
   g_object_unref (sonar);
+  g_object_unref (db);
 
   g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
@@ -1591,3 +1608,5 @@ main (int    argc,
 
 #warning "Generate test data"
 #warning "Check data in db"
+#warning "Check antenna pattern and offset"
+#warning "Check adc offset and vref"

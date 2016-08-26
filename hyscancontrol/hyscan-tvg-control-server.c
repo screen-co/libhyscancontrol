@@ -12,7 +12,7 @@
 #include "hyscan-tvg-control.h"
 #include "hyscan-control-common.h"
 #include "hyscan-marshallers.h"
-#include <hyscan-sonar-box.h>
+#include "hyscan-sonar-box.h"
 
 enum
 {
@@ -41,8 +41,8 @@ typedef gboolean (*hyscan_tvg_control_server_operation)                (HyScanTV
 /* Операция над системой ВАРУ. */
 struct _HyScanTVGControlServerTVG
 {
-  gint                                     board;                      /* Тип борта. */
-  const gchar                             *name;                       /* Название борта. */
+  HyScanSourceType                         source;                     /* Тип источника данных. */
+  const gchar                             *name;                       /* Название источника данных. */
   hyscan_tvg_control_server_operation      func;                       /* Функция выполнения операции. */
 };
 
@@ -104,7 +104,7 @@ hyscan_tvg_control_server_class_init (HyScanTVGControlServerClass *klass)
   object_class->finalize = hyscan_tvg_control_server_object_finalize;
 
   g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanDataBox", HYSCAN_TYPE_DATA_BOX,
+    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_AUTO] =
@@ -178,7 +178,7 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
   HyScanTVGControlServerPrivate *priv = server->priv;
 
   HyScanDataSchemaNode *params;
-  HyScanDataSchemaNode *boards;
+  HyScanDataSchemaNode *sources;
 
   gint64 version;
   gint64 id;
@@ -190,45 +190,49 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
+  /* Обязательно должны быть переданы параметры гидролокатора. */
+  if (priv->params == NULL)
+    return;
+
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
     {
-      g_warning ("HyScanTVGControlServer: unknown sonar schema id");
+      g_clear_object (&priv->params);
       return;
     }
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     {
-      g_warning ("HyScanTVGControlServer: sonar schema id mismatch");
+      g_clear_object (&priv->params);
       return;
     }
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
     {
-      g_warning ("HyScanTVGControlServer: unknown sonar schema version");
+      g_clear_object (&priv->params);
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
-      g_warning ("HyScanTVGControlServer: sonar schema version mismatch");
+      g_clear_object (&priv->params);
       return;
     }
 
   /* Параметры гидролокатора. */
   params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
 
-  /* Ветка схемы с описанием портов - "/boards". */
-  for (i = 0, boards = NULL; params->n_nodes; i++)
+  /* Ветка схемы с описанием источников данных - "/sources". */
+  for (i = 0, sources = NULL; i < params->n_nodes; i++)
     {
-      if (g_strcmp0 (params->nodes[i]->path, "/boards") == 0)
+      if (g_strcmp0 (params->nodes[i]->path, "/sources") == 0)
         {
-          boards = params->nodes[i];
+          sources = params->nodes[i];
           break;
         }
     }
 
-  if (boards != NULL)
+  if (sources != NULL)
     {
       /* Считываем описания генераторов. */
-      for (i = 0; i < boards->n_nodes; i++)
+      for (i = 0; i < sources->n_nodes; i++)
         {
           HyScanTVGControlServerTVG *operation;
           gchar *operation_path;
@@ -240,20 +244,20 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           gint64 capabilities;
 
           gchar **pathv;
-          gint board;
+          HyScanSourceType source;
 
           gboolean status;
 
-          /* Тип борта гидролокатора. */
-          pathv = g_strsplit (boards->nodes[i]->path, "/", -1);
-          board = hyscan_control_get_board_type (pathv[2]);
+          /* Тип источника данных. */
+          pathv = g_strsplit (sources->nodes[i]->path, "/", -1);
+          source = hyscan_control_get_source_type (pathv[2]);
           g_strfreev (pathv);
 
-          if (board == HYSCAN_BOARD_INVALID)
+          if (source == HYSCAN_SOURCE_INVALID)
             continue;
 
-          param_names[0] = g_strdup_printf ("%s/tvg/id", boards->nodes[i]->path);
-          param_names[1] = g_strdup_printf ("%s/tvg/capabilities", boards->nodes[i]->path);
+          param_names[0] = g_strdup_printf ("%s/tvg/id", sources->nodes[i]->path);
+          param_names[1] = g_strdup_printf ("%s/tvg/capabilities", sources->nodes[i]->path);
           param_names[2] = NULL;
 
           status = hyscan_data_box_get (HYSCAN_DATA_BOX (priv->params), (const gchar **)param_names, param_values);
@@ -280,14 +284,14 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_TVG_MODE_AUTO)
             {
               operation = g_new0 (HyScanTVGControlServerTVG, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_tvg_control_server_set_auto;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/tvg/auto/level", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/auto/level", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-              operation_path = g_strdup_printf ("/boards/%s/tvg/auto/sensitivity", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/auto/sensitivity", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -295,12 +299,12 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_TVG_MODE_CONSTANT)
             {
               operation = g_new0 (HyScanTVGControlServerTVG, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_tvg_control_server_set_constant;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/tvg/constant/gain", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/constant/gain", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -308,14 +312,14 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_TVG_MODE_LINEAR_DB)
             {
               operation = g_new0 (HyScanTVGControlServerTVG, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_tvg_control_server_set_linear_db;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/tvg/linear-db/gain0", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/linear-db/gain0", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-              operation_path = g_strdup_printf ("/boards/%s/tvg/linear-db/step", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/linear-db/step", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -323,16 +327,16 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           if (capabilities & HYSCAN_TVG_MODE_LOGARITHMIC)
             {
               operation = g_new0 (HyScanTVGControlServerTVG, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_tvg_control_server_set_logarithmic;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/tvg/logarithmic/alpha", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/logarithmic/alpha", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-              operation_path = g_strdup_printf ("/boards/%s/tvg/logarithmic/beta", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/logarithmic/beta", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-              operation_path = g_strdup_printf ("/boards/%s/tvg/logarithmic/gain0", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/logarithmic/gain0", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -340,16 +344,16 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
           if (capabilities)
             {
               operation = g_new0 (HyScanTVGControlServerTVG, 1);
-              operation->board = board;
-              operation->name = hyscan_control_get_board_name (board);
+              operation->source = source;
+              operation->name = hyscan_control_get_source_name (source);
               operation->func = hyscan_tvg_control_server_set_enable;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/boards/%s/tvg/enable", operation->name);
+              operation_path = g_strdup_printf ("/sources/%s/tvg/enable", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
               /* Идентификатор ВАРУ. */
-              g_hash_table_insert (priv->ids, GINT_TO_POINTER (board), GINT_TO_POINTER (id));
+              g_hash_table_insert (priv->ids, GINT_TO_POINTER (source), GINT_TO_POINTER (id));
             }
         }
 
@@ -410,7 +414,7 @@ hyscan_tvg_control_server_set_cb (HyScanDataBox           *params,
       if (tvg0 != tvgn)
         return FALSE;
 
-      if (tvg0->board != tvgn->board)
+      if (tvg0->source != tvgn->source)
         return FALSE;
     }
 
@@ -431,14 +435,14 @@ hyscan_tvg_control_server_set_auto (HyScanTVGControlServer      *server,
   gdouble level;
   gdouble sensitivity;
 
-  name = g_strdup_printf ("/boards/%s/tvg/auto/level", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/auto/level", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &level);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/tvg/auto/sensitivity", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/auto/sensitivity", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &sensitivity);
   g_free (name);
 
@@ -446,7 +450,7 @@ hyscan_tvg_control_server_set_auto (HyScanTVGControlServer      *server,
     return FALSE;
 
   g_signal_emit (server, hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_AUTO], 0,
-                 tvg->board, level, sensitivity, &cancel);
+                 tvg->source, level, sensitivity, &cancel);
   if (cancel)
     return FALSE;
 
@@ -466,7 +470,7 @@ hyscan_tvg_control_server_set_constant (HyScanTVGControlServer      *server,
 
   gdouble gain;
 
-  name = g_strdup_printf ("/boards/%s/tvg/constant/gain", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/constant/gain", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &gain);
   g_free (name);
 
@@ -474,7 +478,7 @@ hyscan_tvg_control_server_set_constant (HyScanTVGControlServer      *server,
     return FALSE;
 
   g_signal_emit (server, hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_CONSTANT], 0,
-                 tvg->board, gain, &cancel);
+                 tvg->source, gain, &cancel);
   if (cancel)
     return FALSE;
 
@@ -495,14 +499,14 @@ hyscan_tvg_control_server_set_linear_db (HyScanTVGControlServer      *server,
   gdouble gain0;
   gdouble step;
 
-  name = g_strdup_printf ("/boards/%s/tvg/linear-db/gain0", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/linear-db/gain0", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &gain0);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/tvg/linear-db/step", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/linear-db/step", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &step);
   g_free (name);
 
@@ -510,7 +514,7 @@ hyscan_tvg_control_server_set_linear_db (HyScanTVGControlServer      *server,
     return FALSE;
 
   g_signal_emit (server, hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_LINEAR_DB], 0,
-                 tvg->board, gain0, step, &cancel);
+                 tvg->source, gain0, step, &cancel);
   if (cancel)
     return FALSE;
 
@@ -532,21 +536,21 @@ hyscan_tvg_control_server_set_logarithmic (HyScanTVGControlServer      *server,
   gdouble beta;
   gdouble alpha;
 
-  name = g_strdup_printf ("/boards/%s/tvg/logarithmic/gain0", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/logarithmic/gain0", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &gain0);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/tvg/logarithmic/beta", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/logarithmic/beta", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &beta);
   g_free (name);
 
   if (!status)
     return FALSE;
 
-  name = g_strdup_printf ("/boards/%s/tvg/logarithmic/alpha", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/logarithmic/alpha", tvg->name);
   status = hyscan_control_find_double_param (name, names, values, &alpha);
   g_free (name);
 
@@ -554,7 +558,7 @@ hyscan_tvg_control_server_set_logarithmic (HyScanTVGControlServer      *server,
     return FALSE;
 
   g_signal_emit (server, hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_LOGARITHMIC], 0,
-                 tvg->board, gain0, beta, alpha, &cancel);
+                 tvg->source, gain0, beta, alpha, &cancel);
   if (cancel)
     return FALSE;
 
@@ -574,7 +578,7 @@ hyscan_tvg_control_server_set_enable (HyScanTVGControlServer      *server,
 
   gboolean enable;
 
-  name = g_strdup_printf ("/boards/%s/tvg/enable", tvg->name);
+  name = g_strdup_printf ("/sources/%s/tvg/enable", tvg->name);
   status = hyscan_control_find_boolean_param (name, names, values, &enable);
   g_free (name);
 
@@ -582,7 +586,7 @@ hyscan_tvg_control_server_set_enable (HyScanTVGControlServer      *server,
     return FALSE;
 
   g_signal_emit (server, hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_ENABLE], 0,
-                 tvg->board, enable, &cancel);
+                 tvg->source, enable, &cancel);
   if (cancel)
     return FALSE;
 
@@ -592,20 +596,27 @@ hyscan_tvg_control_server_set_enable (HyScanTVGControlServer      *server,
 /* Функция передаёт параметры системы ВАРУ. */
 void
 hyscan_tvg_control_server_send_tvg (HyScanTVGControlServer *server,
-                                    gint64                  time,
-                                    HyScanBoardType         board,
-                                    gfloat                  rate,
-                                    guint32                 size,
-                                    gpointer                tvg)
+                                    HyScanSourceType        source,
+                                    HyScanDataWriterTVG    *tvg)
 {
+  HyScanSonarMessage message;
   gpointer id;
 
   g_return_if_fail (HYSCAN_IS_TVG_CONTROL_SERVER (server));
 
-  id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (board));
+  if (server->priv->params == NULL)
+    return;
+
+  id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (source));
   if (id == NULL)
     return;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params),
-                         time, GPOINTER_TO_INT (id), HYSCAN_DATA_FLOAT, rate, size, tvg);
+  message.time = tvg->time;
+  message.id   = GPOINTER_TO_INT (id);
+  message.type = HYSCAN_DATA_FLOAT;
+  message.rate = tvg->rate;
+  message.size = tvg->n_gains * hyscan_data_get_point_size (HYSCAN_DATA_COMPLEX_FLOAT);
+  message.data = tvg->gains;
+
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
 }

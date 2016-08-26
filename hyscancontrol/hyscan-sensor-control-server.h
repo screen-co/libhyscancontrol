@@ -27,16 +27,16 @@
  *
  * gboolean sensor_uart_port_param_cb     (HyScanSensorControlServer   *server,
  *                                         const gchar                 *name,
- *                                         gint64                       protocol,
- *                                         gint64                       uart_device,
- *                                         gint64                       uart_mode,
+ *                                         HyScanSensorProtocolType     protocol,
+ *                                         guint                        uart_device,
+ *                                         guint                        uart_mode,
  *                                         gpointer                     user_data);
  *
  * gboolean sensor_udp_ip_port_param_cb   (HyScanSensorControlServer   *server,
  *                                         const gchar                 *name,
- *                                         gint64                       protocol,
- *                                         gint64                       ip_address,
- *                                         gint64                       udp_port,
+ *                                         HyScanSensorProtocolType     protocol,
+ *                                         guint                        ip_address,
+ *                                         guint                        udp_port,
  *                                         gpointer                     user_data);
  *
  * gboolean sensor_set_enable_cb          (HyScanSensorControlServer   *server,
@@ -61,6 +61,7 @@
 #define __HYSCAN_SENSOR_CONTROL_SERVER_H__
 
 #include <glib-object.h>
+#include <hyscan-data-writer.h>
 #include <hyscan-control-exports.h>
 
 G_BEGIN_DECLS
@@ -96,22 +97,18 @@ GType                  hyscan_sensor_control_server_get_type           (void);
  * Функция передаёт данные датчиков, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
  *
  * \param server указатель на интерфейс \link HyScanSensorControlServer \endlink;
- * \param time время приёма данных датчиком, мкс;
  * \param name название порта;
  * \param type тип данных, \link HyScanDataType \endlink;
- * \param size размер данных, байт;
- * \param data данные.
+ * \param data данные датчиков.
  *
  * \return Нет.
  *
  */
 HYSCAN_CONTROL_EXPORT
 void                   hyscan_sensor_control_server_send_data          (HyScanSensorControlServer   *server,
-                                                                        gint64                       time,
                                                                         const gchar                 *name,
-                                                                        guint32                      type,
-                                                                        guint32                      size,
-                                                                        gpointer                     data);
+                                                                        HyScanDataType               type,
+                                                                        HyScanDataWriterData        *data);
 
 G_END_DECLS
 

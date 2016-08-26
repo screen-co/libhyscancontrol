@@ -23,7 +23,7 @@ struct _HyScanSonarSchemaPrivate
 
   gdouble                      timeout;                        /* Таймаут ожидания команд от клиента. */
 
-  GHashTable                  *boards;                         /* Наличие бортов. */
+  GHashTable                  *sources;                        /* Наличие источников данных. */
   GHashTable                  *generators;                     /* Наличие генераторов. */
   GHashTable                  *tvgs;                           /* Наличие ВАРУ. */
   GHashTable                  *channels;                       /* Наличие приёмного канала. */
@@ -107,7 +107,7 @@ hyscan_sonar_schema_object_constructed (GObject *object)
 
   priv->id_counter = 1;
 
-  priv->boards = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->sources = g_hash_table_new (g_direct_hash, g_direct_equal);
   priv->generators = g_hash_table_new (g_direct_hash, g_direct_equal);
   priv->tvgs = g_hash_table_new (g_direct_hash, g_direct_equal);
   priv->channels = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -174,7 +174,7 @@ hyscan_sonar_schema_object_finalize (GObject *object)
 {
   HyScanSonarSchema *schema = HYSCAN_SONAR_SCHEMA (object);
 
-  g_hash_table_unref (schema->priv->boards);
+  g_hash_table_unref (schema->priv->sources);
   g_hash_table_unref (schema->priv->generators);
   g_hash_table_unref (schema->priv->tvgs);
   g_hash_table_unref (schema->priv->channels);
@@ -562,16 +562,16 @@ hyscan_sonar_schema_sync_add (HyScanSonarSchema   *schema,
   return TRUE;
 }
 
-/* Функция добавляет в схему описание борта гидролокатора. */
+/* Функция добавляет в схему описание источника данных. */
 gint
-hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
-                               HyScanBoardType    board,
-                               gdouble            vertical_pattern,
-                               gdouble            horizontal_pattern,
-                               gdouble            max_receive_time)
+hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
+                                HyScanSourceType   source,
+                                gdouble            antenna_vpattern,
+                                gdouble            antenna_hpattern,
+                                gdouble            max_receive_time)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *board_name;
+  const gchar *source_name;
   gchar *prefix;
   gboolean status;
   gchar *key_id;
@@ -581,40 +581,40 @@ hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
-  if (g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
+  if (g_hash_table_contains (schema->priv->sources, GINT_TO_POINTER (source)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s", board_name);
+  prefix = g_strdup_printf ("/sources/%s", source_name);
 
-  /* Диаграмма направленности в вертикальной плоскости. */
-  key_id = g_strdup_printf ("%s/info/antenna-pattern/vertical", prefix);
+  /* Диаграмма направленности антенны в вертикальной плоскости. */
+  key_id = g_strdup_printf ("%s/antenna/pattern/vertical", prefix);
   status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-pattern", NULL, TRUE,
-                                                          vertical_pattern,
-                                                          vertical_pattern,
-                                                          vertical_pattern,
+                                                          antenna_vpattern,
+                                                          antenna_vpattern,
+                                                          antenna_vpattern,
                                                           0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
-  /* Диаграмма направленности в горизонтальной плоскости. */
-  key_id = g_strdup_printf ("%s/info/antenna-pattern/horizontal", prefix);
+  /* Диаграмма направленности антенны в горизонтальной плоскости. */
+  key_id = g_strdup_printf ("%s/antenna/pattern/horizontal", prefix);
   status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-pattern", NULL, TRUE,
-                                                          horizontal_pattern,
-                                                          horizontal_pattern,
-                                                          horizontal_pattern,
+                                                          antenna_hpattern,
+                                                          antenna_hpattern,
+                                                          antenna_hpattern,
                                                           0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
-  /* Время приёма данных бортом. */
+  /* Время приёма эхосигнала источником данных. */
   key_id = g_strdup_printf ("%s/control/receive-time", prefix);
   status = hyscan_data_schema_builder_key_double_create (builder, key_id, "receive-time", NULL, FALSE,
                                                          0.0, 0.0, max_receive_time, 0);
@@ -623,7 +623,7 @@ hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
   if (!status)
     goto exit;
 
-  /* Идентификатор борта гидролокатора. */
+  /* Идентификатор источника данных. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
   status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
@@ -631,7 +631,7 @@ hyscan_sonar_schema_board_add (HyScanSonarSchema *schema,
   g_free (key_id);
 
   if (status)
-    g_hash_table_insert (schema->priv->boards, GINT_TO_POINTER (board), NULL);
+    g_hash_table_insert (schema->priv->sources, GINT_TO_POINTER (source), NULL);
   else
     id = -1;
 
@@ -641,10 +641,10 @@ exit:
   return id;
 }
 
-/* Функция добавляет описание генератора для борта. */
+/* Функция добавляет описание генератора. */
 gint
 hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
-                                   HyScanBoardType            board,
+                                   HyScanSourceType           source,
                                    HyScanGeneratorModeType    capabilities,
                                    HyScanGeneratorSignalType  signals,
                                    gdouble                    min_tone_duration,
@@ -653,7 +653,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
                                    gdouble                    max_lfm_duration)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *board_name;
+  const gchar *source_name;
   gchar *prefix;
   gboolean status;
   gchar *key_id;
@@ -664,17 +664,17 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
-  if (!g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
+  if (!g_hash_table_contains (schema->priv->sources, GINT_TO_POINTER (source)))
     return -1;
 
-  if (g_hash_table_contains (schema->priv->generators, GINT_TO_POINTER (board)))
+  if (g_hash_table_contains (schema->priv->generators, GINT_TO_POINTER (source)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s/generator", board_name);
+  prefix = g_strdup_printf ("/sources/%s/generator", source_name);
 
   /* Режимы работы генератора. */
   key_id = g_strdup_printf ("%s/capabilities", prefix);
@@ -717,7 +717,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   /* Преднастройки генератора. */
   if (capabilities & HYSCAN_GENERATOR_MODE_PRESET)
     {
-      preset = g_strdup_printf ("%s-generator-preset", board_name);
+      preset = g_strdup_printf ("%s-generator-preset", source_name);
 
       status = hyscan_data_schema_builder_enum_create (builder, preset);
       if (!status)
@@ -821,7 +821,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   g_free (key_id);
 
   if (status)
-    g_hash_table_insert (schema->priv->generators, GINT_TO_POINTER (board), NULL);
+    g_hash_table_insert (schema->priv->generators, GINT_TO_POINTER (source), NULL);
   else
     id = -1;
 
@@ -834,23 +834,23 @@ exit:
 
 /* Функция добавляет преднастроенный режим генератора. */
 gint
-hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema    *schema,
-                                          HyScanBoardType       board,
-                                          const gchar          *name)
+hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema *schema,
+                                          HyScanSourceType   source,
+                                          const gchar       *name)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *board_name;
+  const gchar *source_name;
   gchar *preset;
   gint id = -1;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), -1);
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
-  preset = g_strdup_printf ("%s-generator-preset", board_name);
+  preset = g_strdup_printf ("%s-generator-preset", source_name);
 
   id = schema->priv->id_counter++;
   if (!hyscan_data_schema_builder_enum_value_create (builder, preset, id, name, NULL))
@@ -861,17 +861,17 @@ hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema    *schema,
   return id;
 }
 
-/* Функция добавляет в схему описание системы ВАРУ для борта. */
+/* Функция добавляет в схему описание системы ВАРУ. */
 gint
 hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
-                             HyScanBoardType    board,
+                             HyScanSourceType   source,
                              HyScanTVGModeType  capabilities,
                              gdouble            min_gain,
                              gdouble            max_gain)
 {
   HyScanDataSchemaBuilder *builder;
   gchar *prefix;
-  const gchar *board_name;
+  const gchar *source_name;
   gboolean status;
   gchar *key_id;
   gint32 id = -1;
@@ -880,17 +880,17 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
-  if (!g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
+  if (!g_hash_table_contains (schema->priv->sources, GINT_TO_POINTER (source)))
     return -1;
 
-  if (g_hash_table_contains (schema->priv->tvgs, GINT_TO_POINTER (board)))
+  if (g_hash_table_contains (schema->priv->tvgs, GINT_TO_POINTER (source)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s/tvg", board_name);
+  prefix = g_strdup_printf ("/sources/%s/tvg", source_name);
 
   /* Режимы работы ВАРУ. */
   key_id = g_strdup_printf ("%s/capabilities", prefix);
@@ -997,7 +997,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   g_free (key_id);
 
   if (status)
-    g_hash_table_insert (schema->priv->tvgs, GINT_TO_POINTER (board), NULL);
+    g_hash_table_insert (schema->priv->tvgs, GINT_TO_POINTER (source), NULL);
   else
     id = -1;
 
@@ -1007,17 +1007,18 @@ exit:
   return id;
 }
 
-/* Функция добавляет в схему описание приёмного канала борта. */
+/* Функция добавляет в схему описание приёмного канала. */
 gint
-hyscan_sonar_schema_raw_add (HyScanSonarSchema *schema,
-                             HyScanBoardType    board,
-                             guint              channel,
-                             gfloat             antenna_offset,
-                             gint               adc_offset,
-                             gfloat             adc_vref)
+hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
+                                 HyScanSourceType   source,
+                                 guint              channel,
+                                 gdouble            antenna_voffset,
+                                 gdouble            antenna_hoffset,
+                                 gint               adc_offset,
+                                 gfloat             adc_vref)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *board_name;
+  const gchar *source_name;
   gchar *prefix;
   gboolean status;
   gchar *key_id;
@@ -1027,26 +1028,35 @@ hyscan_sonar_schema_raw_add (HyScanSonarSchema *schema,
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
   if (channel < 1 || channel > 3)
     return -1;
 
-  if (!g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
+  if (!g_hash_table_contains (schema->priv->sources, GINT_TO_POINTER (source)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s/sources/raw.%d", board_name, channel);
+  prefix = g_strdup_printf ("/sources/%s/channels/%d", source_name, channel);
   if (g_hash_table_contains (schema->priv->channels, GINT_TO_POINTER (g_str_hash (prefix))))
     goto exit;
 
-  /* Смещение антенны в блоке. */
-  key_id = g_strdup_printf ("%s/antenna/offset", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "offset", NULL, TRUE,
-                                                         antenna_offset,
-                                                         antenna_offset,
-                                                         antenna_offset,
+  /* Вертикальное смещение антенны в блоке. */
+  key_id = g_strdup_printf ("%s/antenna/offset/vertical", prefix);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-offset", NULL, TRUE,
+                                                         antenna_voffset,
+                                                         antenna_voffset,
+                                                         antenna_voffset,
+                                                         0.0);
+  g_free (key_id);
+
+  /* Горизонтальное смещение антенны в блоке. */
+  key_id = g_strdup_printf ("%s/antenna/offset/horizontal", prefix);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-offset", NULL, TRUE,
+                                                         antenna_hoffset,
+                                                         antenna_hoffset,
+                                                         antenna_hoffset,
                                                          0.0);
   g_free (key_id);
 
@@ -1099,10 +1109,10 @@ exit:
 /* Функция добавляет в схему описание источника "акустических" данных. */
 gint
 hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
-                                         HyScanBoardType    board)
+                                         HyScanSourceType   source)
 {
   HyScanDataSchemaBuilder *builder;
-  const gchar *board_name;
+  const gchar *source_name;
   gchar *prefix;
   gboolean status;
   gchar *key_id;
@@ -1112,17 +1122,17 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
-  board_name = hyscan_control_get_board_name (board);
-  if (board_name == NULL)
+  source_name = hyscan_control_get_source_name (source);
+  if (source_name == NULL)
     return -1;
 
-  if (!g_hash_table_contains (schema->priv->boards, GINT_TO_POINTER (board)))
+  if (!g_hash_table_contains (schema->priv->sources, GINT_TO_POINTER (source)))
     return -1;
 
-  if (g_hash_table_contains (schema->priv->acoustics, GINT_TO_POINTER (board)))
+  if (g_hash_table_contains (schema->priv->acoustics, GINT_TO_POINTER (source)))
     return -1;
 
-  prefix = g_strdup_printf ("/boards/%s/sources/acoustic", board_name);
+  prefix = g_strdup_printf ("/sources/%s/acoustic", source_name);
 
   /* Идентификатор источника "акустических" данных. */
   key_id = g_strdup_printf ("%s/id", prefix);
@@ -1132,7 +1142,7 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
   g_free (key_id);
 
   if (status)
-    g_hash_table_insert (schema->priv->acoustics, GINT_TO_POINTER (board), NULL);
+    g_hash_table_insert (schema->priv->acoustics, GINT_TO_POINTER (source), NULL);
   else
     id = -1;
 

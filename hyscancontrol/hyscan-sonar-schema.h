@@ -24,11 +24,11 @@
  * Функция определения параметров гидролокатора:
  *
  * - #hyscan_sonar_schema_sync_add - функция добавляет описание системы синхронизации излучения;
- * - #hyscan_sonar_schema_board_add - функция добавляет описание борта гидролокатора;
+ * - #hyscan_sonar_schema_source_add - функция добавляет описание источника данных;
  * - #hyscan_sonar_schema_generator_add - функция добавляет описание генератора;
  * - #hyscan_sonar_schema_generator_add_preset - функция добавляет вариант значения преднастройки генератора;
- * - #hyscan_sonar_schema_tvg_add - функция добавляет в схему описание системы ВАРУ для борта;
- * - #hyscan_sonar_schema_raw_add - функция добавляет в схему описание приёмного канала борта;
+ * - #hyscan_sonar_schema_tvg_add - функция добавляет в схему описание системы ВАРУ;
+ * - #hyscan_sonar_schema_channel_add - функция добавляет в схему описание приёмного канала гидролокатора;
  * - #hyscan_sonar_schema_source_add_acuostic - функция добавляет в схему описание источника акустических данных;
  *
  */
@@ -159,22 +159,22 @@ gboolean               hyscan_sonar_schema_sync_add                    (HyScanSo
 
 /**
  *
- * Функция добавляет в схему описание борта гидролокатора.
+ * Функция добавляет в схему описание источника данных.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
- * \param vertical_pattern диаграмма направленности в вертикальной плоскости;
- * \param horizontal_pattern диаграмма направленности в горизонтальной плоскости;
- * \param max_receive_time максимальное время приёма данных бортом, с.
+ * \param source тип источника данных;
+ * \param antenna_vpattern диаграмма направленности антенны в вертикальной плоскости;
+ * \param antenna_hpattern диаграмма направленности антенны в горизонтальной плоскости;
+ * \param max_receive_time максимальное время приёма эхосигнала источником данных, с.
  *
- * \return Уникальный идентификатор борта гидролокатора в схеме или отрицательное число в случае ошибки.
+ * \return Уникальный идентификатор источника данных в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_CONTROL_EXPORT
-gint                   hyscan_sonar_schema_board_add                   (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
-                                                                        gdouble                        vertical_pattern,
-                                                                        gdouble                        horizontal_pattern,
+gint                   hyscan_sonar_schema_source_add                  (HyScanSonarSchema             *schema,
+                                                                        HyScanSourceType               source,
+                                                                        gdouble                        antenna_vpattern,
+                                                                        gdouble                        antenna_hpattern,
                                                                         gdouble                        max_receive_time);
 
 /**
@@ -182,7 +182,7 @@ gint                   hyscan_sonar_schema_board_add                   (HyScanSo
  * Функция добавляет в схему описание генератора гидролокатора.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
+ * \param source тип источника данных;
  * \param capabilities флаги возможных режимов работы генератора;
  * \param signals флаги возможных типов сигналов;
  * \param min_tone_duration минимальная длительность тонального сигнала;
@@ -195,7 +195,7 @@ gint                   hyscan_sonar_schema_board_add                   (HyScanSo
  */
 HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_generator_add               (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
+                                                                        HyScanSourceType               source,
                                                                         HyScanGeneratorModeType        capabilities,
                                                                         HyScanGeneratorSignalType      signals,
                                                                         gdouble                        min_tone_duration,
@@ -208,7 +208,7 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  * Функция добавляет в схему вариант значения преднастройки генератора.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
+ * \param source тип источника данных;
  * \param name название варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
@@ -216,15 +216,15 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  */
 HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
+                                                                        HyScanSourceType               source,
                                                                         const gchar                   *name);
 
 /**
  *
- * Функция добавляет в схему описание системы ВАРУ для борта.
+ * Функция добавляет в схему описание системы ВАРУ.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
+ * \param source тип источника данных;
  * \param capabilities флаги возможных режимов работы ВАРУ;
  * \param min_gain минимальное значение коэффициента усиления, дБ;
  * \param max_gain максимальное значение коэффициента усиления, дБ.
@@ -234,19 +234,20 @@ gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSo
  */
 HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_tvg_add                     (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
+                                                                        HyScanSourceType               source,
                                                                         HyScanTVGModeType              capabilities,
                                                                         gdouble                        min_gain,
                                                                         gdouble                        max_gain);
 
 /**
  *
- * Функция добавляет в схему описание приёмного канала борта.
+ * Функция добавляет в схему описание приёмного канала.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора;
+ * \param source тип источника данных;
  * \param channel индекс канала данных;
- * \param antenna_offset смещение антенны в блоке, м;
+ * \param antenna_voffset вертикальное смещение антенны в блоке, м;
+ * \param antenna_hoffset горизнотальное смещение антенны в блоке, м;
  * \param adc_offset смещение 0 АЦП;
  * \param adc_vref опорное напряжение АЦП, В.
  *
@@ -254,10 +255,11 @@ gint                   hyscan_sonar_schema_tvg_add                     (HyScanSo
  *
  */
 HYSCAN_CONTROL_EXPORT
-gint                   hyscan_sonar_schema_raw_add                     (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board,
+gint                   hyscan_sonar_schema_channel_add                 (HyScanSonarSchema             *schema,
+                                                                        HyScanSourceType               source,
                                                                         guint                          channel,
-                                                                        gfloat                         antenna_offset,
+                                                                        gdouble                        antenna_voffset,
+                                                                        gdouble                        antenna_hoffset,
                                                                         gint                           adc_offset,
                                                                         gfloat                         adc_vref);
 
@@ -266,14 +268,14 @@ gint                   hyscan_sonar_schema_raw_add                     (HyScanSo
  * Функция добавляет в схему описание источника "акустических" данных.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param board тип борта гидролокатора.
+ * \param source тип источника данных.
  *
  * \return Уникальный идентификатор источника "акустических" данных в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_CONTROL_EXPORT
 gint                   hyscan_sonar_schema_source_add_acuostic         (HyScanSonarSchema             *schema,
-                                                                        HyScanBoardType                board);
+                                                                        HyScanSourceType               source);
 
 G_END_DECLS
 

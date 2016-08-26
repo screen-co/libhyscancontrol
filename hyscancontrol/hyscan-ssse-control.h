@@ -9,11 +9,29 @@
  * \defgroup HyScanSSSEControl HyScanSSSEControl - класс управления ГБОЭ
  *
  * Класс HyScanSSSEControl наследуется от класса \link HyScanSonarControl \endlink и
- * реализует управление и приём данных гидролокаторами бокового обзора с эхолотом (или без).
+ * реализует управление и приём данных гидролокаторами бокового обзора с эхолотом или без.
  *
  * Создание объекта HyScanSSSEControl производится функцией #hyscan_ssse_control_new.
  *
+ * Определить наличие бортов со стандартным или повышенным разрешением можно функциями
+ * #hyscan_ssse_control_has_starboard, #hyscan_ssse_control_has_port,
+ * #hyscan_ssse_control_has_starboard_hi и #hyscan_ssse_control_has_port_hi.
+ *
  * Определить наличие эхолота можно с помощью функции #hyscan_ssse_control_has_echosounder.
+ *
+ * При получении обработанных акустических данных от гидролокатора, класс посылает сигнал
+ * "acoustic-data", в котором передаёт их пользователю. Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * void    data_cb    (HyScanSSSEControl      *control,
+ *                     HyScanSourceType        source,
+ *                     HyScanAcousticDataInfo *info,
+ *                     HyScanDataWriterData   *data);
+ *
+ * \endcode
+ *
+ * Где source - идентификатор источника данных.
  *
  */
 
@@ -52,7 +70,7 @@ GType                  hyscan_ssse_control_get_type         (void);
 
 /**
  *
- * Функция создаёт новый объект \link HyScanSSSEControl \endlink;
+ * Функция создаёт новый объект \link HyScanSSSEControl \endlink.
  *
  * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
  * \param db указатель на интерфейс \link HyScanDB \endlink.
@@ -66,7 +84,59 @@ HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar     
 
 /**
  *
- * Функция определяет наличие эхолота.
+ * Функция определяет наличие правого борта со стандартным разрешением -
+ * \link HYSCAN_SOURCE_SIDE_SCAN_STARBOARD \endlink.
+ *
+ * \param control указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ * \return TRUE - если борт присутствует, иначе - FALSE.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_ssse_control_has_startboard      (HyScanSSSEControl     *control);
+
+/**
+ *
+ * Функция определяет наличие левого борта со стандартным разрешением -
+ * \link HYSCAN_SOURCE_SIDE_SCAN_PORT \endlink.
+ *
+ * \param control указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ * \return TRUE - если борт присутствует, иначе - FALSE.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_ssse_control_has_port            (HyScanSSSEControl     *control);
+
+/**
+ *
+ * Функция определяет наличие правого борта с повышенным разрешением -
+ * \link HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI \endlink.
+ *
+ * \param control указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ * \return TRUE - если борт присутствует, иначе - FALSE.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_ssse_control_has_starboard_hi    (HyScanSSSEControl     *control);
+
+/**
+ *
+ * Функция определяет наличие левого борта с повышенным разрешением -
+ * \link HYSCAN_SOURCE_SIDE_SCAN_PORT_HI \endlink.
+ *
+ * \param control указатель на объект \link HyScanSSSEControl \endlink.
+ *
+ * \return TRUE - если борт присутствует, иначе - FALSE.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+gboolean               hyscan_ssse_control_has_port_hi         (HyScanSSSEControl     *control);
+
+/**
+ *
+ * Функция определяет наличие эхолота - \link HYSCAN_SOURCE_ECHOSOUNDER \endlink.
  *
  * \param control указатель на объект \link HyScanSSSEControl \endlink.
  *

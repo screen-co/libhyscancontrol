@@ -8,6 +8,7 @@
  *
  */
 
+#include <hyscan-core-types.h>
 #include "hyscan-control-common.h"
 #include "hyscan-sensor-control.h"
 #include "hyscan-marshallers.h"
@@ -37,7 +38,6 @@ typedef struct
   HyScanSensorProtocolType     protocol;                       /* Протокол передачи данных. */
   gint64                       time_offset;                    /* Коррекция времени. */
   guint                        channel;                        /* Номер канала данных. */
-  HyScanSensorChannelInfo      channel_info;                   /* Параметры канала записи данных. */
 } HyScanSensorControlPort;
 
 struct _HyScanSensorControlPrivate
@@ -69,7 +69,7 @@ static void          hyscan_sensor_control_free_port           (gpointer        
 
 static guint         hyscan_sensor_control_signals[SIGNAL_LAST] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (HyScanSensorControl, hyscan_sensor_control, HYSCAN_TYPE_WRITE_CONTROL)
+G_DEFINE_TYPE_WITH_PRIVATE (HyScanSensorControl, hyscan_sensor_control, HYSCAN_TYPE_DATA_WRITER)
 
 static void
 hyscan_sensor_control_class_init (HyScanSensorControlClass *klass)
@@ -87,9 +87,9 @@ hyscan_sensor_control_class_init (HyScanSensorControlClass *klass)
 
   hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA] =
     g_signal_new ("sensor-data", HYSCAN_TYPE_SENSOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__POINTER_POINTER,
+                  g_cclosure_user_marshal_VOID__STRING_POINTER,
                   G_TYPE_NONE,
-                  2, G_TYPE_POINTER, G_TYPE_POINTER);
+                  2, G_TYPE_STRING, G_TYPE_POINTER);
 }
 
 static void
@@ -143,31 +143,34 @@ hyscan_sensor_control_object_constructed (GObject *object)
 
   /* Обязательно должен быть передан указатель на HyScanSonar. */
   if (priv->sonar == NULL)
-    return;
+    {
+      g_warning ("HyScanControl: empty sonar");
+      return;
+    }
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
     {
       g_clear_object (&priv->sonar);
-      g_warning ("HyScanSensorControl: unknown sonar schema id");
+      g_warning ("HyScanControl: unknown sonar schema id");
       return;
     }
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     {
       g_clear_object (&priv->sonar);
-      g_warning ("HyScanSensorControl: sonar schema id mismatch");
+      g_warning ("HyScanControl: sonar schema id mismatch");
       return;
     }
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
     {
       g_clear_object (&priv->sonar);
-      g_warning ("HyScanSensorControl: unknown sonar schema version");
+      g_warning ("HyScanControl: unknown sonar schema version");
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
       g_clear_object (&priv->sonar);
-      g_warning ("HyScanSensorControl: sonar schema version mismatch");
+      g_warning ("HyScanControl: sonar schema version mismatch");
       return;
     }
 
@@ -175,7 +178,7 @@ hyscan_sensor_control_object_constructed (GObject *object)
   params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
 
   /* Ветка схемы с описанием портов - "/sensors". */
-  for (i = 0, sensors = NULL; params->n_nodes; i++)
+  for (i = 0, sensors = NULL; i < params->n_nodes; i++)
     {
       if (g_strcmp0 (params->nodes[i]->path, "/sensors") == 0)
         {
@@ -297,8 +300,7 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
 {
   HyScanSensorControlPort *port;
 
-  HyScanWriteData data;
-  HyScanSensorChannelInfo info;
+  HyScanDataWriterData data;
 
   /* Ищем источник данных. */
   port = g_hash_table_lookup (control->priv->ports_by_id, GINT_TO_POINTER (message->id));
@@ -315,23 +317,21 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
   if ((message->type != HYSCAN_DATA_STRING) || !hyscan_sensor_control_check_nmea_crc (message->data))
     return;
 
-  g_rw_lock_reader_lock (&control->priv->lock);
-
   /* Данные. */
-  data.source = hyscan_sensor_control_get_source_type (message->data);
-  data.channel = port->channel;
-  data.raw = FALSE;
+  g_rw_lock_reader_lock (&control->priv->lock);
   data.time = message->time + port->time_offset;
   data.size = message->size;
   data.data = message->data;
-
-  info = port->channel_info;
-
   g_rw_lock_reader_unlock (&control->priv->lock);
 
-  hyscan_write_control_sensor_add_data (HYSCAN_WRITE_CONTROL (control), &data, &info);
+  hyscan_data_writer_sensor_add_data (HYSCAN_DATA_WRITER (control),
+                                      port->name,
+                                      hyscan_sensor_control_get_source_type (message->data),
+                                      port->channel,
+                                      &data);
 
-  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, &data, &info);
+
+  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, port->name, &data);
 }
 
 /* Функция проверяет контрольную сумму NMEA сообщения. */
@@ -706,32 +706,22 @@ hyscan_sensor_control_set_position (HyScanSensorControl *control,
                                     gdouble              gamma,
                                     gdouble              theta)
 {
-  HyScanSensorControlPrivate *priv;
   HyScanSensorControlPort *port;
+  HyScanAntennaPosition position;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), FALSE);
 
-  priv = control->priv;
-
-  if (priv->sonar == NULL)
-    return FALSE;
-
-  port = g_hash_table_lookup (priv->ports_by_name, name);
+  port = g_hash_table_lookup (control->priv->ports_by_name, name);
   if (port == NULL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&priv->lock);
-
-  port->channel_info.x = x;
-  port->channel_info.y = y;
-  port->channel_info.z = z;
-  port->channel_info.psi = psi;
-  port->channel_info.gamma = gamma;
-  port->channel_info.theta = theta;
-
-  g_rw_lock_writer_unlock (&priv->lock);
-
-  return TRUE;
+  position.x = x;
+  position.y = y;
+  position.z = z;
+  position.psi = psi;
+  position.gamma = gamma;
+  position.theta = theta;
+  return hyscan_data_writer_sensor_set_position (HYSCAN_DATA_WRITER (control), port->name, &position);
 }
 
 /* Функция включает или выключает приём данных на указанном порту. */

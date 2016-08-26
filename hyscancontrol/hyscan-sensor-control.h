@@ -13,11 +13,6 @@
  * Класс HyScanSensorControl наследуется от класса \link HyScanWriteControl \endlink и используется
  * как базовый для классов управления локаторами.
  *
- * При получении данных от датчиков объект использует сигнал "sensor-data" для передачи их пользователю,
- * помимо записи в систему хранения. Обработчик этого сигнала должен иметь следующее определение:
- *
- * - void data_cb (HyScanSensorControl *control, HyScanWriteData *data, HyScanSensorChannelInfo *info);
- *
  * Класс HyScanSensorControl умеет управлять следующими типами портов:
  *
  * - HYSCAN_SONAR_SENSOR_PORT_VIRTUAL - "виртуальный" порт (например встроенный в гидролокатор датчик и т.п.);
@@ -65,6 +60,19 @@
  *
  * Порт можно включить или выключить с помощью функции #hyscan_sensor_control_set_enable.
  *
+ * При получении данных от датчиков, класс посылает сигнал "sensor-data", в котором передаёт их
+ * пользователю. Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * void    data_cb    (HyScanSensorControl  *control,
+ *                     const gchar          *name,
+ *                     HyScanDataWriterData *data);
+ *
+ * \endcode
+ *
+ * Где name - название порта.
+ *
  * Класс HyScanSensorControl поддерживает работу в многопоточном режиме.
  *
  */
@@ -72,7 +80,8 @@
 #ifndef __HYSCAN_SENSOR_CONTROL_H__
 #define __HYSCAN_SENSOR_CONTROL_H__
 
-#include <hyscan-write-control.h>
+#include <hyscan-control-exports.h>
+#include <hyscan-data-writer.h>
 #include <hyscan-data-schema.h>
 #include <hyscan-sonar.h>
 
@@ -121,14 +130,14 @@ typedef struct _HyScanSensorControlClass HyScanSensorControlClass;
 
 struct _HyScanSensorControl
 {
-  HyScanWriteControl parent_instance;
+  HyScanDataWriter parent_instance;
 
   HyScanSensorControlPrivate *priv;
 };
 
 struct _HyScanSensorControlClass
 {
-  HyScanWriteControlClass parent_class;
+  HyScanDataWriterClass parent_class;
 };
 
 HYSCAN_CONTROL_EXPORT

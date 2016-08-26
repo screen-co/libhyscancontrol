@@ -17,17 +17,11 @@
 #define HYSCAN_SONAR_SCHEMA_ID         0x4D45484353524E53
 #define HYSCAN_SONAR_SCHEMA_VERSION    20160100
 
-/* Функция возвращает название борта гидролокатора по его идентификатору. */
-const gchar           *hyscan_control_get_board_name           (HyScanBoardType                board);
+/* Функция возвращает название источника данных по его идентификатору. */
+const gchar           *hyscan_control_get_source_name          (HyScanSourceType               source);
 
-/* Функция возвращает идентификатор борта гидролокатора по его названию. */
-HyScanBoardType        hyscan_control_get_board_type           (const gchar                   *name);
-
-/* Функция возвращает идентификатор борта гидролокатора по типу источника данных. */
-HyScanBoardType        hyscan_control_get_board_type_by_source (HyScanSourceType               source);
-
-/* Функция возвращает идентификатор источника "сырых" данных для борта. */
-HyScanSourceType       hyscan_control_get_raw_source_type      (HyScanBoardType                board);
+/* Функция возвращает идентификатор источника данных по его названию. */
+HyScanSourceType       hyscan_control_get_source_type          (const gchar                   *name);
 
 /* Функция аккумулирует boolean результаты работы callback'ов. */
 gboolean               hyscan_control_boolean_accumulator      (GSignalInvocationHint         *ihint,
@@ -46,7 +40,6 @@ gboolean               hyscan_control_find_integer_param       (const gchar     
                                                                 const gchar *const            *names,
                                                                 GVariant                     **values,
                                                                 gint64                        *value);
-
 
 /* Функция ищет double параметр в списке и считывает его значение. */
 gboolean               hyscan_control_find_double_param        (const gchar                   *name,

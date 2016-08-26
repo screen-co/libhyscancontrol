@@ -30,7 +30,7 @@
  * \code
  *
  * gboolean sonar_set_sync_type_cb    (HyScanSonarControlServer   *server,
- *                                     gint64                      sync_type,
+ *                                     HyScanSonarSyncType         sync_type,
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_enable_raw_data_cb  (HyScanSonarControlServer   *server,
@@ -38,7 +38,7 @@
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_set_receive_time_cb (HyScanSonarControlServer   *server,
- *                                     gint                        board,
+ *                                     HyScanSourceType            source,
  *                                     gdouble                     receive_time,
  *                                     gpointer                    user_data);
  *
@@ -110,22 +110,22 @@ GType                  hyscan_sonar_control_server_get_type            (void);
  * "data" интерфейса \link HyScanSonar \endlink.
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
- * \param time время начала действия ВАРУ, мкс;
- * \param board идентификатор борта;
+ * \param source идентификатор источника данных;
  * \param channel номер приёмного канала;
- * \param size размер данных, байт;
- * \param data данные.
+ * \param type тип данных, \link HyScanDataType \endlink;
+ * \param rate частота дискретизации данных, Гц;
+ * \param data данные от гидролокатора.
  *
  * \return Нет.
  *
  */
 HYSCAN_CONTROL_EXPORT
 void                   hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
-                                                                        gint64                       time,
-                                                                        HyScanBoardType              board,
+                                                                        HyScanSourceType             source,
                                                                         gint                         channel,
-                                                                        guint32                      size,
-                                                                        gpointer                     data);
+                                                                        HyScanDataType               type,
+                                                                        gdouble                      rate,
+                                                                        HyScanDataWriterData        *data);
 
 G_END_DECLS
 

@@ -65,24 +65,10 @@ hyscan_sonar_box_new (const gchar *schema_data,
 
 /* Функция передаёт данные. */
 void
-hyscan_sonar_box_send (HyScanSonarBox *sonar,
-                       gint64          time,
-                       guint32         id,
-                       guint32         type,
-                       gfloat          rate,
-                       guint32         size,
-                       gpointer        data)
+hyscan_sonar_box_send (HyScanSonarBox     *sonar,
+                       HyScanSonarMessage *message)
 {
-  HyScanSonarMessage message;
-
-  message.time = time;
-  message.id = id;
-  message.type = type;
-  message.rate = rate;
-  message.size = size;
-  message.data = data;
-
-  g_signal_emit (sonar, hyscan_sonar_box_signals[SIGNAL_DATA], 0, &message);
+  g_signal_emit (sonar, hyscan_sonar_box_signals[SIGNAL_DATA], 0, message);
 }
 
 static void

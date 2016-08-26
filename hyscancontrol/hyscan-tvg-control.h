@@ -13,15 +13,14 @@
  * Класс HyScanTVGControl наследуется от класса \link HyScanGeneratorControl \endlink и используется
  * как базовый для классов управления локаторами.
  *
- * Гидролокатор имеет некоторое число бортов, с каждым из которых могут быть связаны некоторое
- * число приёмных каналов "сырых" данных и некоторое число источников обработанных данных (акустические
- * данные, батиметрические данные и т.п.). Система ВАРУ оказывает прямое влияние только на приёмные
- * каналы "сырых" данных. Для идентификации системы ВАРУ используются типы бортов гидролокатора
- * \link HyScanBoardType \endlink. С каждым бортом связана своя система ВАРУ. Число бортов зависит
- * от типа гидролокатора.
+ * Гидролокатор имеет некоторое число источников данных, включая некоторое число приёмных каналов
+ * "сырых" данных и (возможно) источники обработанных данных (акустические данные, батиметрические
+ * данные и т.п.). Система ВАРУ оказывает прямое влияние только на приёмные каналы "сырых" данных.
+ * Для идентификации системы ВАРУ используются типы источников данных \link HyScanSourceType \endlink.
+ * Состав источников данных зависит от типа гидролокатора.
  *
- * Каждый борт имеет свои характеристики системы ВАРУ. Для определения возможностей системы ВАРУ
- * используется функция #hyscan_tvg_control_get_capabilities. С помощью этой функции можно узнать
+ * Каждый источник данных имеет свои характеристики системы ВАРУ. Для определения возможностей системы
+ * ВАРУ используется функция #hyscan_tvg_control_get_capabilities. С помощью этой функции можно узнать
  * какие режимы работы системы ВАРУ допустимы. Методика управления системой ВАРУ зависит от
  * режима её работы.
  *
@@ -59,10 +58,23 @@
  * - aplha - коэффициент затухания;
  * - r - расстояние.
  *
- * Систему ВАРУ, любого из бортов, можно включить или выключить. Эта возможность полезна при проведении
- * технологических работ и экспериментов. Для этого предназначена функция #hyscan_tvg_control_set_enable.
- * Если система ВАРУ выключена, коэффициент усиления сигнала не изменяется во времени и устанавливается
- * минимально возможным для данного борта.
+ * Систему ВАРУ, любого из источников данных, можно включить или выключить. Эта возможность полезна
+ * при проведении технологических работ и экспериментов. Для этого предназначена функция
+ * #hyscan_tvg_control_set_enable. Если система ВАРУ выключена, коэффициент усиления сигнала не изменяется
+ * во времени и устанавливается минимально возможным.
+ *
+ * При изменении параметров ВАРУ, класс посылает сигнал "gain", в котором передаёт новые
+ * коэффициенты усиления. Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * void    gain_cb    (HyScanTVGControl    *control,
+ *                     HyScanSourceType     source,
+ *                     HyScanDataWriterTVG *tvg);
+ *
+ * \endcode
+ *
+ * Где source - идентификатор источника данных.
  *
  * Класс HyScanTVGControl поддерживает работу в многопоточном режиме.
  *
@@ -117,21 +129,21 @@ GType                  hyscan_tvg_control_get_type             (void);
  * Функция возвращает флаги допустимых режимов работы системы ВАРУ.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора.
+ * \param source идентификатор источника данных.
  *
  * \return Флаги допустимых режимов работы системы ВАРУ.
  *
  */
 HYSCAN_CONTROL_EXPORT
 HyScanTVGModeType      hyscan_tvg_control_get_capabilities      (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board);
+                                                                 HyScanSourceType      source);
 
 /**
  *
  * Функция возвращает допустимые пределы диапазона регулировки усиления ВАРУ.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param min_gain минимальный коэффициент усиления, дБ;
  * \param max_gain максимальный коэффициент усиления, дБ.
  *
@@ -140,7 +152,7 @@ HyScanTVGModeType      hyscan_tvg_control_get_capabilities      (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gdouble              *min_gain,
                                                                  gdouble              *max_gain);
 
@@ -152,7 +164,7 @@ gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGContro
  * передать отрицательное число, будут установлены значения по умолчанию.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param level целевой уровень сигнала;
  * \param sensitivity чувствительность автомата регулировки.
  *
@@ -161,7 +173,7 @@ gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_set_auto              (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gdouble               level,
                                                                  gdouble               sensitivity);
 
@@ -173,7 +185,7 @@ gboolean               hyscan_tvg_control_set_auto              (HyScanTVGContro
  * функцией #hyscan_tvg_control_get_gain_range.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param gain коэффициент усиления, дБ;
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -181,7 +193,7 @@ gboolean               hyscan_tvg_control_set_auto              (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_set_constant          (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gdouble               gain);
 
 /**
@@ -193,7 +205,7 @@ gboolean               hyscan_tvg_control_set_constant          (HyScanTVGContro
  * находится в пределах от 0 до 100.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param gain0 начальный уровень усиления, дБ;
  * \param step величина изменения усиления каждые 100 метров, дБ.
  *
@@ -202,7 +214,7 @@ gboolean               hyscan_tvg_control_set_constant          (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gdouble               gain0,
                                                                  gdouble               step);
 
@@ -216,7 +228,7 @@ gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGContro
  * должно находится в пределах от 0 до 1.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param gain0 начальный уровень усиления, дБ;
  * \param beta коэффициент отражения цели, дБ;
  * \param alpha коэффициент затухания, дБ/м.
@@ -226,7 +238,7 @@ gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gdouble               gain0,
                                                                  gdouble               beta,
                                                                  gdouble               alpha);
@@ -236,7 +248,7 @@ gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGContro
  * Функция включает или выключает систему ВАРУ.
  *
  * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
- * \param board идентификатор борта гидролокатора;
+ * \param source идентификатор источника данных;
  * \param enable включёно или выключено.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -244,7 +256,7 @@ gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGContro
  */
 HYSCAN_CONTROL_EXPORT
 gboolean               hyscan_tvg_control_set_enable            (HyScanTVGControl     *control,
-                                                                 HyScanBoardType       board,
+                                                                 HyScanSourceType      source,
                                                                  gboolean              enable);
 
 G_END_DECLS
