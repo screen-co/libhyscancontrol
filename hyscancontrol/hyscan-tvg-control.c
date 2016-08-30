@@ -211,7 +211,7 @@ hyscan_tvg_control_object_constructed (GObject *object)
           if (!status)
             continue;
 
-          if (id <= 0 || id > G_MAXUINT32)
+          if (id <= 0 || id > G_MAXINT32)
             continue;
 
           /* Описание системы ВАРУ. */

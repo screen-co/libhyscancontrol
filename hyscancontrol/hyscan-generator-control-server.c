@@ -286,7 +286,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           if (!status)
             continue;
 
-          if (id <= 0 || id > G_MAXUINT32)
+          if (id <= 0 || id > G_MAXINT32)
             continue;
 
           /* Команда - hyscan_generator_control_set_preset. */

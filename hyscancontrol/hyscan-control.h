@@ -26,6 +26,15 @@ typedef enum
   HYSCAN_SONAR_SSSE                            = 101,          /**< Гидролокатор бокового обзора. */
 } HyScanSonarType;
 
+/**
+ *
+ * Функция возвращает тип гидролокатора.
+ *
+ * \param sonar указатель на интерфейс \link HyScanSonar e\ndlink.
+ *
+ * \return Тип гидролокатора - \link HyScanSonarType \endlink.
+ *
+ */
 HYSCAN_CONTROL_EXPORT
 HyScanSonarType                hyscan_control_sonar_probe      (HyScanSonar           *sonar);
 

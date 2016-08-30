@@ -70,12 +70,14 @@ GType                  hyscan_ssse_control_get_type         (void);
 
 /**
  *
- * Функция создаёт новый объект \link HyScanSSSEControl \endlink.
+ * Функция создаёт новый объект \link HyScanSSSEControl \endlink и возвращает
+ * указатель на него. Если тип гидролокатора не совпадает с \link HYSCAN_SONAR_SSSE \endlink,
+ * функция возвращает NULL.
  *
  * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
  * \param db указатель на интерфейс \link HyScanDB \endlink.
  *
- * \return Указатель на объект \link HyScanSSSEControl \endlink.
+ * \return Указатель на объект \link HyScanSSSEControl \endlink или NULL.
  *
  */
 HYSCAN_CONTROL_EXPORT

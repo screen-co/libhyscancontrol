@@ -243,7 +243,7 @@ hyscan_ssse_control_get_acoustic_info (HyScanSonar      *sonar,
       antenna_vpattern = g_variant_get_double (param_values[1]);
       antenna_hpattern = g_variant_get_double (param_values[2]);
 
-      if (id >= 1 && id <= G_MAXUINT32)
+      if (id >= 1 && id <= G_MAXINT32)
         {
           acoustic = g_new0 (HyScanSSSEControlAcoustic, 1);
           acoustic->id =id;
@@ -306,6 +306,9 @@ HyScanSSSEControl *
 hyscan_ssse_control_new (HyScanSonar *sonar,
                          HyScanDB    *db)
 {
+  if (hyscan_control_sonar_probe (sonar) != HYSCAN_SONAR_SSSE)
+    return NULL;
+
   return g_object_new (HYSCAN_TYPE_SSSE_CONTROL,
                        "sonar", sonar,
                        "db", db,

@@ -123,35 +123,35 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD));
   if (hyscan_data_box_get_integer (priv->params, param_name, &id))
-    if (id >= 1 && id <= G_MAXUINT32)
+    if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT));
   if (hyscan_data_box_get_integer (priv->params, param_name, &id))
-    if (id >= 1 && id <= G_MAXUINT32)
+    if (id >= 1 && id <= G_MAXINT32)
       priv->port_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI));
   if (hyscan_data_box_get_integer (priv->params, param_name, &id))
-    if (id >= 1 && id <= G_MAXUINT32)
+    if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT_HI));
   if (hyscan_data_box_get_integer (priv->params, param_name, &id))
-    if (id >= 1 && id <= G_MAXUINT32)
+    if (id >= 1 && id <= G_MAXINT32)
       priv->port_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_ECHOSOUNDER));
   if (hyscan_data_box_get_integer (priv->params, param_name, &id))
-    if (id >= 1 && id <= G_MAXUINT32)
+    if (id >= 1 && id <= G_MAXINT32)
       priv->echosounder_id = id;
   g_free (param_name);
 }

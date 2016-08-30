@@ -1150,6 +1150,3 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
 
   return id;
 }
-
-#warning "make magic constants tunable"
-#warning "id -> guint32"
