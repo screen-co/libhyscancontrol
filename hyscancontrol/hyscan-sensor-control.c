@@ -299,7 +299,6 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
                                      HyScanSonarMessage  *message)
 {
   HyScanSensorControlPort *port;
-
   HyScanDataWriterData data;
 
   /* Ищем источник данных. */
@@ -307,30 +306,57 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
   if (port == NULL)
     return;
 
-  /* Пока поддерживаем только протокол NMEA 0183. */
-  if (port->protocol != HYSCAN_SENSOR_PROTOCOL_NMEA_0183)
-    return;
-
-  #warning "Split nmea block to individual sentences"
-
-  /* Проверяем контрольную сумму NMEA строки. */
-  if ((message->type != HYSCAN_DATA_STRING) || !hyscan_sensor_control_check_nmea_crc (message->data))
-    return;
-
-  /* Данные. */
+  /* Коррекция времени. */
   g_rw_lock_reader_lock (&control->priv->lock);
   data.time = message->time + port->time_offset;
-  data.size = message->size;
-  data.data = message->data;
   g_rw_lock_reader_unlock (&control->priv->lock);
 
-  hyscan_data_writer_sensor_add_data (HYSCAN_DATA_WRITER (control),
-                                      port->name,
-                                      hyscan_sensor_control_get_source_type (message->data),
-                                      port->channel,
-                                      &data);
+  /* Обработка данных NMEA 0183. */
+  if (port->protocol == HYSCAN_SENSOR_PROTOCOL_NMEA_0183)
+    {
+      gchar **nmeas;
+      guint i;
 
+      if (message->type != HYSCAN_DATA_STRING)
+        return;
 
+      /* Запись NMEA строк в разные каналы по типу строки. */
+      nmeas = g_strsplit (message->data, "\r\n", -1);
+      for (i = 0; i < g_strv_length (nmeas); i++)
+        {
+          HyScanSourceType nmea_type;
+
+          if (!hyscan_sensor_control_check_nmea_crc (nmeas[i]))
+            continue;
+
+          nmea_type = hyscan_sensor_control_get_source_type (nmeas[i]);
+          if ((nmea_type != HYSCAN_SOURCE_NMEA_GGA) &&
+              (nmea_type != HYSCAN_SOURCE_NMEA_RMC) &&
+              (nmea_type != HYSCAN_SOURCE_NMEA_DPT))
+            {
+              continue;
+            }
+
+          data.data = nmeas[i];
+          data.size = strlen (nmeas[i]);
+          hyscan_data_writer_sensor_add_data (HYSCAN_DATA_WRITER (control),
+                                              port->name, nmea_type,
+                                              port->channel, &data);
+        }
+      g_strfreev (nmeas);
+
+      /* Запись всего блока NMEA строк. */
+      data.data = message->data;
+      data.size = message->size;
+      hyscan_data_writer_sensor_add_data (HYSCAN_DATA_WRITER (control),
+                                          port->name, HYSCAN_SOURCE_NMEA_ANY,
+                                          port->channel, &data);
+    }
+  else
+    return;
+
+  data.data = message->data;
+  data.size = message->size;
   g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, port->name, &data);
 }
 
@@ -422,7 +448,7 @@ hyscan_sensor_control_list_uart_devices (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control), "/enums/uart-device");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-device");
 }
 
 /* Функция возвращает список допустимых режимов обмена данными через UART устройство. */
@@ -434,7 +460,7 @@ hyscan_sensor_control_list_uart_modes (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control), "/enums/uart-mode");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-mode");
 }
 
 /* Функция возвращает список допустимых IP адресов для портов типа IP. */
@@ -446,7 +472,7 @@ hyscan_sensor_control_list_ip_addresses (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control), "/enums/ip-address");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/ip-address");
 }
 
 /* Функция возвращает тип порта. */

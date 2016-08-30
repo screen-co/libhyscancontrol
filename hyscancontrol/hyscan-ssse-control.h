@@ -93,7 +93,7 @@ HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar     
  *
  */
 HYSCAN_CONTROL_EXPORT
-gboolean               hyscan_ssse_control_has_startboard      (HyScanSSSEControl     *control);
+gboolean               hyscan_ssse_control_has_starboard       (HyScanSSSEControl     *control);
 
 /**
  *

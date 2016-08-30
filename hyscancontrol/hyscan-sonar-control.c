@@ -222,7 +222,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
             continue;
 
           /* Приёмные каналы. */
-          for (j = 0; TRUE; j++)
+          for (j = 1; TRUE; j++)
             {
               HyScanSonarControlChannel *channel;
 
@@ -371,8 +371,8 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
   data.size = message->size;
   data.data = message->data;
   hyscan_data_writer_raw_add_data (HYSCAN_DATA_WRITER (control),
-                                        channel->source, channel->channel,
-                                        &info, &data);
+                                   channel->source, channel->channel,
+                                   &info, &data);
 
   g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_RAW_DATA], 0,
                  channel->source, channel->channel, &info, &data);

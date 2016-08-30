@@ -615,7 +615,7 @@ hyscan_tvg_control_server_send_tvg (HyScanTVGControlServer *server,
   message.id   = GPOINTER_TO_INT (id);
   message.type = HYSCAN_DATA_FLOAT;
   message.rate = tvg->rate;
-  message.size = tvg->n_gains * hyscan_data_get_point_size (HYSCAN_DATA_COMPLEX_FLOAT);
+  message.size = tvg->n_gains * hyscan_data_get_point_size (HYSCAN_DATA_FLOAT);
   message.data = tvg->gains;
 
   hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
