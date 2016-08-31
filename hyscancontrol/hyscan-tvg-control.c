@@ -7,9 +7,9 @@
  * \license Проприетарная лицензия ООО "Экран"
  */
 
-#include "hyscan-control-common.h"
 #include "hyscan-tvg-control.h"
-#include "hyscan-marshallers.h"
+#include "hyscan-control-common.h"
+#include "hyscan-control-marshallers.h"
 
 enum
 {

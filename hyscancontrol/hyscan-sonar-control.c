@@ -8,9 +8,9 @@
  *
  */
 
-#include "hyscan-control-common.h"
 #include "hyscan-sonar-control.h"
-#include "hyscan-marshallers.h"
+#include "hyscan-control-common.h"
+#include "hyscan-control-marshallers.h"
 
 enum
 {

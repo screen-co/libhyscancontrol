@@ -9,9 +9,9 @@
  */
 
 #include <hyscan-core-types.h>
-#include "hyscan-control-common.h"
 #include "hyscan-sensor-control.h"
-#include "hyscan-marshallers.h"
+#include "hyscan-control-common.h"
+#include "hyscan-control-marshallers.h"
 #include <string.h>
 
 #define HYSCAN_SENSOR_CONTROL_MAX_CHANNELS     5

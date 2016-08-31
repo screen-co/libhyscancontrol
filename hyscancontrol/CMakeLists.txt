@@ -12,14 +12,14 @@ include_directories (${CMAKE_BINARY_DIR}/marshallers)
 
 execute_process (COMMAND ${MARSHAL_COMPILER}
                          --header
-                         hyscan-marshallers.list
-                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.h
+                         hyscan-control-marshallers.list
+                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.h
                          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 execute_process (COMMAND ${MARSHAL_COMPILER}
                          --body
-                         hyscan-marshallers.list
-                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.c
+                         hyscan-control-marshallers.list
+                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
                          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library (hyscancontrol SHARED
@@ -37,6 +37,6 @@ add_library (hyscancontrol SHARED
              hyscan-sonar-control-server.c
              hyscan-ssse-control-server.c
              hyscan-sonar-schema.c
-             ${CMAKE_BINARY_DIR}/marshallers/hyscan-marshallers.c)
+             ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
 target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${HYSCAN_LIBRARIES})

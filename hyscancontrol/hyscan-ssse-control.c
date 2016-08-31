@@ -10,7 +10,7 @@
 
 #include "hyscan-ssse-control.h"
 #include "hyscan-control-common.h"
-#include "hyscan-marshallers.h"
+#include "hyscan-control-marshallers.h"
 
 enum
 {

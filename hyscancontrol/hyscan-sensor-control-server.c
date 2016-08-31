@@ -11,7 +11,7 @@
 #include "hyscan-sensor-control-server.h"
 #include "hyscan-sensor-control.h"
 #include "hyscan-control-common.h"
-#include "hyscan-marshallers.h"
+#include "hyscan-control-marshallers.h"
 #include "hyscan-sonar-box.h"
 
 enum
