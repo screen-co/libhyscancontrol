@@ -26,7 +26,6 @@ enum
 
 typedef struct
 {
-  guint32                      id;                             /* Идентификатор генератора. */
   HyScanSourceType             source;                         /* Тип источника данных. */
   gchar                       *path;                           /* Путь к описанию генератора в схеме. */
   HyScanGeneratorModeType      capabilities;                   /* Режимы работы. */
@@ -223,13 +222,12 @@ hyscan_generator_control_object_constructed (GObject *object)
 
           /* Описание генератора. */
           generator = g_new0 (HyScanGeneratorControlGen, 1);
-          generator->id = id;
           generator->source = source;
           generator->path = g_strdup_printf ("%s/generator", sources->nodes[i]->path);
           generator->capabilities = capabilities;
           generator->signals = signals;
 
-          g_hash_table_insert (priv->gens_by_id, GINT_TO_POINTER (generator->id), generator);
+          g_hash_table_insert (priv->gens_by_id, GINT_TO_POINTER (id), generator);
           g_hash_table_insert (priv->gens_by_source, GINT_TO_POINTER (source), generator);
         }
 

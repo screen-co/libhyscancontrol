@@ -582,6 +582,9 @@ sonar_ping_cb (HyScanSonarControlServer *server,
           hyscan_sonar_control_server_send_raw_data (server, source, 1, HYSCAN_DATA_ADC_16LE,
                                                      info->signal_rate, &data);
 
+          hyscan_sonar_control_server_send_noise_data (server, source, 1, HYSCAN_DATA_ADC_16LE,
+                                                       info->signal_rate, &data);
+
           hyscan_ssse_control_server_send_acoustic_data (HYSCAN_SSSE_CONTROL_SERVER (server),
                                                          source, HYSCAN_DATA_ADC_16LE,
                                                          info->signal_rate, &data);
@@ -1462,7 +1465,6 @@ check_data (HyScanDB *db,
       /* Проверяем гидролокационные источники данных. */
       for (j = 1; j <= 3; j++)
         {
-          const gchar *channel_name;
           gint32 channel_id;
           gint32 param_id;
 
@@ -1482,11 +1484,15 @@ check_data (HyScanDB *db,
           info = select_source (source);
 
           /* Гидролокационные данных. */
-          for (k = 0; k < 2; k++)
+          for (k = 0; k < 3; k++)
             {
+              gchar *channel_name;
               gboolean raw = (k > 0) ? TRUE : FALSE;
 
-              channel_name = hyscan_channel_get_name_by_types (source, raw, 1);
+              if (k < 2)
+                channel_name = g_strdup (hyscan_channel_get_name_by_types (source, raw, 1));
+              else
+                channel_name = g_strdup_printf ("%s-noise", hyscan_channel_get_name_by_types (source, raw, 1));
 
               channel_id = hyscan_db_channel_open (db, track_id, channel_name);
               if (channel_id < 0)
@@ -1603,6 +1609,7 @@ check_data (HyScanDB *db,
 
               hyscan_db_close (db, param_id);
               hyscan_db_close (db, channel_id);
+              g_free (channel_name);
             }
 
           /* Образы сигналов и ВАРУ. */

@@ -21,12 +21,12 @@ enum
 enum
 {
   SIGNAL_RAW_DATA,
+  SIGNAL_NOISE_DATA,
   SIGNAL_LAST
 };
 
 typedef struct
 {
-  guint32                      id;                             /* Идентификатор приёмного канала. */
   HyScanSourceType             source;                         /* Тип источника данных. */
   guint                        channel;                        /* Индекс приёмного канала. */
   HyScanRawDataInfo            info;                           /* Параметры "сырых" гидролокационных данных. */
@@ -37,7 +37,10 @@ struct _HyScanSonarControlPrivate
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
   gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
+  gboolean                     raw_enabled;                    /* Режим приёма и записи "сырых" данных. */
+
   GHashTable                  *channels;                       /* Список приёмных каналов гидролокатора. */
+  GHashTable                  *noises;                         /* Список источников шумов приёмных каналов гидролокатора. */
   HyScanSonarSyncType          sync_types;                     /* Доступные методы синхронизации излучения. */
 
   gdouble                      alive_timeout;                  /* Интервал отправки сигнала alive. */
@@ -45,19 +48,19 @@ struct _HyScanSonarControlPrivate
   gint                         shutdown;                       /* Признак завершения работы. */
 };
 
-static void    hyscan_sonar_control_set_property       (GObject               *object,
-                                                        guint                  prop_id,
-                                                        const GValue          *value,
-                                                        GParamSpec            *pspec);
-static void    hyscan_sonar_control_object_constructed (GObject               *object);
-static void    hyscan_sonar_control_object_finalize    (GObject               *object);
+static void            hyscan_sonar_control_set_property       (GObject               *object,
+                                                                guint                  prop_id,
+                                                                const GValue          *value,
+                                                                GParamSpec            *pspec);
+static void            hyscan_sonar_control_object_constructed (GObject               *object);
+static void            hyscan_sonar_control_object_finalize    (GObject               *object);
 
-static gpointer hyscan_sonar_control_quard             (gpointer               data);
+static gpointer        hyscan_sonar_control_quard              (gpointer               data);
 
-static void    hyscan_sonar_control_data_receiver      (HyScanSonarControl    *control,
-                                                        HyScanSonarMessage    *message);
+static void            hyscan_sonar_control_data_receiver      (HyScanSonarControl    *control,
+                                                                HyScanSonarMessage    *message);
 
-static guint   hyscan_sonar_control_signals[SIGNAL_LAST] = { 0 };
+static guint           hyscan_sonar_control_signals[SIGNAL_LAST] = { 0 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarControl, hyscan_sonar_control, HYSCAN_TYPE_TVG_CONTROL)
 
@@ -77,6 +80,12 @@ hyscan_sonar_control_class_init (HyScanSonarControlClass *klass)
 
   hyscan_sonar_control_signals[SIGNAL_RAW_DATA] =
     g_signal_new ("raw-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+                  g_cclosure_user_marshal_VOID__INT_UINT_POINTER_POINTER,
+                  G_TYPE_NONE,
+                  4, G_TYPE_INT, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
+
+  hyscan_sonar_control_signals[SIGNAL_NOISE_DATA] =
+    g_signal_new ("noise-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                   g_cclosure_user_marshal_VOID__INT_UINT_POINTER_POINTER,
                   G_TYPE_NONE,
                   4, G_TYPE_INT, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
@@ -128,6 +137,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   /* Список приёмных каналов. */
   priv->channels = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
+  priv->noises = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
   /* Обязательно должен быть передан указатель на HyScanSonar. */
   if (priv->sonar == NULL)
@@ -181,8 +191,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
       /* Считываем описания источников "сырых" данных. */
       for (i = 0; i < sources->n_nodes; i++)
         {
-          gchar *param_names[6];
-          GVariant *param_values[6];
+          gchar *param_names[7];
+          GVariant *param_values[7];
 
           gchar **pathv;
           HyScanSourceType source;
@@ -229,7 +239,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
               gchar *key_id;
               gboolean has_channel;
 
-              gint64 id;
+              gint64 data_id;
+              gint64 noise_id;
               gdouble antenna_voffset;
               gdouble antenna_hoffset;
               gint adc_offset;
@@ -243,27 +254,30 @@ hyscan_sonar_control_object_constructed (GObject *object)
                 break;
 
               param_names[0] = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
-              param_names[1] = g_strdup_printf ("%s/channels/%d/antenna/offset/vertical", sources->nodes[i]->path, j);
-              param_names[2] = g_strdup_printf ("%s/channels/%d/antenna/offset/horizontal", sources->nodes[i]->path, j);
-              param_names[3] = g_strdup_printf ("%s/channels/%d/adc/offset", sources->nodes[i]->path, j);
-              param_names[4] = g_strdup_printf ("%s/channels/%d/adc/vref", sources->nodes[i]->path, j);
-              param_names[5] = NULL;
+              param_names[1] = g_strdup_printf ("%s/channels/%d/noise/id", sources->nodes[i]->path, j);
+              param_names[2] = g_strdup_printf ("%s/channels/%d/antenna/offset/vertical", sources->nodes[i]->path, j);
+              param_names[3] = g_strdup_printf ("%s/channels/%d/antenna/offset/horizontal", sources->nodes[i]->path, j);
+              param_names[4] = g_strdup_printf ("%s/channels/%d/adc/offset", sources->nodes[i]->path, j);
+              param_names[5] = g_strdup_printf ("%s/channels/%d/adc/vref", sources->nodes[i]->path, j);
+              param_names[6] = NULL;
 
               status = hyscan_sonar_get (priv->sonar, (const gchar **)param_names, param_values);
 
               if (status)
                 {
-                  id = g_variant_get_int64 (param_values[0]);
-                  antenna_voffset = g_variant_get_double (param_values[1]);
-                  antenna_hoffset = g_variant_get_double (param_values[2]);
-                  adc_offset = g_variant_get_int64 (param_values[3]);
-                  adc_vref = g_variant_get_double (param_values[4]);
+                  data_id = g_variant_get_int64 (param_values[0]);
+                  noise_id = g_variant_get_int64 (param_values[1]);
+                  antenna_voffset = g_variant_get_double (param_values[2]);
+                  antenna_hoffset = g_variant_get_double (param_values[3]);
+                  adc_offset = g_variant_get_int64 (param_values[4]);
+                  adc_vref = g_variant_get_double (param_values[5]);
 
                   g_variant_unref (param_values[0]);
                   g_variant_unref (param_values[1]);
                   g_variant_unref (param_values[2]);
                   g_variant_unref (param_values[3]);
                   g_variant_unref (param_values[4]);
+                  g_variant_unref (param_values[5]);
                 }
 
               g_free (param_names[0]);
@@ -271,15 +285,15 @@ hyscan_sonar_control_object_constructed (GObject *object)
               g_free (param_names[2]);
               g_free (param_names[3]);
               g_free (param_names[4]);
+              g_free (param_names[5]);
 
               if (!status)
                 continue;
 
-              if (id <= 0 || id > G_MAXINT32)
+              if (data_id <= 0 || data_id > G_MAXINT32)
                 continue;
 
               channel = g_new0 (HyScanSonarControlChannel, 1);
-              channel->id = id;
               channel->source = source;
               channel->channel = j;
               channel->info.adc.offset = adc_offset;
@@ -289,7 +303,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
               channel->info.antenna.pattern.vertical = antenna_vpattern;
               channel->info.antenna.pattern.horizontal = antenna_hpattern;
 
-              g_hash_table_insert (priv->channels, GINT_TO_POINTER (channel->id), channel);
+              g_hash_table_insert (priv->channels, GINT_TO_POINTER (data_id), channel);
+              g_hash_table_insert (priv->noises, GINT_TO_POINTER (noise_id), channel);
             }
         }
 
@@ -321,6 +336,7 @@ hyscan_sonar_control_object_finalize (GObject *object)
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->channels);
+  g_hash_table_unref (priv->noises);
 
   G_OBJECT_CLASS (hyscan_sonar_control_parent_class)->finalize (object);
 }
@@ -357,11 +373,20 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
   HyScanSonarControlChannel *channel;
   HyScanRawDataInfo info;
   HyScanDataWriterData data;
+  gboolean noise = FALSE;
+
+  if (!control->priv->raw_enabled)
+    return;
 
   /* Ищем приёмный канал. */
   channel = g_hash_table_lookup (control->priv->channels, GINT_TO_POINTER (message->id));
   if (channel == NULL)
-    return;
+    {
+      channel = g_hash_table_lookup (control->priv->noises, GINT_TO_POINTER (message->id));
+      if (channel == NULL)
+        return;
+      noise = TRUE;
+    }
 
   /* Данные. */
   info = channel->info;
@@ -370,12 +395,25 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
   data.time = message->time;
   data.size = message->size;
   data.data = message->data;
-  hyscan_data_writer_raw_add_data (HYSCAN_DATA_WRITER (control),
-                                   channel->source, channel->channel,
-                                   &info, &data);
 
-  g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_RAW_DATA], 0,
-                 channel->source, channel->channel, &info, &data);
+  if (!noise)
+    {
+      hyscan_data_writer_raw_add_data (HYSCAN_DATA_WRITER (control),
+                                       channel->source, channel->channel,
+                                       &info, &data);
+
+      g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_RAW_DATA], 0,
+                     channel->source, channel->channel, &info, &data);
+    }
+  else
+    {
+      hyscan_data_writer_raw_add_noise (HYSCAN_DATA_WRITER (control),
+                                        channel->source, channel->channel,
+                                        &info, &data);
+
+      g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_NOISE_DATA], 0,
+                     channel->source, channel->channel, &info, &data);
+    }
 }
 
 /* Функция возвращает маску доступных типов синхронизации излучения. */
@@ -403,6 +441,8 @@ hyscan_sonar_control_enable_raw_data (HyScanSonarControl *control,
                                       gboolean            enable)
 {
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
+
+  control->priv->raw_enabled = enable;
 
   return hyscan_sonar_set_boolean (control->priv->sonar, "/control/raw-data", enable);
 }

@@ -246,7 +246,7 @@ hyscan_ssse_control_get_acoustic_info (HyScanSonar      *sonar,
       if (id >= 1 && id <= G_MAXINT32)
         {
           acoustic = g_new0 (HyScanSSSEControlAcoustic, 1);
-          acoustic->id =id;
+          acoustic->id = id;
           acoustic->source = source;
           acoustic->info.antenna.pattern.vertical = antenna_vpattern;
           acoustic->info.antenna.pattern.horizontal = antenna_hpattern;

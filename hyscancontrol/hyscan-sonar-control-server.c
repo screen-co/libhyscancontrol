@@ -57,6 +57,7 @@ struct _HyScanSonarControlServerPrivate
   GHashTable                              *operations;                 /* Таблица возможных запросов. */
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
   GHashTable                              *channels;                   /* Идентификаторы приёмных каналов. */
+  GHashTable                              *noises;                     /* Идентификаторы "шумовых" каналов. */
 
   gdouble                                  alive_timeout;              /* Интервал отправки сигнала alive. */
   GTimer                                  *alive_timer;                /* Таймер проверки таймаута сигнала alive. */
@@ -211,6 +212,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->channels = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->noises = g_hash_table_new (g_direct_hash, g_direct_equal);
 
   /* Обязательно должны быть переданы параметры гидролокатора. */
   if (priv->params == NULL)
@@ -292,6 +294,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
               gpointer uniq;
               gchar *param_id;
               guint channel_id;
+              guint noise_id;
               guint channel;
 
               /* Считываем индентификаторы каналов. */
@@ -299,20 +302,33 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                 {
                   pathv = g_strsplit (channels->nodes[j]->path, "/", -1);
                   channel = g_ascii_strtoull (pathv[4], NULL, 10);
+                  uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
                   g_strfreev (pathv);
 
+                  param_id = g_strdup_printf ("%s/noise/id", channels->nodes[j]->path);
+                  if (hyscan_data_box_get_integer (priv->params, param_id, &id) &&
+                      (id > 0 || id <= G_MAXINT32))
+                    {
+                      noise_id = id;
+                      g_hash_table_insert (priv->noises, uniq, GINT_TO_POINTER (noise_id));
+                    }
+                  else
+                    {
+                      g_warning ("HyScanSonarControlServer: can't get channel %d noise id", channel);
+                    }
+                  g_free (param_id);
+
                   param_id = g_strdup_printf ("%s/id", channels->nodes[j]->path);
-                  if (hyscan_data_box_get_integer (priv->params, param_id, &id))
+                  if (hyscan_data_box_get_integer (priv->params, param_id, &id) &&
+                      (id > 0 || id <= G_MAXINT32))
                     {
                       channel_id = id;
-                      uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
                       g_hash_table_insert (priv->channels, uniq, GINT_TO_POINTER (channel_id));
                     }
                   else
                     {
                       g_warning ("HyScanSonarControlServer: can't get channel %d id", channel);
                     }
-
                   g_free (param_id);
                 }
             }
@@ -408,6 +424,7 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   g_hash_table_unref (priv->paths);
   g_hash_table_unref (priv->operations);
   g_hash_table_unref (priv->channels);
+  g_hash_table_unref (priv->noises);
 
   g_clear_object (&priv->params);
 
@@ -613,6 +630,7 @@ hyscan_sonar_control_server_ping (HyScanSonarControlServer     *server,
   return TRUE;
 }
 
+/* Функция передаёт "сырые" данные от гидролокатора. */
 void
 hyscan_sonar_control_server_send_raw_data (HyScanSonarControlServer *server,
                                            HyScanSourceType          source,
@@ -632,6 +650,39 @@ hyscan_sonar_control_server_send_raw_data (HyScanSonarControlServer *server,
 
   uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
   id = g_hash_table_lookup (server->priv->channels, uniq);
+  if (id == NULL)
+    return;
+
+  message.time = data->time;
+  message.id   = GPOINTER_TO_INT (id);
+  message.type = type;
+  message.rate = rate;
+  message.size = data->size;
+  message.data = data->data;
+
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+}
+
+/* Функция передаёт "сырые" данные от гидролокатора принятые при отключенном излучении - шумов. */
+void
+hyscan_sonar_control_server_send_noise_data (HyScanSonarControlServer *server,
+                                             HyScanSourceType          source,
+                                             gint                      channel,
+                                             HyScanDataType            type,
+                                             gdouble                   rate,
+                                             HyScanDataWriterData     *data)
+{
+  HyScanSonarMessage message;
+  gpointer uniq;
+  gpointer id;
+
+  g_return_if_fail (HYSCAN_IS_SONAR_CONTROL_SERVER (server));
+
+  if (server->priv->params == NULL)
+    return;
+
+  uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
+  id = g_hash_table_lookup (server->priv->noises, uniq);
   if (id == NULL)
     return;
 

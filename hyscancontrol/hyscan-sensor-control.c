@@ -31,7 +31,6 @@ enum
 /* Описание порта. */
 typedef struct
 {
-  gint32                       id;                             /* Идентификатор порта. */
   gchar                       *name;                           /* Название порта. */
   gchar                       *path;                           /* Путь к описанию порта в схеме. */
   HyScanSensorPortType         type;                           /* Тип порта. */
@@ -253,14 +252,13 @@ hyscan_sensor_control_object_constructed (GObject *object)
 
           /* Описание порта. */
           port = g_new0 (HyScanSensorControlPort, 1);
-          port->id = id;
           port->name = name;
           port->path = g_strdup (sensors->nodes[i]->path);
           port->type = type;
           port->channel = 1;
           port->protocol = protocol;
 
-          g_hash_table_insert (priv->ports_by_id, GINT_TO_POINTER (port->id), port);
+          g_hash_table_insert (priv->ports_by_id, GINT_TO_POINTER (id), port);
           g_hash_table_insert (priv->ports_by_name, name, port);
         }
 

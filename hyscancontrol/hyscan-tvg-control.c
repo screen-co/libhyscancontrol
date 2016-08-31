@@ -25,7 +25,6 @@ enum
 
 typedef struct
 {
-  guint32                      id;                             /* Идентификатор источника данных. */
   HyScanSourceType             source;                         /* Тип источника данных. */
   gchar                       *path;                           /* Путь к описанию источника данных в схеме. */
   HyScanTVGModeType            capabilities;                   /* Режимы работы системы ВАРУ. */
@@ -216,12 +215,11 @@ hyscan_tvg_control_object_constructed (GObject *object)
 
           /* Описание системы ВАРУ. */
           tvg = g_new0 (HyScanTVGControlTVG, 1);
-          tvg->id = id;
           tvg->source = source;
           tvg->path = g_strdup_printf ("%s/tvg", sources->nodes[i]->path);
           tvg->capabilities = capabilities;
 
-          g_hash_table_insert (priv->tvgs_by_id, GINT_TO_POINTER (tvg->id), tvg);
+          g_hash_table_insert (priv->tvgs_by_id, GINT_TO_POINTER (id), tvg);
           g_hash_table_insert (priv->tvgs_by_source, GINT_TO_POINTER (source), tvg);
         }
 

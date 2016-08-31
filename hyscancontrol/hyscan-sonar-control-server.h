@@ -69,6 +69,9 @@
  * Функция #hyscan_sonar_control_server_send_raw_data предназаначена для отправки "сырых"
  * данных от гидролокатора.
  *
+ * Функция #hyscan_sonar_control_server_send_noise_data предназаначена для отправки "сырых"
+ * данных от гидролокатора принятых при отключенном излучении.
+ *
  */
 
 #ifndef __HYSCAN_SONAR_CONTROL_SERVER_H__
@@ -121,6 +124,28 @@ GType                  hyscan_sonar_control_server_get_type            (void);
  */
 HYSCAN_CONTROL_EXPORT
 void                   hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
+                                                                        HyScanSourceType             source,
+                                                                        gint                         channel,
+                                                                        HyScanDataType               type,
+                                                                        gdouble                      rate,
+                                                                        HyScanDataWriterData        *data);
+
+/**
+ *
+ * Функция передаёт "сырые" данные от гидролокатора принятые при отключенном излучении - шумов.
+ *
+ * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
+ * \param source идентификатор источника данных;
+ * \param channel номер приёмного канала;
+ * \param type тип данных, \link HyScanDataType \endlink;
+ * \param rate частота дискретизации данных, Гц;
+ * \param data данные от гидролокатора.
+ *
+ * \return Нет.
+ *
+ */
+HYSCAN_CONTROL_EXPORT
+void                   hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
                                                                         HyScanSourceType             source,
                                                                         gint                         channel,
                                                                         HyScanDataType               type,
