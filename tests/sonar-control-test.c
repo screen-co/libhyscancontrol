@@ -449,7 +449,7 @@ tvg_set_enable_cb (HyScanTVGControlServer *server,
 /* Функция устанавливает тип синхронизации излучения. */
 gboolean
 sonar_set_sync_type_cb (HyScanSonarControlServer *server,
-                        gint64                    sync_type,
+                        HyScanSonarSyncType       sync_type,
                         gpointer                  user_data)
 {
   gint64 *counter = user_data;
