@@ -1,26 +1,22 @@
-#
-# Marshaller generation utility.
+
 find_program (MARSHAL_COMPILER glib-genmarshal)
 if (${MARSHAL_COMPILER} STREQUAL MARSHAL_COMPILER-NOTFOUND)
   message (FATAL_ERROR "GLib marshallers compiler not found.")
 endif ()
 
-#
-# Marshaller files.
 file (MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/marshallers)
 include_directories (${CMAKE_BINARY_DIR}/marshallers)
 
-execute_process (COMMAND ${MARSHAL_COMPILER}
-                         --header
-                         hyscan-control-marshallers.list
-                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.h
-                         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
-execute_process (COMMAND ${MARSHAL_COMPILER}
-                         --body
-                         hyscan-control-marshallers.list
-                         OUTPUT_FILE ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
-                         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
+                    COMMAND ${MARSHAL_COMPILER} --header
+                            hyscan-control-marshallers.list >
+                            ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.h
+                    COMMAND ${MARSHAL_COMPILER} --body
+                            hyscan-control-marshallers.list >
+                            ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    DEPENDS hyscan-control-marshallers.list
+                    VERBATIM)
 
 add_library (hyscancontrol SHARED
              hyscan-control.c
@@ -39,4 +35,6 @@ add_library (hyscancontrol SHARED
              hyscan-sonar-schema.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
-target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${HYSCAN_LIBRARIES})
+target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${ADDON_LIBRARIES})
+
+set_target_properties (hyscancontrol PROPERTIES DEFINE_SYMBOL "HYSCAN_API_EXPORTS")

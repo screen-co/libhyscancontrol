@@ -16,7 +16,6 @@
 #define __HYSCAN_CONTROL_H__
 
 #include <hyscan-sonar.h>
-#include <hyscan-control-exports.h>
 
 /** \brief Типы гидролокаторов */
 typedef enum
@@ -35,7 +34,7 @@ typedef enum
  * \return Тип гидролокатора - \link HyScanSonarType \endlink.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSonarType                hyscan_control_sonar_probe      (HyScanSonar           *sonar);
 
 #endif /* __HYSCAN_CONTROL_H__ */

@@ -100,7 +100,7 @@ struct _HyScanTVGControlServerClass
   HyScanGeneratorControlServerClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_tvg_control_server_get_type              (void);
 
 /**
@@ -114,7 +114,7 @@ GType                  hyscan_tvg_control_server_get_type              (void);
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_tvg_control_server_send_tvg              (HyScanTVGControlServer    *server,
                                                                         HyScanSourceType           source,
                                                                         HyScanDataWriterTVG       *tvg);

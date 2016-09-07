@@ -62,7 +62,6 @@
 
 #include <glib-object.h>
 #include <hyscan-data-writer.h>
-#include <hyscan-control-exports.h>
 
 G_BEGIN_DECLS
 
@@ -89,7 +88,7 @@ struct _HyScanSensorControlServerClass
   GObjectClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_sensor_control_server_get_type           (void);
 
 /**
@@ -104,7 +103,7 @@ GType                  hyscan_sensor_control_server_get_type           (void);
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_sensor_control_server_send_data          (HyScanSensorControlServer   *server,
                                                                         const gchar                 *name,
                                                                         HyScanDataType               type,

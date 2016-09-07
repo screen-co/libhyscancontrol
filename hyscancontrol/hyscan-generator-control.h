@@ -119,7 +119,7 @@ struct _HyScanGeneratorControlClass
   HyScanSensorControlClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                          hyscan_generator_control_get_type           (void);
 
 /**
@@ -132,7 +132,7 @@ GType                          hyscan_generator_control_get_type           (void
  * \return Флаги допустимых режимов работы генератора.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanGeneratorModeType        hyscan_generator_control_get_capabilities   (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source);
 
@@ -146,7 +146,7 @@ HyScanGeneratorModeType        hyscan_generator_control_get_capabilities   (HySc
  * \return Флаги допустимых сигналов генератора.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source);
 
@@ -164,7 +164,7 @@ HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HySc
  * \return TRUE - если функция выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_get_duration_range (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             HyScanGeneratorSignalType  signal,
@@ -182,7 +182,7 @@ gboolean                       hyscan_generator_control_get_duration_range (HySc
  * \return Список преднастроек генератора.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanDataSchemaEnumValue    **hyscan_generator_control_list_presets       (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source);
 
@@ -197,7 +197,7 @@ HyScanDataSchemaEnumValue    **hyscan_generator_control_list_presets       (HySc
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_set_preset         (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             gint64                     preset);
@@ -213,7 +213,7 @@ gboolean                       hyscan_generator_control_set_preset         (HySc
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_set_auto           (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             HyScanGeneratorSignalType  signal);
@@ -230,7 +230,7 @@ gboolean                       hyscan_generator_control_set_auto           (HySc
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_set_simple         (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             HyScanGeneratorSignalType  signal,
@@ -249,7 +249,7 @@ gboolean                       hyscan_generator_control_set_simple         (HySc
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_set_extended       (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             HyScanGeneratorSignalType  signal,
@@ -267,7 +267,7 @@ gboolean                       hyscan_generator_control_set_extended       (HySc
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_generator_control_set_enable         (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
                                                                             gboolean                   enable);

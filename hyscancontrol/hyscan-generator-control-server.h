@@ -101,7 +101,7 @@ struct _HyScanGeneratorControlServerClass
   HyScanSensorControlServerClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_generator_control_server_get_type        (void);
 
 /**
@@ -115,7 +115,7 @@ GType                  hyscan_generator_control_server_get_type        (void);
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_generator_control_server_send_signal     (HyScanGeneratorControlServer  *server,
                                                                         HyScanSourceType               source,
                                                                         HyScanDataWriterSignal        *signal);

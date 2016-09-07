@@ -47,7 +47,7 @@ struct _HyScanSSSEControlServerClass
   HyScanSonarControlServerClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                          hyscan_ssse_control_server_get_type             (void);
 
 /**
@@ -59,7 +59,7 @@ GType                          hyscan_ssse_control_server_get_type             (
  * \return Указатель на объект \link HyScanSSSEControlServer \endlink.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (HyScanSonarBox          *params);
 
 /**
@@ -76,7 +76,7 @@ HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                           hyscan_ssse_control_server_send_acoustic_data   (HyScanSSSEControlServer *server,
                                                                                 HyScanSourceType         source,
                                                                                 HyScanDataType           type,

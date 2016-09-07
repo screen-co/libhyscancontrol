@@ -88,7 +88,7 @@ struct _HyScanSonarControlClass
   HyScanTVGControlClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_sonar_control_get_type                   (void);
 
 /**
@@ -100,7 +100,7 @@ GType                  hyscan_sonar_control_get_type                   (void);
  * \return Маска доступных типов синхронизации излучения.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSonarSyncType    hyscan_sonar_control_get_sync_capabilities      (HyScanSonarControl    *control);
 
 /**
@@ -113,7 +113,7 @@ HyScanSonarSyncType    hyscan_sonar_control_get_sync_capabilities      (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_set_sync_type              (HyScanSonarControl    *control,
                                                                         HyScanSonarSyncType    sync_type);
 
@@ -127,7 +127,7 @@ gboolean               hyscan_sonar_control_set_sync_type              (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSonarControl    *control,
                                                                         gboolean               enable);
 
@@ -148,7 +148,7 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_set_position               (HyScanSonarControl    *control,
                                                                         HyScanSourceType       source,
                                                                         gdouble                x,
@@ -169,7 +169,7 @@ gboolean               hyscan_sonar_control_set_position               (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_set_receive_time           (HyScanSonarControl    *control,
                                                                         HyScanSourceType       source,
                                                                         gdouble                receive_time);
@@ -185,7 +185,7 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_start                      (HyScanSonarControl    *control,
                                                                         const gchar           *project_name,
                                                                         const gchar           *track_name,
@@ -200,7 +200,7 @@ gboolean               hyscan_sonar_control_start                      (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_stop                       (HyScanSonarControl    *control);
 
 /**
@@ -215,7 +215,7 @@ gboolean               hyscan_sonar_control_stop                       (HyScanSo
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_control_ping                       (HyScanSonarControl    *control);
 
 G_END_DECLS

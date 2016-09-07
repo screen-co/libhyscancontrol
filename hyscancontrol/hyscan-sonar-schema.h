@@ -68,7 +68,7 @@ struct _HyScanSonarSchemaClass
   HyScanDataSchemaBuilderClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_sonar_schema_get_type                    (void);
 
 /**
@@ -80,7 +80,7 @@ GType                  hyscan_sonar_schema_get_type                    (void);
  * \return Указатель на объект \link HyScanSonarSchema \endlink.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSonarSchema     *hyscan_sonar_schema_new                         (gdouble                        timeout);
 
 /**
@@ -95,7 +95,7 @@ HyScanSonarSchema     *hyscan_sonar_schema_new                         (gdouble 
  * \return Уникальный идентификатор порта в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add                  (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name,
                                                                         HyScanSensorPortType           type,
@@ -111,7 +111,7 @@ gint                   hyscan_sonar_schema_sensor_add                  (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_uart_device      (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
 
@@ -125,7 +125,7 @@ gint                   hyscan_sonar_schema_sensor_add_uart_device      (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_uart_mode        (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
 
@@ -139,7 +139,7 @@ gint                   hyscan_sonar_schema_sensor_add_uart_mode        (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSonarSchema             *schema,
                                                                         const gchar                   *name);
 
@@ -153,7 +153,7 @@ gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSo
  * \return TRUE - если функция успешно выполнена, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_sonar_schema_sync_add                    (HyScanSonarSchema             *schema,
                                                                         HyScanSonarSyncType            capabilities);
 
@@ -170,7 +170,7 @@ gboolean               hyscan_sonar_schema_sync_add                    (HyScanSo
  * \return Уникальный идентификатор источника данных в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_source_add                  (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
                                                                         gdouble                        antenna_vpattern,
@@ -193,7 +193,7 @@ gint                   hyscan_sonar_schema_source_add                  (HyScanSo
  * \return Уникальный идентификатор генератора в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_generator_add               (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
                                                                         HyScanGeneratorModeType        capabilities,
@@ -214,7 +214,7 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
                                                                         const gchar                   *name);
@@ -232,7 +232,7 @@ gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSo
  * \return Уникальный идентификатор ВАРУ в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_tvg_add                     (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
                                                                         HyScanTVGModeType              capabilities,
@@ -254,7 +254,7 @@ gint                   hyscan_sonar_schema_tvg_add                     (HyScanSo
  * \return Уникальный идентификатор приёмного канала в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_channel_add                 (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
                                                                         guint                          channel,
@@ -273,7 +273,7 @@ gint                   hyscan_sonar_schema_channel_add                 (HyScanSo
  * \return Уникальный идентификатор источника "акустических" данных в схеме или отрицательное число в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gint                   hyscan_sonar_schema_source_add_acuostic         (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source);
 

@@ -65,7 +65,7 @@ struct _HyScanSSSEControlClass
   HyScanSonarControlClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_ssse_control_get_type         (void);
 
 /**
@@ -80,7 +80,7 @@ GType                  hyscan_ssse_control_get_type         (void);
  * \return Указатель на объект \link HyScanSSSEControl \endlink или NULL.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar           *sonar,
                                                                 HyScanDB              *db);
 
@@ -94,7 +94,7 @@ HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar     
  * \return TRUE - если борт присутствует, иначе - FALSE.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_ssse_control_has_starboard       (HyScanSSSEControl     *control);
 
 /**
@@ -107,7 +107,7 @@ gboolean               hyscan_ssse_control_has_starboard       (HyScanSSSEContro
  * \return TRUE - если борт присутствует, иначе - FALSE.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_ssse_control_has_port            (HyScanSSSEControl     *control);
 
 /**
@@ -120,7 +120,7 @@ gboolean               hyscan_ssse_control_has_port            (HyScanSSSEContro
  * \return TRUE - если борт присутствует, иначе - FALSE.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_ssse_control_has_starboard_hi    (HyScanSSSEControl     *control);
 
 /**
@@ -133,7 +133,7 @@ gboolean               hyscan_ssse_control_has_starboard_hi    (HyScanSSSEContro
  * \return TRUE - если борт присутствует, иначе - FALSE.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_ssse_control_has_port_hi         (HyScanSSSEControl     *control);
 
 /**
@@ -145,7 +145,7 @@ gboolean               hyscan_ssse_control_has_port_hi         (HyScanSSSEContro
  * \return TRUE - если эхолот присутствует, иначе - FALSE.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_ssse_control_has_echosounder     (HyScanSSSEControl     *control);
 
 G_END_DECLS

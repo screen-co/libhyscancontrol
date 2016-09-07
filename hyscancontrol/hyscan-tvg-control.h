@@ -121,7 +121,7 @@ struct _HyScanTVGControlClass
   HyScanGeneratorControlClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_tvg_control_get_type             (void);
 
 /**
@@ -134,7 +134,7 @@ GType                  hyscan_tvg_control_get_type             (void);
  * \return Флаги допустимых режимов работы системы ВАРУ.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanTVGModeType      hyscan_tvg_control_get_capabilities      (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source);
 
@@ -150,7 +150,7 @@ HyScanTVGModeType      hyscan_tvg_control_get_capabilities      (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gdouble              *min_gain,
@@ -171,7 +171,7 @@ gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_set_auto              (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gdouble               level,
@@ -191,7 +191,7 @@ gboolean               hyscan_tvg_control_set_auto              (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_set_constant          (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gdouble               gain);
@@ -212,7 +212,7 @@ gboolean               hyscan_tvg_control_set_constant          (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gdouble               gain0,
@@ -236,7 +236,7 @@ gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gdouble               gain0,
@@ -254,7 +254,7 @@ gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGContro
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean               hyscan_tvg_control_set_enable            (HyScanTVGControl     *control,
                                                                  HyScanSourceType      source,
                                                                  gboolean              enable);

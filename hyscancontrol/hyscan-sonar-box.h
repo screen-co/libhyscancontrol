@@ -25,7 +25,6 @@
 
 #include <hyscan-sonar.h>
 #include <hyscan-data-box.h>
-#include <hyscan-control-exports.h>
 
 G_BEGIN_DECLS
 
@@ -52,7 +51,7 @@ struct _HyScanSonarBoxClass
   HyScanDataBoxClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_sonar_box_get_type               (void);
 
 /**
@@ -65,7 +64,7 @@ GType                  hyscan_sonar_box_get_type               (void);
  * \return Указатель на объект \link HyScanSonarBox \endlink.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSonarBox        *hyscan_sonar_box_new                    (const gchar           *schema_data,
                                                                 const gchar           *schema_id);
 
@@ -79,7 +78,7 @@ HyScanSonarBox        *hyscan_sonar_box_new                    (const gchar     
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_sonar_box_send                   (HyScanSonarBox        *sonar,
                                                                 HyScanSonarMessage    *message);
 

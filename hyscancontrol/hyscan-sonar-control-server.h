@@ -104,7 +104,7 @@ struct _HyScanSonarControlServerClass
   HyScanTVGControlServerClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                  hyscan_sonar_control_server_get_type            (void);
 
 /**
@@ -122,7 +122,7 @@ GType                  hyscan_sonar_control_server_get_type            (void);
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
                                                                         HyScanSourceType             source,
                                                                         gint                         channel,
@@ -144,7 +144,7 @@ void                   hyscan_sonar_control_server_send_raw_data       (HyScanSo
  * \return Нет.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 void                   hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
                                                                         HyScanSourceType             source,
                                                                         gint                         channel,

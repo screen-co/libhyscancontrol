@@ -80,7 +80,6 @@
 #ifndef __HYSCAN_SENSOR_CONTROL_H__
 #define __HYSCAN_SENSOR_CONTROL_H__
 
-#include <hyscan-control-exports.h>
 #include <hyscan-data-writer.h>
 #include <hyscan-data-schema.h>
 #include <hyscan-sonar.h>
@@ -140,7 +139,7 @@ struct _HyScanSensorControlClass
   HyScanDataWriterClass parent_class;
 };
 
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 GType                          hyscan_sensor_control_get_type                  (void);
 
 /**
@@ -153,7 +152,7 @@ GType                          hyscan_sensor_control_get_type                  (
  * \return Список портов или NULL.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gchar                        **hyscan_sensor_control_list_ports                (HyScanSensorControl       *control);
 
 /**
@@ -167,7 +166,7 @@ gchar                        **hyscan_sensor_control_list_ports                (
  * \return Список физических устройств UART или NULL.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (HyScanSensorControl       *control);
 
 /**
@@ -181,7 +180,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (
  * \return Список режимов обмена данными или NULL.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (HyScanSensorControl       *control);
 
 /**
@@ -195,7 +194,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (
  * \return Список IP адресов или NULL.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (HyScanSensorControl       *control);
 
 /**
@@ -208,7 +207,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (
  * \return Тип порта.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSensorPortType           hyscan_sensor_control_get_port_type             (HyScanSensorControl       *control,
                                                                                 const gchar               *name);
 
@@ -222,7 +221,7 @@ HyScanSensorPortType           hyscan_sensor_control_get_port_type             (
  * \return Состояние порта.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 HyScanSensorPortStatus         hyscan_sensor_control_get_port_status           (HyScanSensorControl       *control,
                                                                                 const gchar               *name);
 
@@ -238,7 +237,7 @@ HyScanSensorPortStatus         hyscan_sensor_control_get_port_status           (
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_sensor_control_set_virtual_port_param    (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
                                                                                 guint                      channel,
@@ -263,7 +262,7 @@ gboolean                       hyscan_sensor_control_set_virtual_port_param    (
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_sensor_control_set_uart_port_param       (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
                                                                                 guint                      channel,
@@ -290,7 +289,7 @@ gboolean                       hyscan_sensor_control_set_uart_port_param       (
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
                                                                                 guint                      channel,
@@ -316,7 +315,7 @@ gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_sensor_control_set_position              (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
                                                                                 gdouble                    x,
@@ -337,7 +336,7 @@ gboolean                       hyscan_sensor_control_set_position              (
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
-HYSCAN_CONTROL_EXPORT
+HYSCAN_API
 gboolean                       hyscan_sensor_control_set_enable                (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
                                                                                 gboolean                   enable);
