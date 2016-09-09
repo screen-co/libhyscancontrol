@@ -367,6 +367,10 @@ hyscan_sensor_control_check_nmea_crc (const gchar *nmea_str)
   gsize nmea_len = strlen (nmea_str);
   gsize i;
 
+  /* NMEA строка не может быть короче 10 символов. */
+  if (nmea_len < 10)
+    return FALSE;
+
   nmea_crc = g_ascii_strtoull (nmea_str + nmea_len - 2, NULL, 16);
   for (i = 1; i < nmea_len - 3; i++)
     crc ^= nmea_str[i];

@@ -174,6 +174,16 @@ hyscan_ssse_control_object_constructed (GObject *object)
   priv->port_hi      = hyscan_ssse_control_get_acoustic_info (priv->sonar, HYSCAN_SOURCE_SIDE_SCAN_PORT_HI);
   priv->echosounder  = hyscan_ssse_control_get_acoustic_info (priv->sonar, HYSCAN_SOURCE_ECHOSOUNDER);
 
+  /* Если нет акустических источников данных, принудительно включаем приём "сырых" данных. */
+  if ((priv->has_starboard && priv->starboard == NULL) ||
+      (priv->has_port && priv->port == NULL) ||
+      (priv->has_starboard_hi && priv->starboard_hi == NULL) ||
+      (priv->has_port_hi && priv->port_hi == NULL) ||
+      (priv->has_echosounder && priv->echosounder == NULL))
+    {
+      hyscan_sonar_control_enable_raw_data (HYSCAN_SONAR_CONTROL (control), TRUE);
+    }
+
   /* Обработчик данных от приёмных каналов гидролокатора. */
   priv->signal_id = g_signal_connect_swapped (priv->sonar,
                                               "data",
