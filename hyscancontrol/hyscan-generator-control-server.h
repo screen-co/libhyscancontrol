@@ -9,7 +9,8 @@
  * \defgroup HyScanGeneratorControlServer HyScanGeneratorControlServer - класс сервера управления генераторами сигналов
  *
  * Класс предназначен для серверной реализации управления генераторами сигналов,
- * через интерфейс \link HyScanSonar \endlink.
+ * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * #hyscan_generator_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanGeneratorControl \endlink по управлению генераторами сигналов.
  * При получении такого запроса происходит предварительная проверка валидности данных по схеме
@@ -73,8 +74,8 @@
 #ifndef __HYSCAN_GENERATOR_CONTROL_SERVER_H__
 #define __HYSCAN_GENERATOR_CONTROL_SERVER_H__
 
-#include <hyscan-sensor-control-server.h>
-#include <hyscan-core-types.h>
+#include <hyscan-data-writer.h>
+#include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
 
@@ -91,18 +92,32 @@ typedef struct _HyScanGeneratorControlServerClass HyScanGeneratorControlServerCl
 
 struct _HyScanGeneratorControlServer
 {
-  HyScanSensorControlServer parent_instance;
+  GObject parent_instance;
 
   HyScanGeneratorControlServerPrivate *priv;
 };
 
 struct _HyScanGeneratorControlServerClass
 {
-  HyScanSensorControlServerClass parent_class;
+  GObjectClass parent_class;
 };
 
 HYSCAN_API
-GType                  hyscan_generator_control_server_get_type        (void);
+GType                          hyscan_generator_control_server_get_type        (void);
+
+/**
+ *
+ * Функция создаёт новый объект \link HyScanGeneratorControlServer \endlink.
+ * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
+ * этот объект должен существовать всё время работы сервера.
+ *
+ * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
+ *
+ * \return Указатель на объект \link HyScanGeneratorControlServer \endlink.
+ *
+ */
+HYSCAN_API
+HyScanGeneratorControlServer  *hyscan_generator_control_server_new             (HyScanSonarBox                *params);
 
 /**
  *
@@ -116,9 +131,9 @@ GType                  hyscan_generator_control_server_get_type        (void);
  *
  */
 HYSCAN_API
-void                   hyscan_generator_control_server_send_signal     (HyScanGeneratorControlServer  *server,
-                                                                        HyScanSourceType               source,
-                                                                        HyScanDataWriterSignal        *signal);
+void                           hyscan_generator_control_server_send_signal     (HyScanGeneratorControlServer  *server,
+                                                                                HyScanSourceType               source,
+                                                                                HyScanDataWriterSignal        *signal);
 
 G_END_DECLS
 

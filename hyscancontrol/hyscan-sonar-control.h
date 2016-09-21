@@ -22,6 +22,8 @@
  * Включить или выключить приём и запись таких данных можно функцией #hyscan_sonar_control_enable_raw_data.
  *
  * Время приёма эхосигналов гидролокатором управляется функцией #hyscan_sonar_control_set_receive_time.
+ * Максимально возможное время приёма эхосигналов можно узнать с помощью функции
+ * #hyscan_sonar_control_get_max_receive_time.
  *
  * Включить гидролокатор в рабочий режим, в соответствии с установленными параметрами, можно
  * при помощи функции #hyscan_sonar_control_start, остановить #hyscan_sonar_control_stop.
@@ -38,12 +40,18 @@
  * void    data_cb    (HyScanSonarControl     *control,
  *                     HyScanSourceType        source,
  *                     guint                   channel,
- *                     HyScanAcousticDataInfo *info,
- *                     HyScanDataWriterData   *data);
+ *                     HyScanRawDataInfo      *info,
+ *                     HyScanDataWriterData   *data,
+ *                     gpointer                user_data);
  *
  * \endcode
  *
- * Где source - идентификатор источника данных, channel - индекс канала данных.
+ * Где:
+ *
+ * - source - идентификатор источника данных;
+ * - channel - индекс канала данных;
+ * - info - параметры "сырых" гидролокационных данных;
+ * - data - "сырые" гидролокационные данные.
  *
  * Класс HyScanSonarControl поддерживает работу в многопоточном режиме.
  *
@@ -105,6 +113,20 @@ HyScanSonarSyncType    hyscan_sonar_control_get_sync_capabilities      (HyScanSo
 
 /**
  *
+ * Функция возвращает максимально возможное время приёма эхосигнала.
+ *
+ * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param source идентификатор источника данных.
+ *
+ * \return Максимально возможное время приёма эхосигнала.
+ *
+ */
+HYSCAN_API
+gdouble                hyscan_sonar_control_get_max_receive_time       (HyScanSonarControl    *control,
+                                                                        HyScanSourceType       source);
+
+/**
+ *
  * Функция устанавливает тип синхронизации излучения.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
@@ -138,12 +160,7 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных;
- * \param x смещение антенны по оси X, метры;
- * \param y смещение антенны по оси Y, метры;
- * \param z смещение антенны по оси Z, метры;
- * \param psi угол поворота антенны по курсу, радианы;
- * \param gamma угол поворота антенны по крену, радианы;
- * \param theta угол поворота антенны по дифференту, радианы.
+ * \param position параметры местоположения приёмной антенны.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
@@ -151,12 +168,7 @@ gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSo
 HYSCAN_API
 gboolean               hyscan_sonar_control_set_position               (HyScanSonarControl    *control,
                                                                         HyScanSourceType       source,
-                                                                        gdouble                x,
-                                                                        gdouble                y,
-                                                                        gdouble                z,
-                                                                        gdouble                psi,
-                                                                        gdouble                gamma,
-                                                                        gdouble                theta);
+                                                                        HyScanAntennaPosition *position);
 
 /**
  *
@@ -180,7 +192,8 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
  * \param project_name название проекта, в который записывать данные;
- * \param track_name название галса, в который записывать данные.
+ * \param track_name название галса, в который записывать данные;
+ * \param track_type тип галса.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *

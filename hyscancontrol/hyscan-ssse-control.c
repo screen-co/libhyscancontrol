@@ -34,7 +34,6 @@ typedef struct
 struct _HyScanSSSEControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
-  gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
   gboolean                     has_starboard;                  /* Признак наличия правого борта, стандартное разрешение. */
   gboolean                     has_port;                       /* Признак наличия левого борта, стандартное разрешение. */
@@ -138,25 +137,13 @@ hyscan_ssse_control_object_constructed (GObject *object)
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
 
   /* Проверка наличия источников данных гидролокатора. */
   schema = HYSCAN_DATA_SCHEMA (priv->sonar);
@@ -185,10 +172,8 @@ hyscan_ssse_control_object_constructed (GObject *object)
     }
 
   /* Обработчик данных от приёмных каналов гидролокатора. */
-  priv->signal_id = g_signal_connect_swapped (priv->sonar,
-                                              "data",
-                                              G_CALLBACK (hyscan_ssse_control_data_receiver),
-                                              control);
+  g_signal_connect_swapped (priv->sonar, "data",
+                            G_CALLBACK (hyscan_ssse_control_data_receiver), control);
 }
 
 static void
@@ -197,8 +182,7 @@ hyscan_ssse_control_object_finalize (GObject *object)
   HyScanSSSEControl *control = HYSCAN_SSSE_CONTROL (object);
   HyScanSSSEControlPrivate *priv = control->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->sonar, priv->signal_id);
+  g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
   g_clear_pointer (&priv->starboard, g_free);
   g_clear_pointer (&priv->port, g_free);

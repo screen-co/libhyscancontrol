@@ -27,11 +27,18 @@
  * void    data_cb    (HyScanSSSEControl      *control,
  *                     HyScanSourceType        source,
  *                     HyScanAcousticDataInfo *info,
- *                     HyScanDataWriterData   *data);
+ *                     HyScanDataWriterData   *data,
+ *                     gpointer                user_data);
  *
  * \endcode
  *
- * Где source - идентификатор источника данных.
+ * Где:
+ *
+ * - source - идентификатор источника данных;
+ * - info - параметры акустических данных;
+ * - data - акустические данные.
+ *
+ * Класс HyScanSSSEControl поддерживает работу в многопоточном режиме.
  *
  */
 
@@ -66,7 +73,7 @@ struct _HyScanSSSEControlClass
 };
 
 HYSCAN_API
-GType                  hyscan_ssse_control_get_type         (void);
+GType                  hyscan_ssse_control_get_type            (void);
 
 /**
  *

@@ -22,8 +22,10 @@ enum
 
 enum
 {
+  SIGNAL_SENSOR_VIRTUAL_PORT_PARAM,
   SIGNAL_SENSOR_UART_PORT_PARAM,
   SIGNAL_SENSOR_UDP_IP_PORT_PARAM,
+  SIGNAL_SENSOR_SET_POSITION,
   SIGNAL_SENSOR_SET_ENABLE,
   SIGNAL_LAST
 };
@@ -46,7 +48,6 @@ struct _HyScanSensorControlServerPort
 struct _HyScanSensorControlServerPrivate
 {
   HyScanDataBox                         *params;                         /* Параметры гидролокатора. */
-  gulong                                 signal_id;                      /* Идентификатор обработчика сигнала set. */
 
   GHashTable                            *operations;                     /* Таблица возможных запросов. */
   GHashTable                            *paths;                          /* Таблица названий параметров запросов. */
@@ -67,11 +68,19 @@ static gboolean    hyscan_sensor_control_server_set_cb                   (HyScan
                                                                           GVariant                     **values,
                                                                           HyScanSensorControlServer     *server);
 
+static gboolean    hyscan_sensor_control_server_virtual_port_param       (HyScanSensorControlServer     *server,
+                                                                          HyScanSensorControlServerPort *port,
+                                                                          const gchar *const            *names,
+                                                                          GVariant                     **values);
 static gboolean    hyscan_sensor_control_server_uart_port_param          (HyScanSensorControlServer     *server,
                                                                           HyScanSensorControlServerPort *port,
                                                                           const gchar *const            *names,
                                                                           GVariant                     **values);
 static gboolean    hyscan_sensor_control_server_udp_ip_port_param        (HyScanSensorControlServer     *server,
+                                                                          HyScanSensorControlServerPort *port,
+                                                                          const gchar *const            *names,
+                                                                          GVariant                     **values);
+static gboolean    hyscan_sensor_control_server_set_position             (HyScanSensorControlServer     *server,
                                                                           HyScanSensorControlServerPort *port,
                                                                           const gchar *const            *names,
                                                                           GVariant                     **values);
@@ -98,19 +107,33 @@ hyscan_sensor_control_server_class_init (HyScanSensorControlServerClass *klass)
     g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+  hyscan_sensor_control_server_signals[SIGNAL_SENSOR_VIRTUAL_PORT_PARAM] =
+    g_signal_new ("sensor-virtual-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
+                  hyscan_control_boolean_accumulator, NULL,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64,
+                  G_TYPE_BOOLEAN,
+                  3, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64);
+
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UART_PORT_PARAM] =
     g_signal_new ("sensor-uart-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_INT_UINT_UINT,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
                   G_TYPE_BOOLEAN,
-                  4, G_TYPE_STRING, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
+                  6, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UDP_IP_PORT_PARAM] =
     g_signal_new ("sensor-udp-ip-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_INT_UINT_UINT,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
                   G_TYPE_BOOLEAN,
-                  4, G_TYPE_STRING, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
+                  6, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
+
+  hyscan_sensor_control_server_signals[SIGNAL_SENSOR_SET_POSITION] =
+    g_signal_new ("sensor-set-position", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
+                  hyscan_control_boolean_accumulator, NULL,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_POINTER,
+                  G_TYPE_BOOLEAN,
+                  2, G_TYPE_STRING, G_TYPE_POINTER);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_SET_ENABLE] =
     g_signal_new ("sensor-set-enable", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
@@ -138,7 +161,7 @@ hyscan_sensor_control_server_set_property (GObject      *object,
   switch (prop_id)
     {
     case PROP_PARAMS:
-      priv->params = g_value_dup_object (value);
+      priv->params = g_value_get_object (value);
       break;
 
     default:
@@ -177,25 +200,21 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
     {
-      g_clear_object (&priv->params);
       g_warning ("HyScanControlServer: unknown sonar schema id");
       return;
     }
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     {
-      g_clear_object (&priv->params);
       g_warning ("HyScanControlServer: sonar schema id mismatch");
       return;
     }
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
     {
-      g_clear_object (&priv->params);
       g_warning ("HyScanControlServer: unknown sonar schema version");
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
-      g_clear_object (&priv->params);
       g_warning ("HyScanControlServer: sonar schema version mismatch");
       return;
     }
@@ -266,6 +285,21 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
           pathv = g_strsplit (sensors->nodes[i]->path, "/", -1);
           name = pathv[2];
 
+          /* Команда - hyscan_sensor_control_set_virtual_port_param. */
+          if (type == HYSCAN_SENSOR_PORT_VIRTUAL)
+            {
+              operation = g_new0 (HyScanSensorControlServerPort, 1);
+              operation->name = g_strdup (name);
+              operation->func = hyscan_sensor_control_server_virtual_port_param;
+              g_hash_table_insert (priv->operations, operation, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/channel", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/time-offset", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+            }
+
           /* Команда - hyscan_sensor_control_set_uart_port_param. */
           if (type == HYSCAN_SENSOR_PORT_UART)
             {
@@ -274,13 +308,19 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
               operation->func = hyscan_sensor_control_server_uart_port_param;
               g_hash_table_insert (priv->operations, operation, operation);
 
-              operation_path = g_strdup_printf ("/sensors/%s/uart-mode", name);
+              operation_path = g_strdup_printf ("/sensors/%s/channel", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/time-offset", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/protocol", name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
               operation_path = g_strdup_printf ("/sensors/%s/uart-device", name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
-              operation_path = g_strdup_printf ("/sensors/%s/protocol", name);
+              operation_path = g_strdup_printf ("/sensors/%s/uart-mode", name);
               g_hash_table_insert (priv->paths, operation_path, operation);
             }
 
@@ -292,15 +332,45 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
               operation->func = hyscan_sensor_control_server_udp_ip_port_param;
               g_hash_table_insert (priv->operations, operation, operation);
 
+              operation_path = g_strdup_printf ("/sensors/%s/channel", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/time-offset", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
+              operation_path = g_strdup_printf ("/sensors/%s/protocol", name);
+              g_hash_table_insert (priv->paths, operation_path, operation);
+
               operation_path = g_strdup_printf ("/sensors/%s/ip-address", name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
               operation_path = g_strdup_printf ("/sensors/%s/udp-port", name);
               g_hash_table_insert (priv->paths, operation_path, operation);
-
-              operation_path = g_strdup_printf ("/sensors/%s/protocol", name);
-              g_hash_table_insert (priv->paths, operation_path, operation);
             }
+
+          /* Команда - hyscan_sensor_control_set_position. */
+          operation = g_new0 (HyScanSensorControlServerPort, 1);
+          operation->name = g_strdup (name);
+          operation->func = hyscan_sensor_control_server_set_position;
+          g_hash_table_insert (priv->operations, operation, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/x", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/y", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/z", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/psi", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/gamma", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sensors/%s/position/theta", name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
 
           /* Команда - hyscan_sensor_control_set_enable. */
           operation = g_new0 (HyScanSensorControlServerPort, 1);
@@ -317,10 +387,8 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
           g_strfreev (pathv);
         }
 
-      priv->signal_id = g_signal_connect (priv->params,
-                                          "set",
-                                          G_CALLBACK (hyscan_sensor_control_server_set_cb),
-                                          server);
+      g_signal_connect (priv->params, "set",
+                        G_CALLBACK (hyscan_sensor_control_server_set_cb), server);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -329,17 +397,14 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
 static void
 hyscan_sensor_control_server_object_finalize (GObject *object)
 {
-  HyScanSensorControlServer *sensor_control_server = HYSCAN_SENSOR_CONTROL_SERVER (object);
-  HyScanSensorControlServerPrivate *priv = sensor_control_server->priv;
+  HyScanSensorControlServer *server = HYSCAN_SENSOR_CONTROL_SERVER (object);
+  HyScanSensorControlServerPrivate *priv = server->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->params, priv->signal_id);
+  g_signal_handlers_disconnect_by_data (priv->params, server);
 
   g_hash_table_unref (priv->ids);
   g_hash_table_unref (priv->paths);
   g_hash_table_unref (priv->operations);
-
-  g_clear_object (&priv->params);
 
   G_OBJECT_CLASS (hyscan_sensor_control_server_parent_class)->finalize (object);
 }
@@ -391,6 +456,45 @@ hyscan_sensor_control_server_set_cb (HyScanDataBox              *params,
   return port0->func (server, port0, names, values);
 }
 
+/* Команда - hyscan_sensor_control_set_virtual_port_param. */
+static gboolean
+hyscan_sensor_control_server_virtual_port_param (HyScanSensorControlServer     *server,
+                                                 HyScanSensorControlServerPort *port,
+                                                 const gchar *const            *names,
+                                                 GVariant                     **values)
+{
+  gchar *name = NULL;
+  gboolean cancel = FALSE;
+
+  gint64 value64;
+  guint channel = 0;
+  gint64 time_offset = 0;
+
+  name = g_strdup_printf ("/sensors/%s/channel", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    channel = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/time-offset", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    time_offset = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  if (cancel)
+    return FALSE;
+
+  g_signal_emit (server, hyscan_sensor_control_server_signals[SIGNAL_SENSOR_VIRTUAL_PORT_PARAM], 0,
+                 port->name, channel, time_offset, &cancel);
+  if (cancel)
+    return FALSE;
+
+  return TRUE;
+}
+
 /* Команда - hyscan_sensor_control_set_uart_port_param. */
 static gboolean
 hyscan_sensor_control_server_uart_port_param (HyScanSensorControlServer     *server,
@@ -399,33 +503,55 @@ hyscan_sensor_control_server_uart_port_param (HyScanSensorControlServer     *ser
                                               GVariant                     **values)
 {
   gchar *name = NULL;
-  gboolean cancel;
+  gboolean cancel = FALSE;
 
   gint64 value64;
+  guint channel = 0;
+  gint64 time_offset = 0;
   HyScanSensorProtocolType protocol = 0;
   guint uart_device = 0;
   guint uart_mode = 0;
 
+  name = g_strdup_printf ("/sensors/%s/channel", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    channel = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/time-offset", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    time_offset = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
   name = g_strdup_printf ("/sensors/%s/protocol", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     protocol = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
   name = g_strdup_printf ("/sensors/%s/uart-device", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     uart_device = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
   name = g_strdup_printf ("/sensors/%s/uart-mode", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     uart_mode = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
-  if (protocol == 0 || uart_device == 0 || uart_mode == 0)
+  if (cancel)
     return FALSE;
 
   g_signal_emit (server, hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UART_PORT_PARAM], 0,
-                 port->name, protocol, uart_device, uart_mode, &cancel);
+                 port->name, channel, time_offset, protocol, uart_device, uart_mode, &cancel);
   if (cancel)
     return FALSE;
 
@@ -440,33 +566,121 @@ hyscan_sensor_control_server_udp_ip_port_param (HyScanSensorControlServer     *s
                                                 GVariant                     **values)
 {
   gchar *name = NULL;
-  gboolean cancel;
+  gboolean cancel = FALSE;
 
   gint64 value64;
+  guint channel = 0;
+  gint64 time_offset = 0;
   HyScanSensorProtocolType protocol = 0;
   guint ip_address = 0;
   guint udp_port = 0;
 
+  name = g_strdup_printf ("/sensors/%s/channel", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    channel = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/time-offset", port->name);
+  if (hyscan_control_find_integer_param (name, names, values, &value64))
+    time_offset = value64;
+  else
+    cancel = TRUE;
+  g_free (name);
+
   name = g_strdup_printf ("/sensors/%s/protocol", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     protocol = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
   name = g_strdup_printf ("/sensors/%s/ip-address", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     ip_address = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
   name = g_strdup_printf ("/sensors/%s/udp-port", port->name);
   if (hyscan_control_find_integer_param (name, names, values, &value64))
     udp_port = value64;
+  else
+    cancel = TRUE;
   g_free (name);
 
-  if (protocol == 0 || ip_address == 0 || udp_port == 0)
+  if (cancel)
     return FALSE;
 
   g_signal_emit (server, hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UDP_IP_PORT_PARAM], 0,
-                 port->name, protocol, ip_address, udp_port, &cancel);
+                 port->name, channel, time_offset, protocol, ip_address, udp_port, &cancel);
+  if (cancel)
+    return FALSE;
+
+  return TRUE;
+}
+
+/* Команда - hyscan_sensor_control_set_position. */
+static gboolean
+hyscan_sensor_control_server_set_position (HyScanSensorControlServer     *server,
+                                           HyScanSensorControlServerPort *port,
+                                           const gchar *const            *names,
+                                           GVariant                     **values)
+{
+  gchar *name = NULL;
+  gboolean cancel = FALSE;
+
+  gdouble value;
+  HyScanAntennaPosition position;
+
+  name = g_strdup_printf ("/sensors/%s/position/x", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.x = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/position/y", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.y = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/position/z", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.z = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/position/psi", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.psi = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/position/gamma", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.gamma = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sensors/%s/position/theta", port->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.theta = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  if (cancel)
+    return FALSE;
+
+  g_signal_emit (server, hyscan_sensor_control_server_signals[SIGNAL_SENSOR_SET_POSITION], 0,
+                 port->name, &position, &cancel);
   if (cancel)
     return FALSE;
 
@@ -499,6 +713,13 @@ hyscan_sensor_control_server_set_enable (HyScanSensorControlServer     *server,
     return FALSE;
 
   return TRUE;
+}
+
+/* Функция создаёт новый объект HyScanSensorControlServer. */
+HyScanSensorControlServer *
+hyscan_sensor_control_server_new (HyScanSonarBox *params)
+{
+  return g_object_new (HYSCAN_TYPE_SENSOR_CONTROL_SERVER, "params", params, NULL);
 }
 
 /* Функция передаёт данные датчиков. */

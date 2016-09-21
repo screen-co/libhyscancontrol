@@ -9,7 +9,8 @@
  * \defgroup HyScanTVGControlServer HyScanTVGControlServer - класс сервера управления системой ВАРУ
  *
  * Класс предназначен для серверной реализации управления системой ВАРУ,
- * через интерфейс \link HyScanSonar \endlink.
+ * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * #hyscan_tvg_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanTVGControl \endlink по управлению системой ВАРУ.
  * При получении такого запроса происходит предварительная проверка валидности данных по схеме
@@ -65,7 +66,7 @@
  * Обработчик сигнала должен вернуть значение TRUE - если команда успешно выполнена,
  * FALSE - в случае ошибки.
  *
- * Функция #hyscan_tvg_control_server_send_tvg предназаначена для отправки параметров
+ * Функция #hyscan_tvg_control_server_send_gains предназаначена для отправки параметров
  * системы ВАРУ.
  *
  */
@@ -73,7 +74,8 @@
 #ifndef __HYSCAN_TVG_CONTROL_SERVER_H__
 #define __HYSCAN_TVG_CONTROL_SERVER_H__
 
-#include <hyscan-generator-control-server.h>
+#include <hyscan-data-writer.h>
+#include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
 
@@ -90,18 +92,32 @@ typedef struct _HyScanTVGControlServerClass HyScanTVGControlServerClass;
 
 struct _HyScanTVGControlServer
 {
-  HyScanGeneratorControlServer parent_instance;
+  GObject parent_instance;
 
   HyScanTVGControlServerPrivate *priv;
 };
 
 struct _HyScanTVGControlServerClass
 {
-  HyScanGeneratorControlServerClass parent_class;
+  GObjectClass parent_class;
 };
 
 HYSCAN_API
-GType                  hyscan_tvg_control_server_get_type              (void);
+GType                          hyscan_tvg_control_server_get_type              (void);
+
+/**
+ *
+ * Функция создаёт новый объект \link HyScanTVGControlServer \endlink.
+ * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
+ * этот объект должен существовать всё время работы сервера.
+ *
+ * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
+ *
+ * \return Указатель на объект \link HyScanTVGControlServer \endlink.
+ *
+ */
+HYSCAN_API
+HyScanTVGControlServer        *hyscan_tvg_control_server_new                   (HyScanSonarBox              *params);
 
 /**
  *
@@ -115,9 +131,9 @@ GType                  hyscan_tvg_control_server_get_type              (void);
  *
  */
 HYSCAN_API
-void                   hyscan_tvg_control_server_send_tvg              (HyScanTVGControlServer    *server,
-                                                                        HyScanSourceType           source,
-                                                                        HyScanDataWriterTVG       *tvg);
+void                           hyscan_tvg_control_server_send_gains            (HyScanTVGControlServer      *server,
+                                                                                HyScanSourceType             source,
+                                                                                HyScanDataWriterTVG         *tvg);
 
 G_END_DECLS
 

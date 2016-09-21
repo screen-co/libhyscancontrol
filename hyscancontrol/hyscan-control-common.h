@@ -14,8 +14,12 @@
 #include <hyscan-control.h>
 #include <hyscan-core-types.h>
 
-#define HYSCAN_SONAR_SCHEMA_ID         0x4D45484353524E53
-#define HYSCAN_SONAR_SCHEMA_VERSION    20160100
+#define HYSCAN_SONAR_SCHEMA_ID                 0x4D45484353524E53
+#define HYSCAN_SONAR_SCHEMA_VERSION            20160100
+
+#define HYSCAN_SENSOR_CONTROL_MAX_CHANNELS     5
+
+#define HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME  "nmea"
 
 /* Функция возвращает название источника данных по его идентификатору. */
 const gchar           *hyscan_control_get_source_name          (HyScanSourceType               source);

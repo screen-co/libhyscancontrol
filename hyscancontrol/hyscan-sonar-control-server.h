@@ -9,7 +9,8 @@
  * \defgroup HyScanSonarControlServer HyScanSonarControlServer - класс сервера управления гидролокатором
  *
  * Класс предназначен для серверной реализации управления гидролокатором,
- * через интерфейс \link HyScanSonar \endlink.
+ * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * #hyscan_sonar_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanSonarControl \endlink по управлению гидролокатором.
  * При получении такого запроса происходит предварительная проверка валидности данных по схеме
@@ -19,6 +20,7 @@
  *
  * - "sonar-set-sync-type" - при изменении типа синхронизации излучения;
  * - "sonar-enable-raw-data" - при изменении выдачи "сырых" данных гидролокатором;
+ * - "sonar-set-position" - при установке информации о местоположении приёмных антенн;
  * - "sonar-set-receive-time" - при установке времни приёма эхосигнала гидролокатором;
  * - "sonar-start" - при включении гидролокатора в рабочий режим;
  * - "sonar-stop" - при выключении рабочего режима гидролокатора;
@@ -37,6 +39,11 @@
  *                                     gboolean                    enable,
  *                                     gpointer                    user_data);
  *
+ * gboolean sonar_set_position_cb     (HyScanSonarControlServer   *server,
+ *                                     HyScanSourceType            source,
+ *                                     HyScanAntennaPosition       position,
+ *                                     gpointer                    user_data);
+ *
  * gboolean sonar_set_receive_time_cb (HyScanSonarControlServer   *server,
  *                                     HyScanSourceType            source,
  *                                     gdouble                     receive_time,
@@ -45,6 +52,7 @@
  * gboolean sonar_start_cb            (HyScanSonarControlServer   *server,
  *                                     const gchar                *project_name,
  *                                     const gchar                *track_name,
+ *                                     HyScanTrackType             track_type,
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_stop_cb             (HyScanSonarControlServer   *server,
@@ -59,9 +67,10 @@
  * \endcode
  *
  * Описание параметров сигналов аналогично параметрам функций \link hyscan_sonar_control_set_sync_type \endlink,
- * \link hyscan_sonar_control_enable_raw_data \endlink, \link hyscan_sonar_control_set_receive_time \endlink,
- * \link hyscan_sonar_control_start \endlink, \link hyscan_sonar_control_stop \endlink,
- * \link hyscan_sonar_control_ping \endlink, класса \link HyScanSonarControl \endlink.
+ * \link hyscan_sonar_control_enable_raw_data \endlink, \link hyscan_sonar_control_set_position \endlink,
+ * \link hyscan_sonar_control_set_receive_time \endlink, \link hyscan_sonar_control_start \endlink,
+ * \link hyscan_sonar_control_stop \endlink и \link hyscan_sonar_control_ping \endlink,
+ * класса \link HyScanSonarControl \endlink.
  *
  * Обработчик сигнала должен вернуть значение TRUE - если команда успешно выполнена,
  * FALSE - в случае ошибки.
@@ -77,7 +86,8 @@
 #ifndef __HYSCAN_SONAR_CONTROL_SERVER_H__
 #define __HYSCAN_SONAR_CONTROL_SERVER_H__
 
-#include <hyscan-tvg-control-server.h>
+#include <hyscan-data-writer.h>
+#include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
 
@@ -94,18 +104,32 @@ typedef struct _HyScanSonarControlServerClass HyScanSonarControlServerClass;
 
 struct _HyScanSonarControlServer
 {
-  HyScanTVGControlServer parent_instance;
+  GObject parent_instance;
 
   HyScanSonarControlServerPrivate *priv;
 };
 
 struct _HyScanSonarControlServerClass
 {
-  HyScanTVGControlServerClass parent_class;
+  GObjectClass parent_class;
 };
 
 HYSCAN_API
-GType                  hyscan_sonar_control_server_get_type            (void);
+GType                          hyscan_sonar_control_server_get_type            (void);
+
+/**
+ *
+ * Функция создаёт новый объект \link HyScanSonarControlServer \endlink.
+ * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
+ * этот объект должен существовать всё время работы сервера.
+ *
+ * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
+ *
+ * \return Указатель на объект \link HyScanSonarControlServer \endlink.
+ *
+ */
+HYSCAN_API
+HyScanSonarControlServer      *hyscan_sonar_control_server_new                 (HyScanSonarBox              *params);
 
 /**
  *
@@ -123,12 +147,12 @@ GType                  hyscan_sonar_control_server_get_type            (void);
  *
  */
 HYSCAN_API
-void                   hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
-                                                                        HyScanSourceType             source,
-                                                                        gint                         channel,
-                                                                        HyScanDataType               type,
-                                                                        gdouble                      rate,
-                                                                        HyScanDataWriterData        *data);
+void                           hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
+                                                                                HyScanSourceType             source,
+                                                                                gint                         channel,
+                                                                                HyScanDataType               type,
+                                                                                gdouble                      rate,
+                                                                                HyScanDataWriterData        *data);
 
 /**
  *
@@ -145,12 +169,12 @@ void                   hyscan_sonar_control_server_send_raw_data       (HyScanSo
  *
  */
 HYSCAN_API
-void                   hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
-                                                                        HyScanSourceType             source,
-                                                                        gint                         channel,
-                                                                        HyScanDataType               type,
-                                                                        gdouble                      rate,
-                                                                        HyScanDataWriterData        *data);
+void                           hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
+                                                                                HyScanSourceType             source,
+                                                                                gint                         channel,
+                                                                                HyScanDataType               type,
+                                                                                gdouble                      rate,
+                                                                                HyScanDataWriterData        *data);
 
 G_END_DECLS
 

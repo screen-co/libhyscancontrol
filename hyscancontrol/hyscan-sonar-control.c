@@ -35,7 +35,6 @@ typedef struct
 struct _HyScanSonarControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
-  gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
   gboolean                     raw_enabled;                    /* Режим приёма и записи "сырых" данных. */
 
@@ -46,6 +45,8 @@ struct _HyScanSonarControlPrivate
   gdouble                      alive_timeout;                  /* Интервал отправки сигнала alive. */
   GThread                     *guard;                          /* Поток для периодической отправки сигнала alive. */
   gint                         shutdown;                       /* Признак завершения работы. */
+
+  GMutex                       lock;                           /* Блокировка. */
 };
 
 static void            hyscan_sonar_control_set_property       (GObject               *object,
@@ -135,6 +136,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   G_OBJECT_CLASS (hyscan_sonar_control_parent_class)->constructed (object);
 
+  g_mutex_init (&priv->lock);
+
   /* Список приёмных каналов. */
   priv->channels = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->noises = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
@@ -145,25 +148,13 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
 
   /* Доступные методы синхронизации излучения. */
   if (hyscan_sonar_get_integer (priv->sonar, "/sync/capabilities", &sync_types))
@@ -309,10 +300,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
         }
 
       /* Обработчик данных от приёмных каналов гидролокатора. */
-      priv->signal_id = g_signal_connect_swapped (priv->sonar,
-                                                  "data",
-                                                  G_CALLBACK (hyscan_sonar_control_data_receiver),
-                                                  control);
+      g_signal_connect_swapped (priv->sonar, "data",
+                                G_CALLBACK (hyscan_sonar_control_data_receiver), control);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -324,19 +313,20 @@ hyscan_sonar_control_object_finalize (GObject *object)
   HyScanSonarControl *control = HYSCAN_SONAR_CONTROL (object);
   HyScanSonarControlPrivate *priv = control->priv;
 
+  g_signal_handlers_disconnect_by_data (priv->sonar, control);
+
   if (priv->guard != NULL)
     {
       g_atomic_int_set (&priv->shutdown, 1);
       g_thread_join (priv->guard);
     }
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->sonar, priv->signal_id);
-
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->channels);
   g_hash_table_unref (priv->noises);
+
+  g_mutex_clear (&priv->lock);
 
   G_OBJECT_CLASS (hyscan_sonar_control_parent_class)->finalize (object);
 }
@@ -425,6 +415,31 @@ hyscan_sonar_control_get_sync_capabilities (HyScanSonarControl *control)
   return control->priv->sync_types;
 }
 
+/* Функция возвращает максимально возможное время приёма эхосигнала. */
+gdouble
+hyscan_sonar_control_get_max_receive_time (HyScanSonarControl *control,
+                                           HyScanSourceType    source)
+{
+  gchar *param_name;
+  gdouble max_receive_time;
+  GVariant *value;
+
+  g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), -1.0);
+
+  param_name = g_strdup_printf ("/sources/%s/control/receive-time",
+                                hyscan_control_get_source_name (source));
+  value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  g_free (param_name);
+
+  if (value == NULL)
+    return -1.0;
+
+  max_receive_time = g_variant_get_double (value);
+  g_variant_unref (value);
+
+  return max_receive_time;
+}
+
 /* Функция устанавливает тип синхронизации излучения. */
 gboolean
 hyscan_sonar_control_set_sync_type (HyScanSonarControl  *control,
@@ -449,28 +464,62 @@ hyscan_sonar_control_enable_raw_data (HyScanSonarControl *control,
 
 /* Функция устанавливает информацию о местоположении приёмных антенн. */
 gboolean
-hyscan_sonar_control_set_position (HyScanSonarControl *control,
-                                   HyScanSourceType    source,
-                                   gdouble             x,
-                                   gdouble             y,
-                                   gdouble             z,
-                                   gdouble             psi,
-                                   gdouble             gamma,
-                                   gdouble             theta)
+hyscan_sonar_control_set_position (HyScanSonarControl    *control,
+                                   HyScanSourceType       source,
+                                   HyScanAntennaPosition *position)
 {
-  HyScanAntennaPosition position;
+  const gchar *source_name;
+
+  gchar *param_names[7];
+  GVariant *param_values[7];
+  gboolean status;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
-  position.x = x;
-  position.y = y;
-  position.z = z;
-  position.psi = psi;
-  position.gamma = gamma;
-  position.theta = theta;
-  hyscan_data_writer_sonar_set_position (HYSCAN_DATA_WRITER (control), source, &position);
+  g_mutex_lock (&control->priv->lock);
 
-  return TRUE;
+  source_name = hyscan_control_get_source_name (source);
+  param_names[0] = g_strdup_printf ("/sources/%s/position/x", source_name);
+  param_names[1] = g_strdup_printf ("/sources/%s/position/y", source_name);
+  param_names[2] = g_strdup_printf ("/sources/%s/position/z", source_name);
+  param_names[3] = g_strdup_printf ("/sources/%s/position/psi", source_name);
+  param_names[4] = g_strdup_printf ("/sources/%s/position/gamma", source_name);
+  param_names[5] = g_strdup_printf ("/sources/%s/position/theta", source_name);
+  param_names[6] = NULL;
+
+  param_values[0] = g_variant_new_double (position->x);
+  param_values[1] = g_variant_new_double (position->y);
+  param_values[2] = g_variant_new_double (position->z);
+  param_values[3] = g_variant_new_double (position->psi);
+  param_values[4] = g_variant_new_double (position->gamma);
+  param_values[5] = g_variant_new_double (position->theta);
+  param_values[6] = NULL;
+
+  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+
+  if (!status)
+    {
+      g_variant_unref (param_values[0]);
+      g_variant_unref (param_values[1]);
+      g_variant_unref (param_values[2]);
+      g_variant_unref (param_values[3]);
+      g_variant_unref (param_values[4]);
+      g_variant_unref (param_values[5]);
+    }
+
+  g_free (param_names[0]);
+  g_free (param_names[1]);
+  g_free (param_names[2]);
+  g_free (param_names[3]);
+  g_free (param_names[4]);
+  g_free (param_names[5]);
+
+  if (status)
+    status = hyscan_data_writer_sonar_set_position (HYSCAN_DATA_WRITER (control), source, position);
+
+  g_mutex_unlock (&control->priv->lock);
+
+  return status;
 }
 
 /* Функция задаёт время приёма эхосигнала источником данных. */
@@ -499,33 +548,40 @@ hyscan_sonar_control_start (HyScanSonarControl *control,
                             const gchar        *track_name,
                             HyScanTrackType     track_type)
 {
-  gchar *param_names[4];
-  GVariant *param_values[4];
-  gboolean status;
+  gchar *param_names[5];
+  GVariant *param_values[5];
+  gboolean status = FALSE;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
-  if (!hyscan_data_writer_start (HYSCAN_DATA_WRITER (control), project_name, track_name, track_type))
-    return FALSE;
+  g_mutex_lock (&control->priv->lock);
 
-  param_names[0] = "/control/project-name";
-  param_names[1] = "/control/track-name";
-  param_names[2] = "/control/enable";
-  param_names[3] = NULL;
-
-  param_values[0] = g_variant_new_string (project_name);
-  param_values[1] = g_variant_new_string (track_name);
-  param_values[2] = g_variant_new_boolean (TRUE);
-  param_values[3] = NULL;
-
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
-
-  if (!status)
+  if (hyscan_data_writer_start (HYSCAN_DATA_WRITER (control), project_name, track_name, track_type))
     {
-      g_variant_unref (param_values[0]);
-      g_variant_unref (param_values[1]);
-      g_variant_unref (param_values[2]);
+      param_names[0] = "/control/project-name";
+      param_names[1] = "/control/track-name";
+      param_names[2] = "/control/track-type";
+      param_names[3] = "/control/enable";
+      param_names[4] = NULL;
+
+      param_values[0] = g_variant_new_string (project_name);
+      param_values[1] = g_variant_new_string (track_name);
+      param_values[2] = g_variant_new_int64 (track_type);
+      param_values[3] = g_variant_new_boolean (TRUE);
+      param_values[4] = NULL;
+
+      status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+
+      if (!status)
+        {
+          g_variant_unref (param_values[0]);
+          g_variant_unref (param_values[1]);
+          g_variant_unref (param_values[2]);
+          g_variant_unref (param_values[3]);
+        }
     }
+
+  g_mutex_unlock (&control->priv->lock);
 
   return status;
 }
@@ -538,8 +594,12 @@ hyscan_sonar_control_stop (HyScanSonarControl *control)
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
+  g_mutex_lock (&control->priv->lock);
+
   status = hyscan_sonar_set_boolean (control->priv->sonar, "/control/enable", FALSE);
   hyscan_data_writer_stop (HYSCAN_DATA_WRITER (control));
+
+  g_mutex_unlock (&control->priv->lock);
 
   return status;
 }

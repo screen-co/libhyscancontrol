@@ -50,18 +50,22 @@
  * технологических работ и экспериментов. Для этого предназначена функция
  * #hyscan_generator_control_set_enable. Если генератор выключен, излучение сигнала не производится.
  *
- * При изменении излучаемого сигнала, класс посылает сигнал "signal", в котором передаёт
+ * При изменении излучаемого сигнала, класс посылает сигнал "signal-image", в котором передаёт
  * новый образ сигнала для свёртки. Прототип обработчика сигнала:
  *
  * \code
  *
- * void    signal_cb    (HyScanGeneratorControl *control,
- *                       HyScanSourceType        source,
- *                       HyScanDataWriterSignal *signal);
+ * void    signal_image_cb    (HyScanGeneratorControl *control,
+ *                             HyScanSourceType        source,
+ *                             HyScanDataWriterSignal *signal,
+ *                             gpointer                user_data);
  *
  * \endcode
  *
- * Где source - идентификатор источника данных.
+ * Где:
+ *
+ * - source - идентификатор источника данных;
+ * - signal - образ сигнала для свёртки.
  *
  * Класс HyScanGeneratorControl поддерживает работу в многопоточном режиме.
  *
@@ -200,7 +204,7 @@ HyScanDataSchemaEnumValue    **hyscan_generator_control_list_presets       (HySc
 HYSCAN_API
 gboolean                       hyscan_generator_control_set_preset         (HyScanGeneratorControl    *control,
                                                                             HyScanSourceType           source,
-                                                                            gint64                     preset);
+                                                                            guint                      preset);
 
 /**
  *

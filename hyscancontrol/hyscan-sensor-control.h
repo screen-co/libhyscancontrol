@@ -10,7 +10,7 @@
  *
  * Класс предназначен для настройки портов к которым подключены датчики местоположения и ориентации.
  *
- * Класс HyScanSensorControl наследуется от класса \link HyScanWriteControl \endlink и используется
+ * Класс HyScanSensorControl наследуется от класса \link HyScanDataWriter \endlink и используется
  * как базовый для классов управления локаторами.
  *
  * Класс HyScanSensorControl умеет управлять следующими типами портов:
@@ -65,13 +65,21 @@
  *
  * \code
  *
- * void    data_cb    (HyScanSensorControl  *control,
- *                     const gchar          *name,
- *                     HyScanDataWriterData *data);
+ * void    data_cb    (HyScanSensorControl      *control,
+ *                     const gchar              *name,
+ *                     HyScanSensorProtocolType  protocol,
+ *                     HyScanDataType            type,
+ *                     HyScanDataWriterData     *data,
+ *                     gpointer                  user_data);
  *
  * \endcode
  *
- * Где name - название порта.
+ * Где:
+ *
+ * - name - название порта;
+ * - protocol - протокол данных от датчика;
+ * - type - тип данных;
+ * - data - данные.
  *
  * Класс HyScanSensorControl поддерживает работу в многопоточном режиме.
  *
@@ -227,7 +235,7 @@ HyScanSensorPortStatus         hyscan_sensor_control_get_port_status           (
 
 /**
  *
- * Функция устанавливает номер канала для порта типа HYSCAN_SENSOR_CONTROL_PORT_VIRTUAL.
+ * Функция устанавливает режим работы порта типа HYSCAN_SENSOR_CONTROL_PORT_VIRTUAL.
  *
  * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
  * \param name название порта;
@@ -268,8 +276,8 @@ gboolean                       hyscan_sensor_control_set_uart_port_param       (
                                                                                 guint                      channel,
                                                                                 gint64                     time_offset,
                                                                                 HyScanSensorProtocolType   protocol,
-                                                                                gint64                     uart_device,
-                                                                                gint64                     uart_mode);
+                                                                                guint                      uart_device,
+                                                                                guint                      uart_mode);
 
 /**
  *
@@ -295,7 +303,7 @@ gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (
                                                                                 guint                      channel,
                                                                                 gint64                     time_offset,
                                                                                 HyScanSensorProtocolType   protocol,
-                                                                                gint64                     ip_address,
+                                                                                guint                      ip_address,
                                                                                 guint16                    udp_port);
 
 /**
@@ -305,12 +313,7 @@ gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (
  *
  * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
  * \param name название порта;
- * \param x смещение антенны по оси X, метры;
- * \param y смещение антенны по оси Y, метры;
- * \param z смещение антенны по оси Z, метры;
- * \param psi угол поворота антенны по курсу, радианы;
- * \param gamma угол поворота антенны по крену, радианы;
- * \param theta угол поворота антенны по дифференту, радианы.
+ * \param position параметры местоположения приёмной антенны.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
@@ -318,12 +321,7 @@ gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (
 HYSCAN_API
 gboolean                       hyscan_sensor_control_set_position              (HyScanSensorControl       *control,
                                                                                 const gchar               *name,
-                                                                                gdouble                    x,
-                                                                                gdouble                    y,
-                                                                                gdouble                    z,
-                                                                                gdouble                    psi,
-                                                                                gdouble                    gamma,
-                                                                                gdouble                    theta);
+                                                                                HyScanAntennaPosition     *position);
 
 /**
  *

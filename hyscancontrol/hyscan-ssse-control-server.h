@@ -9,7 +9,8 @@
  * \defgroup HyScanSSSEControlServer HyScanSSSEControlServer - класс сервера управления ГБОЭ
  *
  * Класс предназначен для серверной реализации управления ГБОЭ, через интерфейс
- * \link HyScanSonar \endlink.
+ * \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * #hyscan_ssse_control_server_new.
  *
  * Класс содержит функцию отправки акустических данных от ГБОЭ -
  * #hyscan_ssse_control_server_send_acoustic_data.
@@ -19,7 +20,7 @@
 #ifndef __HYSCAN_SSSE_CONTROL_SERVER_H__
 #define __HYSCAN_SSSE_CONTROL_SERVER_H__
 
-#include <hyscan-sonar-control-server.h>
+#include <hyscan-data-writer.h>
 #include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
@@ -37,14 +38,14 @@ typedef struct _HyScanSSSEControlServerClass HyScanSSSEControlServerClass;
 
 struct _HyScanSSSEControlServer
 {
-  HyScanSonarControlServer parent_instance;
+  GObject parent_instance;
 
   HyScanSSSEControlServerPrivate *priv;
 };
 
 struct _HyScanSSSEControlServerClass
 {
-  HyScanSonarControlServerClass parent_class;
+  GObjectClass parent_class;
 };
 
 HYSCAN_API
@@ -53,6 +54,8 @@ GType                          hyscan_ssse_control_server_get_type             (
 /**
  *
  * Функция создаёт новый объект \link HyScanSSSEControlServer \endlink.
+ * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
+ * этот объект должен существовать всё время работы сервера.
  *
  * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
  *
@@ -60,7 +63,7 @@ GType                          hyscan_ssse_control_server_get_type             (
  *
  */
 HYSCAN_API
-HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (HyScanSonarBox          *params);
+HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (HyScanSonarBox              *params);
 
 /**
  *
@@ -77,11 +80,11 @@ HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (
  *
  */
 HYSCAN_API
-void                           hyscan_ssse_control_server_send_acoustic_data   (HyScanSSSEControlServer *server,
-                                                                                HyScanSourceType         source,
-                                                                                HyScanDataType           type,
-                                                                                gdouble                  rate,
-                                                                                HyScanDataWriterData    *data);
+void                           hyscan_ssse_control_server_send_acoustic_data   (HyScanSSSEControlServer     *server,
+                                                                                HyScanSourceType             source,
+                                                                                HyScanDataType               type,
+                                                                                gdouble                      rate,
+                                                                                HyScanDataWriterData        *data);
 
 G_END_DECLS
 

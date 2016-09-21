@@ -49,7 +49,6 @@ struct _HyScanTVGControlServerTVG
 struct _HyScanTVGControlServerPrivate
 {
   HyScanDataBox                           *params;                     /* Параметры гидролокатора. */
-  gulong                                   signal_id;                  /* Идентификатор обработчика сигнала set. */
 
   GHashTable                              *operations;                 /* Таблица возможных запросов. */
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
@@ -91,7 +90,7 @@ static gboolean    hyscan_tvg_control_server_set_enable                (HyScanTV
 
 static guint       hyscan_tvg_control_server_signals[SIGNAL_LAST] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (HyScanTVGControlServer, hyscan_tvg_control_server, HYSCAN_TYPE_GENERATOR_CONTROL_SERVER)
+G_DEFINE_TYPE_WITH_PRIVATE (HyScanTVGControlServer, hyscan_tvg_control_server, G_TYPE_OBJECT)
 
 static void
 hyscan_tvg_control_server_class_init (HyScanTVGControlServerClass *klass)
@@ -161,8 +160,7 @@ hyscan_tvg_control_server_set_property (GObject      *object,
   switch (prop_id)
     {
     case PROP_PARAMS:
-      G_OBJECT_CLASS (hyscan_tvg_control_server_parent_class)->set_property (object, prop_id, value, pspec);
-      priv->params = g_value_dup_object (value);
+      priv->params = g_value_get_object (value);
       break;
 
     default:
@@ -184,8 +182,6 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
   gint64 id;
   gint i;
 
-  G_OBJECT_CLASS (hyscan_tvg_control_server_parent_class)->constructed (object);
-
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
@@ -196,25 +192,13 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
 
   /* Параметры гидролокатора. */
   params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
@@ -357,10 +341,8 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
             }
         }
 
-      priv->signal_id = g_signal_connect (priv->params,
-                                          "set",
-                                          G_CALLBACK (hyscan_tvg_control_server_set_cb),
-                                          server);
+      g_signal_connect (priv->params, "set",
+                        G_CALLBACK (hyscan_tvg_control_server_set_cb), server);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -372,14 +354,11 @@ hyscan_tvg_control_server_object_finalize (GObject *object)
   HyScanTVGControlServer *server = HYSCAN_TVG_CONTROL_SERVER (object);
   HyScanTVGControlServerPrivate *priv = server->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->params, priv->signal_id);
+  g_signal_handlers_disconnect_by_data (priv->params, server);
 
   g_hash_table_unref (priv->ids);
   g_hash_table_unref (priv->paths);
   g_hash_table_unref (priv->operations);
-
-  g_clear_object (&priv->params);
 
   G_OBJECT_CLASS (hyscan_tvg_control_server_parent_class)->finalize (object);
 }
@@ -592,12 +571,18 @@ hyscan_tvg_control_server_set_enable (HyScanTVGControlServer      *server,
 
   return TRUE;
 }
+/* Функция создаёт новый объект HyScanTVGControlServer. */
+HyScanTVGControlServer *
+hyscan_tvg_control_server_new (HyScanSonarBox *params)
+{
+  return g_object_new (HYSCAN_TYPE_TVG_CONTROL_SERVER, "params", params, NULL);
+}
 
 /* Функция передаёт параметры системы ВАРУ. */
 void
-hyscan_tvg_control_server_send_tvg (HyScanTVGControlServer *server,
-                                    HyScanSourceType        source,
-                                    HyScanDataWriterTVG    *tvg)
+hyscan_tvg_control_server_send_gains (HyScanTVGControlServer *server,
+                                      HyScanSourceType        source,
+                                      HyScanDataWriterTVG    *tvg)
 {
   HyScanSonarMessage message;
   gpointer id;

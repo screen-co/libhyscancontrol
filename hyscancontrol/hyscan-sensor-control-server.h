@@ -9,7 +9,8 @@
  * \defgroup HyScanSensorControlServer HyScanSensorControlServer - класс сервера управления датчиками местоположения и ориентации
  *
  * Класс предназначен для серверной реализации управления датчиками местоположения и ориентации,
- * через интерфейс \link HyScanSonar \endlink.
+ * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * #hyscan_sensor_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanSensorControl \endlink по управлению портами,
  * для подключения датчиков. При получении такого запроса происходит предварительная проверка
@@ -17,16 +18,26 @@
  * посылает сигнал с параметрами запроса. Пользователь должен установить свои обработчики
  * сигналов, чтобы реагировать на эти запросы. Класс посылает следующие сигналы:
  *
+ * - "sensor-virtual-port-param" - при изменении параметров работы порта типа HYSCAN_SENSOR_CONTROL_PORT_VIRTUAL;
  * - "sensor-uart-port-param" - при изменении параметров работы порта типа HYSCAN_SENSOR_CONTROL_PORT_UART;
  * - "sensor-udp-ip-port-param" - при изменении параметров работы порта типа HYSCAN_SENSOR_CONTROL_PORT_UDP_IP;
+ * - "sensor-set-position" - при установке информации о местоположении приёмных антенн;
  * - "sensor-set-enable" - при включении или отключении датчика.
  *
  * Прототипы обработчиков сигналов:
  *
  * \code
  *
+ * gboolean sensor_virtual_port_param_cb  (HyScanSensorControlServer   *server,
+ *                                         const gchar                 *name,
+ *                                         guint                        channel,
+ *                                         gint64                       time_offset,
+ *                                         gpointer                     user_data);
+ *
  * gboolean sensor_uart_port_param_cb     (HyScanSensorControlServer   *server,
  *                                         const gchar                 *name,
+ *                                         guint                        channel,
+ *                                         gint64                       time_offset,
  *                                         HyScanSensorProtocolType     protocol,
  *                                         guint                        uart_device,
  *                                         guint                        uart_mode,
@@ -34,9 +45,16 @@
  *
  * gboolean sensor_udp_ip_port_param_cb   (HyScanSensorControlServer   *server,
  *                                         const gchar                 *name,
+ *                                         guint                        channel,
+ *                                         gint64                       time_offset,
  *                                         HyScanSensorProtocolType     protocol,
  *                                         guint                        ip_address,
  *                                         guint                        udp_port,
+ *                                         gpointer                     user_data);
+ *
+ * gboolean sensor_set_position_cb        (HyScanSensorControlServer   *server,
+ *                                         const gchar                 *name,
+ *                                         HyScanAntennaPosition        position,
  *                                         gpointer                     user_data);
  *
  * gboolean sensor_set_enable_cb          (HyScanSensorControlServer   *server,
@@ -46,8 +64,9 @@
  *
  * \endcode
  *
- * Описание параметров сигналов аналогично параметрам функций \link hyscan_sensor_control_set_uart_port_param \endlink,
- * \link hyscan_sensor_control_set_udp_ip_port_param \endlink и \link hyscan_sensor_control_set_enable \endlink,
+ * Описание параметров сигналов аналогично параметрам функций \link hyscan_sensor_control_set_virtual_port_param \endlink,
+ * \link hyscan_sensor_control_set_uart_port_param \endlink, \link hyscan_sensor_control_set_udp_ip_port_param \endlink,
+ * \link hyscan_sensor_control_set_position \endlink и \link hyscan_sensor_control_set_enable \endlink,
  * класса \link HyScanSensorControl \endlink.
  *
  * Обработчик сигнала должен вернуть значение TRUE - если команда успешно выполнена,
@@ -60,8 +79,8 @@
 #ifndef __HYSCAN_SENSOR_CONTROL_SERVER_H__
 #define __HYSCAN_SENSOR_CONTROL_SERVER_H__
 
-#include <glib-object.h>
 #include <hyscan-data-writer.h>
+#include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
 
@@ -89,7 +108,21 @@ struct _HyScanSensorControlServerClass
 };
 
 HYSCAN_API
-GType                  hyscan_sensor_control_server_get_type           (void);
+GType                          hyscan_sensor_control_server_get_type           (void);
+
+/**
+ *
+ * Функция создаёт новый объект \link HyScanSensorControlServer \endlink.
+ * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
+ * этот объект должен существовать всё время работы сервера.
+ *
+ * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
+ *
+ * \return Указатель на объект \link HyScanSensorControlServer \endlink.
+ *
+ */
+HYSCAN_API
+HyScanSensorControlServer     *hyscan_sensor_control_server_new                (HyScanSonarBox              *params);
 
 /**
  *
@@ -104,10 +137,10 @@ GType                  hyscan_sensor_control_server_get_type           (void);
  *
  */
 HYSCAN_API
-void                   hyscan_sensor_control_server_send_data          (HyScanSensorControlServer   *server,
-                                                                        const gchar                 *name,
-                                                                        HyScanDataType               type,
-                                                                        HyScanDataWriterData        *data);
+void                           hyscan_sensor_control_server_send_data          (HyScanSensorControlServer   *server,
+                                                                                const gchar                 *name,
+                                                                                HyScanDataType               type,
+                                                                                HyScanDataWriterData        *data);
 
 G_END_DECLS
 

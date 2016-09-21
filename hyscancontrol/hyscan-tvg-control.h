@@ -63,18 +63,22 @@
  * #hyscan_tvg_control_set_enable. Если система ВАРУ выключена, коэффициент усиления сигнала не изменяется
  * во времени и устанавливается минимально возможным.
  *
- * При изменении параметров ВАРУ, класс посылает сигнал "gain", в котором передаёт новые
+ * При изменении параметров ВАРУ, класс посылает сигнал "gains", в котором передаёт новые
  * коэффициенты усиления. Прототип обработчика сигнала:
  *
  * \code
  *
- * void    gain_cb    (HyScanTVGControl    *control,
- *                     HyScanSourceType     source,
- *                     HyScanDataWriterTVG *tvg);
+ * void    gains_cb    (HyScanTVGControl    *control,
+ *                      HyScanSourceType     source,
+ *                      HyScanDataWriterTVG *tvg,
+ *                      gpointer             user_data);
  *
  * \endcode
  *
- * Где source - идентификатор источника данных.
+ * Где:
+ *
+ * - source - идентификатор источника данных;
+ * - tvg - параметры системы ВАРУ.
  *
  * Класс HyScanTVGControl поддерживает работу в многопоточном режиме.
  *

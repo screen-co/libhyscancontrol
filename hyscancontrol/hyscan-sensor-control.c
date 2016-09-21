@@ -14,8 +14,6 @@
 #include "hyscan-control-marshallers.h"
 #include <string.h>
 
-#define HYSCAN_SENSOR_CONTROL_MAX_CHANNELS     5
-
 enum
 {
   PROP_O,
@@ -42,12 +40,11 @@ typedef struct
 struct _HyScanSensorControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
-  gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
   GHashTable                  *ports_by_id;                    /* Список портов для подключения датчиков. */
   GHashTable                  *ports_by_name;                  /* Список портов для подключения датчиков. */
 
-  GRWLock                      lock;                           /* Блокировка. */
+  GMutex                       lock;                           /* Блокировка. */
 };
 
 static void          hyscan_sensor_control_set_property        (GObject                   *object,
@@ -86,9 +83,9 @@ hyscan_sensor_control_class_init (HyScanSensorControlClass *klass)
 
   hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA] =
     g_signal_new ("sensor-data", HYSCAN_TYPE_SENSOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__STRING_POINTER,
+                  g_cclosure_user_marshal_VOID__STRING_INT_INT_POINTER,
                   G_TYPE_NONE,
-                  2, G_TYPE_STRING, G_TYPE_POINTER);
+                  4, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_POINTER);
 }
 
 static void
@@ -133,7 +130,7 @@ hyscan_sensor_control_object_constructed (GObject *object)
 
   G_OBJECT_CLASS (hyscan_sensor_control_parent_class)->constructed (object);
 
-  g_rw_lock_init (&priv->lock);
+  g_mutex_init (&priv->lock);
 
   /* Список доступных портов. */
   priv->ports_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
@@ -150,25 +147,21 @@ hyscan_sensor_control_object_constructed (GObject *object)
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
     {
-      g_clear_object (&priv->sonar);
       g_warning ("HyScanControl: unknown sonar schema id");
       return;
     }
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     {
-      g_clear_object (&priv->sonar);
       g_warning ("HyScanControl: sonar schema id mismatch");
       return;
     }
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
     {
-      g_clear_object (&priv->sonar);
       g_warning ("HyScanControl: unknown sonar schema version");
       return;
     }
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     {
-      g_clear_object (&priv->sonar);
       g_warning ("HyScanControl: sonar schema version mismatch");
       return;
     }
@@ -263,10 +256,8 @@ hyscan_sensor_control_object_constructed (GObject *object)
         }
 
       /* Обработчик данных от гидролокатора. */
-      priv->signal_id = g_signal_connect_swapped (priv->sonar,
-                                                  "data",
-                                                  G_CALLBACK (hyscan_sensor_control_data_receiver),
-                                                  control);
+      g_signal_connect_swapped (priv->sonar, "data",
+                                G_CALLBACK (hyscan_sensor_control_data_receiver), control);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -278,15 +269,14 @@ hyscan_sensor_control_object_finalize (GObject *object)
   HyScanSensorControl *control = HYSCAN_SENSOR_CONTROL (object);
   HyScanSensorControlPrivate *priv = control->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->sonar, priv->signal_id);
+  g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->ports_by_id);
   g_hash_table_unref (priv->ports_by_name);
 
-  g_rw_lock_clear (&priv->lock);
+  g_mutex_clear (&priv->lock);
 
   G_OBJECT_CLASS (hyscan_sensor_control_parent_class)->finalize (object);
 }
@@ -299,15 +289,15 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
   HyScanSensorControlPort *port;
   HyScanDataWriterData data;
 
+  g_mutex_lock (&control->priv->lock);
+
   /* Ищем источник данных. */
   port = g_hash_table_lookup (control->priv->ports_by_id, GINT_TO_POINTER (message->id));
   if (port == NULL)
-    return;
+    goto exit;
 
   /* Коррекция времени. */
-  g_rw_lock_reader_lock (&control->priv->lock);
   data.time = message->time + port->time_offset;
-  g_rw_lock_reader_unlock (&control->priv->lock);
 
   /* Обработка данных NMEA 0183. */
   if (port->protocol == HYSCAN_SENSOR_PROTOCOL_NMEA_0183)
@@ -316,7 +306,7 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
       guint i;
 
       if (message->type != HYSCAN_DATA_STRING)
-        return;
+        goto exit;
 
       /* Запись NMEA строк в разные каналы по типу строки. */
       nmeas = g_strsplit (message->data, "\r\n", -1);
@@ -351,11 +341,15 @@ hyscan_sensor_control_data_receiver (HyScanSensorControl *control,
                                           port->channel, &data);
     }
   else
-    return;
+    goto exit;
 
+  data.time = message->time;
   data.data = message->data;
   data.size = message->size;
-  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, port->name, &data);
+  g_signal_emit (control, hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA], 0, port->name, port->protocol, message->type, &data);
+
+exit:
+  g_mutex_unlock (&control->priv->lock);
 }
 
 /* Функция проверяет контрольную сумму NMEA сообщения. */
@@ -450,7 +444,7 @@ hyscan_sensor_control_list_uart_devices (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-device");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-devices");
 }
 
 /* Функция возвращает список допустимых режимов обмена данными через UART устройство. */
@@ -462,7 +456,7 @@ hyscan_sensor_control_list_uart_modes (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-mode");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-modes");
 }
 
 /* Функция возвращает список допустимых IP адресов для портов типа IP. */
@@ -474,7 +468,7 @@ hyscan_sensor_control_list_ip_addresses (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/ip-address");
+  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/ip-addresses");
 }
 
 /* Функция возвращает тип порта. */
@@ -529,7 +523,7 @@ hyscan_sensor_control_get_port_status (HyScanSensorControl *control,
   return port_status;
 }
 
-/* Функция устанавливает номер канала для порта типа VIRTUAL. */
+/* Функция устанавливает режим работы порта типа VIRTUAL. */
 gboolean
 hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
                                               const gchar             *name,
@@ -538,6 +532,10 @@ hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
 {
   HyScanSensorControlPrivate *priv;
   HyScanSensorControlPort *port;
+
+  gchar *param_names[3];
+  GVariant *param_values[3];
+  gboolean status;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), FALSE);
 
@@ -559,12 +557,34 @@ hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
   if (port->type != HYSCAN_SENSOR_PORT_VIRTUAL)
     return FALSE;
 
-  g_rw_lock_writer_lock (&priv->lock);
+  g_mutex_lock (&priv->lock);
 
-  port->channel = channel;
-  port->time_offset = time_offset;
+  param_names[0] = g_strdup_printf ("%s/channel", port->path);
+  param_names[1] = g_strdup_printf ("%s/time-offset", port->path);
+  param_names[2] = NULL;
 
-  g_rw_lock_writer_unlock (&priv->lock);
+  param_values[0] = g_variant_new_int64 (channel);
+  param_values[1] = g_variant_new_int64 (time_offset);
+  param_values[2] = NULL;
+
+  status = hyscan_sonar_set (priv->sonar, (const gchar **)param_names, param_values);
+
+  if (!status)
+    {
+      g_variant_unref (param_values[0]);
+      g_variant_unref (param_values[1]);
+    }
+
+  g_free (param_names[0]);
+  g_free (param_names[1]);
+
+  if (status)
+    {
+      port->channel = channel;
+      port->time_offset = time_offset;
+    }
+
+  g_mutex_unlock (&priv->lock);
 
   return TRUE;
 }
@@ -576,14 +596,14 @@ hyscan_sensor_control_set_uart_port_param (HyScanSensorControl      *control,
                                            guint                     channel,
                                            gint64                    time_offset,
                                            HyScanSensorProtocolType  protocol,
-                                           gint64                    uart_device,
-                                           gint64                    uart_mode)
+                                           guint                     uart_device,
+                                           guint                     uart_mode)
 {
   HyScanSensorControlPrivate *priv;
   HyScanSensorControlPort *port;
 
-  gchar *param_names[4];
-  GVariant *param_values[4];
+  gchar *param_names[6];
+  GVariant *param_values[6];
   gboolean status;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), FALSE);
@@ -609,15 +629,21 @@ hyscan_sensor_control_set_uart_port_param (HyScanSensorControl      *control,
   if (port->type != HYSCAN_SENSOR_PORT_UART)
     return FALSE;
 
+  g_mutex_lock (&priv->lock);
+
   param_names[0] = g_strdup_printf ("%s/protocol", port->path);
   param_names[1] = g_strdup_printf ("%s/uart-device", port->path);
   param_names[2] = g_strdup_printf ("%s/uart-mode", port->path);
-  param_names[3] = NULL;
+  param_names[3] = g_strdup_printf ("%s/channel", port->path);
+  param_names[4] = g_strdup_printf ("%s/time-offset", port->path);
+  param_names[5] = NULL;
 
   param_values[0] = g_variant_new_int64 (protocol);
   param_values[1] = g_variant_new_int64 (uart_device);
   param_values[2] = g_variant_new_int64 (uart_mode);
-  param_values[3] = NULL;
+  param_values[3] = g_variant_new_int64 (channel);
+  param_values[4] = g_variant_new_int64 (time_offset);
+  param_values[5] = NULL;
 
   status = hyscan_sonar_set (priv->sonar, (const gchar **)param_names, param_values);
 
@@ -626,22 +652,24 @@ hyscan_sensor_control_set_uart_port_param (HyScanSensorControl      *control,
       g_variant_unref (param_values[0]);
       g_variant_unref (param_values[1]);
       g_variant_unref (param_values[2]);
+      g_variant_unref (param_values[3]);
+      g_variant_unref (param_values[4]);
     }
 
   g_free (param_names[0]);
   g_free (param_names[1]);
   g_free (param_names[2]);
+  g_free (param_names[3]);
+  g_free (param_names[4]);
 
   if (status)
     {
-      g_rw_lock_writer_lock (&priv->lock);
-
       port->channel = channel;
       port->protocol = protocol;
       port->time_offset = time_offset;
-
-      g_rw_lock_writer_unlock (&priv->lock);
     }
+
+  g_mutex_unlock (&priv->lock);
 
   return status;
 }
@@ -653,14 +681,14 @@ hyscan_sensor_control_set_udp_ip_port_param (HyScanSensorControl      *control,
                                              guint                     channel,
                                              gint64                    time_offset,
                                              HyScanSensorProtocolType  protocol,
-                                             gint64                    ip_address,
+                                             guint                     ip_address,
                                              guint16                   udp_port)
 {
   HyScanSensorControlPrivate *priv;
   HyScanSensorControlPort *port;
 
-  gchar *param_names[4];
-  GVariant *param_values[4];
+  gchar *param_names[6];
+  GVariant *param_values[6];
   gboolean status;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), FALSE);
@@ -686,15 +714,21 @@ hyscan_sensor_control_set_udp_ip_port_param (HyScanSensorControl      *control,
   if (port->type != HYSCAN_SENSOR_PORT_UDP_IP)
     return FALSE;
 
+  g_mutex_lock (&priv->lock);
+
   param_names[0] = g_strdup_printf ("%s/protocol", port->path);
   param_names[1] = g_strdup_printf ("%s/ip-address", port->path);
   param_names[2] = g_strdup_printf ("%s/udp-port", port->path);
-  param_names[3] = NULL;
+  param_names[3] = g_strdup_printf ("%s/channel", port->path);
+  param_names[4] = g_strdup_printf ("%s/time-offset", port->path);
+  param_names[5] = NULL;
 
   param_values[0] = g_variant_new_int64 (protocol);
   param_values[1] = g_variant_new_int64 (ip_address);
   param_values[2] = g_variant_new_int64 (udp_port);
-  param_values[3] = NULL;
+  param_values[3] = g_variant_new_int64 (channel);
+  param_values[4] = g_variant_new_int64 (time_offset);
+  param_values[5] = NULL;
 
   status = hyscan_sonar_set (priv->sonar, (const gchar **)param_names, param_values);
 
@@ -703,53 +737,92 @@ hyscan_sensor_control_set_udp_ip_port_param (HyScanSensorControl      *control,
       g_variant_unref (param_values[0]);
       g_variant_unref (param_values[1]);
       g_variant_unref (param_values[2]);
+      g_variant_unref (param_values[3]);
+      g_variant_unref (param_values[4]);
     }
 
   g_free (param_names[0]);
   g_free (param_names[1]);
   g_free (param_names[2]);
+  g_free (param_names[3]);
+  g_free (param_names[4]);
 
   if (status)
     {
-      g_rw_lock_writer_lock (&priv->lock);
-
       port->channel = channel;
       port->protocol = protocol;
       port->time_offset = time_offset;
-
-      g_rw_lock_writer_unlock (&priv->lock);
     }
+
+  g_mutex_unlock (&priv->lock);
 
   return status;
 }
 
 /* Функция устанавливает информацию о местоположении приёмных антенн. */
 gboolean
-hyscan_sensor_control_set_position (HyScanSensorControl *control,
-                                    const gchar         *name,
-                                    gdouble              x,
-                                    gdouble              y,
-                                    gdouble              z,
-                                    gdouble              psi,
-                                    gdouble              gamma,
-                                    gdouble              theta)
+hyscan_sensor_control_set_position (HyScanSensorControl   *control,
+                                    const gchar           *name,
+                                    HyScanAntennaPosition *position)
 {
+  HyScanSensorControlPrivate *priv;
   HyScanSensorControlPort *port;
-  HyScanAntennaPosition position;
+
+  gchar *param_names[7];
+  GVariant *param_values[7];
+  gboolean status;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), FALSE);
 
-  port = g_hash_table_lookup (control->priv->ports_by_name, name);
+  priv = control->priv;
+
+  port = g_hash_table_lookup (priv->ports_by_name, name);
   if (port == NULL)
     return FALSE;
 
-  position.x = x;
-  position.y = y;
-  position.z = z;
-  position.psi = psi;
-  position.gamma = gamma;
-  position.theta = theta;
-  return hyscan_data_writer_sensor_set_position (HYSCAN_DATA_WRITER (control), port->name, &position);
+  g_mutex_lock (&priv->lock);
+
+  param_names[0] = g_strdup_printf ("%s/position/x", port->path);
+  param_names[1] = g_strdup_printf ("%s/position/y", port->path);
+  param_names[2] = g_strdup_printf ("%s/position/z", port->path);
+  param_names[3] = g_strdup_printf ("%s/position/psi", port->path);
+  param_names[4] = g_strdup_printf ("%s/position/gamma", port->path);
+  param_names[5] = g_strdup_printf ("%s/position/theta", port->path);
+  param_names[6] = NULL;
+
+  param_values[0] = g_variant_new_double (position->x);
+  param_values[1] = g_variant_new_double (position->y);
+  param_values[2] = g_variant_new_double (position->z);
+  param_values[3] = g_variant_new_double (position->psi);
+  param_values[4] = g_variant_new_double (position->gamma);
+  param_values[5] = g_variant_new_double (position->theta);
+  param_values[6] = NULL;
+
+  status = hyscan_sonar_set (priv->sonar, (const gchar **)param_names, param_values);
+
+  if (!status)
+    {
+      g_variant_unref (param_values[0]);
+      g_variant_unref (param_values[1]);
+      g_variant_unref (param_values[2]);
+      g_variant_unref (param_values[3]);
+      g_variant_unref (param_values[4]);
+      g_variant_unref (param_values[5]);
+    }
+
+  g_free (param_names[0]);
+  g_free (param_names[1]);
+  g_free (param_names[2]);
+  g_free (param_names[3]);
+  g_free (param_names[4]);
+  g_free (param_names[5]);
+
+  if (status)
+    status = hyscan_data_writer_sensor_set_position (HYSCAN_DATA_WRITER (control), port->name, position);
+
+  g_mutex_unlock (&priv->lock);
+
+  return status;
 }
 
 /* Функция включает или выключает приём данных на указанном порту. */

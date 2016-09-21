@@ -29,7 +29,7 @@ typedef enum
  *
  * Функция возвращает тип гидролокатора.
  *
- * \param sonar указатель на интерфейс \link HyScanSonar e\ndlink.
+ * \param sonar указатель на интерфейс \link HyScanSonar \endlink.
  *
  * \return Тип гидролокатора - \link HyScanSonarType \endlink.
  *

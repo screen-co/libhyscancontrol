@@ -24,6 +24,7 @@ enum
 {
   SIGNAL_SONAR_SET_SYNC_TYPE,
   SIGNAL_SONAR_ENABLE_RAW_DATA,
+  SIGNAL_SONAR_SET_POSITION,
   SIGNAL_SONAR_SET_RECEIVE_TIME,
   SIGNAL_SONAR_START,
   SIGNAL_SONAR_STOP,
@@ -51,8 +52,6 @@ struct _HyScanSonarControlServerCtl
 struct _HyScanSonarControlServerPrivate
 {
   HyScanDataBox                           *params;                     /* Параметры гидролокатора. */
-  gulong                                   set_signal_id;              /* Идентификатор обработчика сигнала set. */
-  gulong                                   changed_signal_id;          /* Идентификатор обработчика сигнала changed. */
 
   GHashTable                              *operations;                 /* Таблица возможных запросов. */
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
@@ -90,6 +89,10 @@ static gboolean    hyscan_sonar_control_server_enable_raw_data         (HyScanSo
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
                                                                         GVariant                   **values);
+static gboolean    hyscan_sonar_control_server_set_position            (HyScanSonarControlServer    *server,
+                                                                        HyScanSonarControlServerCtl *ctl,
+                                                                        const gchar *const          *names,
+                                                                        GVariant                   **values);
 static gboolean    hyscan_sonar_control_server_set_receive_time        (HyScanSonarControlServer    *server,
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
@@ -105,7 +108,7 @@ static gboolean    hyscan_sonar_control_server_ping                    (HyScanSo
 
 static guint       hyscan_sonar_control_server_signals[SIGNAL_LAST] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarControlServer, hyscan_sonar_control_server, HYSCAN_TYPE_TVG_CONTROL_SERVER)
+G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarControlServer, hyscan_sonar_control_server, G_TYPE_OBJECT)
 
 static void
 hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
@@ -135,6 +138,13 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
                   G_TYPE_BOOLEAN,
                   1, G_TYPE_BOOLEAN);
 
+  hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_POSITION] =
+    g_signal_new ("sonar-set-position", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
+                  hyscan_control_boolean_accumulator, NULL,
+                  g_cclosure_user_marshal_BOOLEAN__INT_POINTER,
+                  G_TYPE_BOOLEAN,
+                  2, G_TYPE_INT, G_TYPE_POINTER);
+
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_RECEIVE_TIME] =
     g_signal_new ("sonar-set-receive-time", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
@@ -145,9 +155,9 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_START] =
     g_signal_new ("sonar-start", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_STRING,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_STRING_INT,
                   G_TYPE_BOOLEAN,
-                  2, G_TYPE_STRING, G_TYPE_STRING);
+                  3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_STOP] =
     g_signal_new ("sonar-stop", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
@@ -184,8 +194,7 @@ hyscan_sonar_control_server_set_property (GObject      *object,
   switch (prop_id)
     {
     case PROP_PARAMS:
-      G_OBJECT_CLASS (hyscan_sonar_control_server_parent_class)->set_property (object, prop_id, value, pspec);
-      priv->params = g_value_dup_object (value);
+      priv->params = g_value_get_object (value);
       break;
 
     default:
@@ -207,8 +216,6 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   gint64 id;
   gint i, j;
 
-  G_OBJECT_CLASS (hyscan_sonar_control_server_parent_class)->constructed (object);
-
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->channels = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -220,25 +227,13 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
 
   if (hyscan_data_box_get_double (priv->params, "/info/alive-timeout", &priv->alive_timeout))
     {
@@ -333,6 +328,31 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                 }
             }
 
+          /* Команда - hyscan_sonar_control_set_position. */
+          operation = g_new0 (HyScanSonarControlServerCtl, 1);
+          operation->source = source;
+          operation->name = hyscan_control_get_source_name (source);
+          operation->func = hyscan_sonar_control_server_set_position;
+          g_hash_table_insert (priv->operations, operation, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/x", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/y", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/z", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/psi", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/gamma", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
+          operation_path = g_strdup_printf ("/sources/%s/position/theta", operation->name);
+          g_hash_table_insert (priv->paths, operation_path, operation);
+
           /* Команда - hyscan_sonar_control_set_receive_time. */
           operation = g_new0 (HyScanSonarControlServerCtl, 1);
           operation->source = source;
@@ -373,9 +393,14 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
 
       operation_path = g_strdup ("/control/enable");
       g_hash_table_insert (priv->paths, operation_path, operation);
+
       operation_path = g_strdup ("/control/project-name");
       g_hash_table_insert (priv->paths, operation_path, operation);
+
       operation_path = g_strdup ("/control/track-name");
+      g_hash_table_insert (priv->paths, operation_path, operation);
+
+      operation_path = g_strdup ("/control/track-type");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
       /* Команда - hyscan_sonar_control_ping. */
@@ -388,16 +413,12 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       operation_path = g_strdup ("/sync/ping");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
-      priv->set_signal_id = g_signal_connect (priv->params,
-                                              "set",
-                                              G_CALLBACK (hyscan_sonar_control_server_set_cb),
-                                              server);
+      g_signal_connect (priv->params, "set",
+                        G_CALLBACK (hyscan_sonar_control_server_set_cb), server);
     }
 
-  priv->changed_signal_id = g_signal_connect_swapped (priv->params,
-                                                      "changed",
-                                                      G_CALLBACK (g_timer_start),
-                                                      priv->alive_timer);
+  g_signal_connect_swapped (priv->params, "changed",
+                            G_CALLBACK (g_timer_start), priv->alive_timer);
 
   hyscan_data_schema_free_nodes (params);
 }
@@ -408,6 +429,9 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   HyScanSonarControlServer *server = HYSCAN_SONAR_CONTROL_SERVER (object);
   HyScanSonarControlServerPrivate *priv = server->priv;
 
+  g_signal_handlers_disconnect_by_data (priv->params, server);
+  g_signal_handlers_disconnect_by_data (priv->params, priv->alive_timer);
+
   if (priv->guard != NULL)
     {
       g_atomic_int_set (&priv->shutdown, 1);
@@ -415,18 +439,10 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
       g_timer_destroy (priv->alive_timer);
     }
 
-  if (priv->set_signal_id > 0)
-    g_signal_handler_disconnect (priv->params, priv->set_signal_id);
-
-  if (priv->changed_signal_id > 0)
-    g_signal_handler_disconnect (priv->params, priv->changed_signal_id);
-
   g_hash_table_unref (priv->paths);
   g_hash_table_unref (priv->operations);
   g_hash_table_unref (priv->channels);
   g_hash_table_unref (priv->noises);
-
-  g_clear_object (&priv->params);
 
   G_OBJECT_CLASS (hyscan_sonar_control_server_parent_class)->finalize (object);
 }
@@ -547,6 +563,72 @@ hyscan_sonar_control_server_enable_raw_data (HyScanSonarControlServer     *serve
   return TRUE;
 }
 
+/* Команда - hyscan_sonar_control_set_position. */
+static gboolean
+hyscan_sonar_control_server_set_position (HyScanSonarControlServer     *server,
+                                          HyScanSonarControlServerCtl  *ctl,
+                                          const gchar *const           *names,
+                                          GVariant                    **values)
+{
+  gchar *name = NULL;
+  gboolean cancel = FALSE;
+
+  gdouble value;
+  HyScanAntennaPosition position;
+
+  name = g_strdup_printf ("/sources/%s/position/x", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.x = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sources/%s/position/y", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.y = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sources/%s/position/z", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.z = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sources/%s/position/psi", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.psi = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sources/%s/position/gamma", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.gamma = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  name = g_strdup_printf ("/sources/%s/position/theta", ctl->name);
+  if (hyscan_control_find_double_param (name, names, values, &value))
+    position.theta = value;
+  else
+    cancel = TRUE;
+  g_free (name);
+
+  if (cancel)
+    return FALSE;
+
+  g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_POSITION], 0,
+                 ctl->source, &position, &cancel);
+  if (cancel)
+    return FALSE;
+
+  return TRUE;
+}
+
 /* Команда - hyscan_sonar_control_set_receive_time. */
 static gboolean
 hyscan_sonar_control_server_set_receive_time (HyScanSonarControlServer     *server,
@@ -584,8 +666,11 @@ hyscan_sonar_control_server_start_stop (HyScanSonarControlServer     *server,
 {
   gboolean cancel;
   gboolean enable;
+
+  gint64 value64;
   const gchar *project_name;
   const gchar *track_name;
+  HyScanTrackType track_type = 0;
 
   if (!hyscan_control_find_boolean_param ("/control/enable", names, values, &enable))
     return FALSE;
@@ -594,9 +679,13 @@ hyscan_sonar_control_server_start_stop (HyScanSonarControlServer     *server,
     {
       project_name = hyscan_control_find_string_param ("/control/project-name", names, values);
       track_name = hyscan_control_find_string_param ("/control/track-name", names, values);
+      if (!hyscan_control_find_integer_param ("/control/track-type", names, values, &value64))
+        return FALSE;
+
+      track_type = value64;
 
       g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_START], 0,
-                     project_name, track_name, &cancel);
+                     project_name, track_name, track_type, &cancel);
     }
   else
     {
@@ -628,6 +717,13 @@ hyscan_sonar_control_server_ping (HyScanSonarControlServer     *server,
     return FALSE;
 
   return TRUE;
+}
+
+/* Функция создаёт новый объект HyScanSonarControlServer. */
+HyScanSonarControlServer *
+hyscan_sonar_control_server_new (HyScanSonarBox *params)
+{
+  return g_object_new (HYSCAN_TYPE_SONAR_CONTROL_SERVER, "params", params, NULL);
 }
 
 /* Функция передаёт "сырые" данные от гидролокатора. */

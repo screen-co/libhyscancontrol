@@ -33,9 +33,8 @@ static void    hyscan_ssse_control_server_set_property         (GObject         
                                                                 const GValue          *value,
                                                                 GParamSpec            *pspec);
 static void    hyscan_ssse_control_server_object_constructed   (GObject               *object);
-static void    hyscan_ssse_control_server_object_finalize      (GObject               *object);
 
-G_DEFINE_TYPE_WITH_PRIVATE (HyScanSSSEControlServer, hyscan_ssse_control_server, HYSCAN_TYPE_SONAR_CONTROL_SERVER)
+G_DEFINE_TYPE_WITH_PRIVATE (HyScanSSSEControlServer, hyscan_ssse_control_server, G_TYPE_OBJECT)
 
 static void
 hyscan_ssse_control_server_class_init (HyScanSSSEControlServerClass *klass)
@@ -45,7 +44,6 @@ hyscan_ssse_control_server_class_init (HyScanSSSEControlServerClass *klass)
   object_class->set_property = hyscan_ssse_control_server_set_property;
 
   object_class->constructed = hyscan_ssse_control_server_object_constructed;
-  object_class->finalize = hyscan_ssse_control_server_object_finalize;
 
   g_object_class_install_property (object_class, PROP_PARAMS,
     g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
@@ -70,8 +68,7 @@ hyscan_ssse_control_server_set_property (GObject      *object,
   switch (prop_id)
     {
     case PROP_PARAMS:
-      G_OBJECT_CLASS (hyscan_ssse_control_server_parent_class)->set_property (object, prop_id, value, pspec);
-      priv->params = g_value_dup_object (value);
+      priv->params = g_value_get_object (value);
       break;
 
     default:
@@ -91,33 +88,19 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   gint64 version;
   gint64 id;
 
-  G_OBJECT_CLASS (hyscan_ssse_control_server_parent_class)->constructed (object);
-
   /* Обязательно должны быть переданы параметры гидролокатора. */
   if (priv->params == NULL)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->params);
-      return;
-    }
+    return;
 
   /* Идентификаторы источников акустических данных. */
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
@@ -156,25 +139,11 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   g_free (param_name);
 }
 
-static void
-hyscan_ssse_control_server_object_finalize (GObject *object)
-{
-  HyScanSSSEControlServer *server = HYSCAN_SSSE_CONTROL_SERVER (object);
-  HyScanSSSEControlServerPrivate *priv = server->priv;
-
-  g_clear_object (&priv->params);
-
-  G_OBJECT_CLASS (hyscan_ssse_control_server_parent_class)->finalize (object);
-}
-
 /* Функция создаёт новый объект HyScanSSSEControlServer. */
 HyScanSSSEControlServer *
 hyscan_ssse_control_server_new (HyScanSonarBox *params)
 {
-  return g_object_new (HYSCAN_TYPE_SSSE_CONTROL_SERVER,
-                       "params",
-                       params,
-                       NULL);
+  return g_object_new (HYSCAN_TYPE_SSSE_CONTROL_SERVER, "params", params, NULL);
 }
 
 /* Функция передаёт акустические данные от гидролокатора */

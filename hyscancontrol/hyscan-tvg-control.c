@@ -13,7 +13,7 @@
 
 enum
 {
-  SIGNAL_GAIN,
+  SIGNAL_GAINS,
   SIGNAL_LAST
 };
 
@@ -33,7 +33,6 @@ typedef struct
 struct _HyScanTVGControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
-  gulong                       signal_id;                      /* Идентификатор обработчика сигнала data. */
 
   GHashTable                  *tvgs_by_id;                     /* Список систем ВАРУ. */
   GHashTable                  *tvgs_by_source;                 /* Список систем ВАРУ. */
@@ -69,8 +68,8 @@ hyscan_tvg_control_class_init (HyScanTVGControlClass *klass)
     g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
-  hyscan_tvg_control_signals[SIGNAL_GAIN] =
-    g_signal_new ("gain", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+  hyscan_tvg_control_signals[SIGNAL_GAINS] =
+    g_signal_new ("gains", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
                   g_cclosure_user_marshal_VOID__INT_POINTER,
                   G_TYPE_NONE,
                   2, G_TYPE_INT, G_TYPE_POINTER);
@@ -130,25 +129,13 @@ hyscan_tvg_control_object_constructed (GObject *object)
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
-    {
-      g_clear_object (&priv->sonar);
-      return;
-    }
+    return;
 
   /* Параметры гидролокатора. */
   params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
@@ -224,10 +211,8 @@ hyscan_tvg_control_object_constructed (GObject *object)
         }
 
       /* Обработчик параметров системы ВАРУ от гидролокатора. */
-      priv->signal_id = g_signal_connect_swapped (priv->sonar,
-                                                  "data",
-                                                  G_CALLBACK (hyscan_tvg_control_tvg_receiver),
-                                                  control);
+      g_signal_connect_swapped (priv->sonar, "data",
+                                G_CALLBACK (hyscan_tvg_control_tvg_receiver), control);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -239,8 +224,7 @@ hyscan_tvg_control_object_finalize (GObject *object)
   HyScanTVGControl *control = HYSCAN_TVG_CONTROL (object);
   HyScanTVGControlPrivate *priv = control->priv;
 
-  if (priv->signal_id > 0)
-    g_signal_handler_disconnect (priv->sonar, priv->signal_id);
+  g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
   g_clear_object (&priv->sonar);
 
@@ -276,7 +260,7 @@ hyscan_tvg_control_tvg_receiver (HyScanTVGControl   *control,
 
   hyscan_data_writer_raw_add_tvg (HYSCAN_DATA_WRITER (control), tvg->source, &gain);
 
-  g_signal_emit (control, hyscan_tvg_control_signals[SIGNAL_GAIN], 0, tvg->source, &gain);
+  g_signal_emit (control, hyscan_tvg_control_signals[SIGNAL_GAINS], 0, tvg->source, &gain);
 }
 
 /* Функция освобождает память, занятую структурой HyScanTVGControlTVG. */
