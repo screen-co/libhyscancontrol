@@ -1,21 +1,24 @@
 
-#include "hyscan-sonar-schema.h"
 #include "hyscan-ssse-control.h"
+#include "hyscan-ssse-proxy.h"
 #include "hyscan-sensor-control-server.h"
 #include "hyscan-generator-control-server.h"
 #include "hyscan-tvg-control-server.h"
 #include "hyscan-sonar-control-server.h"
 #include "hyscan-ssse-control-server.h"
-#include "hyscan-ssse-proxy.h"
+#include "hyscan-control-common.h"
+#include "hyscan-sonar-schema.h"
 
 #include <libxml/parser.h>
 #include <string.h>
 #include <math.h>
 
-#define N_TESTS                        10
+#define N_TESTS                        32
 
-#define SENSOR_N_CHANNELS              5
+#define SONAR_N_SOURCES                3
+
 #define SENSOR_N_PORTS                 4
+#define SENSOR_N_CHANNELS              5
 #define SENSOR_N_UART_DEVICES          SENSOR_N_PORTS
 #define SENSOR_N_UART_MODES            8
 #define SENSOR_N_IP_ADDRESSES          4
@@ -125,26 +128,42 @@ typedef struct
   gint64                              *counter;
 } ServerInfo;
 
-gint64                 counter = 0;
+gint64                                 counter = 0;
 
-guint                  uart_device_ids[SENSOR_N_UART_DEVICES+1];
-gchar                 *uart_device_names[SENSOR_N_UART_DEVICES+1];
-guint                  uart_mode_ids[SENSOR_N_UART_MODES+1];
-gchar                 *uart_mode_names[SENSOR_N_UART_MODES+1];
-guint                  ip_address_ids[SENSOR_N_IP_ADDRESSES+1];
-gchar                 *ip_address_names[SENSOR_N_IP_ADDRESSES+1];
+guint                                  uart_device_ids[SENSOR_N_UART_DEVICES+1];
+gchar                                 *uart_device_names[SENSOR_N_UART_DEVICES+1];
+guint                                  uart_mode_ids[SENSOR_N_UART_MODES+1];
+gchar                                 *uart_mode_names[SENSOR_N_UART_MODES+1];
+guint                                  ip_address_ids[SENSOR_N_IP_ADDRESSES+1];
+gchar                                 *ip_address_names[SENSOR_N_IP_ADDRESSES+1];
 
-GHashTable            *ports;
+GHashTable                            *ports;
 
-SourceInfo             starboard;
-SourceInfo             port;
-SourceInfo             echosounder;
+SourceInfo                             starboard;
+SourceInfo                             port;
+SourceInfo                             echosounder;
 
-SonarInfo              sonar_info;
+SonarInfo                              sonar_info;
+
+/* Функция возвращает тип источника данных по его индексу. */
+HyScanSourceType
+select_source_by_index (guint index)
+{
+  if (index == 0)
+    return HYSCAN_SOURCE_SIDE_SCAN_STARBOARD;
+
+  if (index == 1)
+    return HYSCAN_SOURCE_SIDE_SCAN_PORT;
+
+  if (index == 2)
+    return HYSCAN_SOURCE_ECHOSOUNDER;
+
+  return HYSCAN_SOURCE_INVALID;
+}
 
 /* Функция возвращает информацию об источнике данных по его типу. */
 SourceInfo *
-select_source (HyScanSourceType type)
+source_info (HyScanSourceType type)
 {
   if (type == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
     return &starboard;
@@ -154,21 +173,6 @@ select_source (HyScanSourceType type)
 
   if (type == HYSCAN_SOURCE_ECHOSOUNDER)
     return &echosounder;
-
-  return NULL;
-}
-
-const gchar *
-source_name (HyScanSourceType type)
-{
-  if (type == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
-    return "starboard";
-
-  if (type == HYSCAN_SOURCE_SIDE_SCAN_PORT)
-    return "port";
-
-  if (type == HYSCAN_SOURCE_ECHOSOUNDER)
-    return "echosounder";
 
   return NULL;
 }
@@ -310,7 +314,7 @@ generator_set_preset_cb (ServerInfo       *server,
                          HyScanSourceType  source,
                          gint              preset)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
   guint i;
 
   if (info == NULL)
@@ -337,7 +341,7 @@ generator_set_auto_cb (ServerInfo                *server,
                        HyScanSourceType           source,
                        HyScanGeneratorSignalType  signal)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -357,7 +361,7 @@ generator_set_simple_cb (ServerInfo                *server,
                          HyScanGeneratorSignalType  signal,
                          gdouble                    power)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -379,7 +383,7 @@ generator_set_extended_cb (ServerInfo                *server,
                            gdouble                    duration,
                            gdouble                    power)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -400,7 +404,7 @@ generator_set_enable_cb (ServerInfo       *server,
                          HyScanSourceType  source,
                          gboolean          enable)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -419,7 +423,7 @@ tvg_set_auto_cb (ServerInfo       *server,
                  gdouble           level,
                  gdouble           sensitivity)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -439,7 +443,7 @@ tvg_set_constant_cb (ServerInfo       *server,
                      HyScanSourceType  source,
                      gdouble           gain)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -459,7 +463,7 @@ tvg_set_linear_db_cb (ServerInfo       *server,
                       gdouble           gain0,
                       gdouble           step)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -481,7 +485,7 @@ tvg_set_logarithmic_cb (ServerInfo       *server,
                         gdouble           beta,
                         gdouble           alpha)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -502,7 +506,7 @@ tvg_set_enable_cb (ServerInfo       *server,
                    HyScanSourceType  source,
                    gboolean          enable)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -542,7 +546,7 @@ sonar_set_position_cb (ServerInfo            *server,
                        HyScanSourceType       source,
                        HyScanAntennaPosition *position)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -560,7 +564,7 @@ sonar_set_receive_time_cb (ServerInfo       *server,
                            HyScanSourceType  source,
                            gdouble           receive_time)
 {
-  SourceInfo *info = select_source (source);
+  SourceInfo *info = source_info (source);
 
   if (info == NULL)
     return FALSE;
@@ -718,7 +722,7 @@ check_sensor_control (HyScanSensorControl *control)
           (port->position.gamma != position.gamma) ||
           (port->position.theta != position.theta))
         {
-          g_error ("%s.sensor: can't set position", names[i]);
+          g_error ("sensor.%s: can't set position", names[i]);
         }
 
       /* Выключаем порт. */
@@ -727,7 +731,7 @@ check_sensor_control (HyScanSensorControl *control)
       if (!status || (prev_counter + 1 != counter) ||
           (port->enable != FALSE))
         {
-          g_error ("%s.sensor: can't disable", names[i]);
+          g_error ("sensor.%s: can't disable", names[i]);
         }
 
       /* Настраиваем порт типа HYSCAN_SENSOR_PORT_VIRTUAL для теста данных. */
@@ -743,7 +747,7 @@ check_sensor_control (HyScanSensorControl *control)
                   (port->channel != j) ||
                   (port->time_offset != time_offset))
                 {
-                  g_error ("%s.sensor: can't set param", names[i]);
+                  g_error ("sensor.%s: can't set param", names[i]);
                 }
             }
         }
@@ -774,7 +778,7 @@ check_sensor_control (HyScanSensorControl *control)
                       (uart_port->uart_device != uart_device_ids[j]) ||
                       (uart_port->uart_mode != uart_mode_ids[k]))
                     {
-                      g_error ("%s.sensor: can't set param", names[i]);
+                      g_error ("sensor.%s: can't set param", names[i]);
                     }
                 }
         }
@@ -804,7 +808,7 @@ check_sensor_control (HyScanSensorControl *control)
                       (udp_port->ip_address != ip_address_ids[j]) ||
                       (udp_port->udp_port != udp_port_n))
                     {
-                      g_error ("%s.sensor: can't set param", names[i]);
+                      g_error ("sensor.%s: can't set param", names[i]);
                     }
                 }
         }
@@ -815,7 +819,7 @@ check_sensor_control (HyScanSensorControl *control)
           (port->enable != TRUE) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.sensor.enable: can't enable", names[i]);
+          g_error ("sensor.%s.enable: can't enable", names[i]);
         }
     }
 
@@ -831,8 +835,8 @@ void
 check_generator_control (HyScanGeneratorControl *control,
                          HyScanSourceType        source)
 {
-  SourceInfo *info = select_source (source);
-  const gchar *name = source_name (source);
+  SourceInfo *info = source_info (source);
+  const gchar *name = hyscan_control_get_source_name (source);
 
   HyScanGeneratorModeType capabilities;
   HyScanGeneratorSignalType signals;
@@ -850,37 +854,37 @@ check_generator_control (HyScanGeneratorControl *control,
   /* Возможности генератора. */
   capabilities = hyscan_generator_control_get_capabilities (control, source);
   if (capabilities != info->generator.capabilities)
-    g_error ("%s.generator.capabilities: mismatch", name);
+    g_error ("generator.%s.capabilities: mismatch", name);
 
   /* Допустимые сигналы. */
   signals = hyscan_generator_control_get_signals (control, source);
   if (signals != info->generator.signals)
-    g_error ("%s.generator.signals: mismatch", name);
+    g_error ("generator.%s.signals: mismatch", name);
 
   /* Диапазон длительностей тонального сигнала. */
   if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_TONE, &min_duration, &max_duration))
-    g_error ("%s.generator.duration_range (tone): can't get", name);
+    g_error ("generator.%s.duration_range (tone): can't get", name);
 
   if (min_duration != info->generator.min_tone_duration || max_duration != info->generator.max_tone_duration)
-    g_error ("%s.generator.duration_range (tone): mismatch", name);
+    g_error ("generator.%s.duration_range (tone): mismatch", name);
 
   /* Диапазон длительностей ЛЧМ сигнала. */
   if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_LFM, &min_duration, &max_duration))
-    g_error ("%s.generator.duration_range (lfm): can't get", name);
+    g_error ("generator.%s.duration_range (lfm): can't get", name);
 
   if (min_duration != info->generator.min_lfm_duration || max_duration != info->generator.max_lfm_duration)
-    g_error ("%s.generator.duration_range (lfm): mismatch", name);
+    g_error ("generator.%s.duration_range (lfm): mismatch", name);
 
   if (!hyscan_generator_control_get_duration_range (control, source, HYSCAN_GENERATOR_SIGNAL_LFMD, &min_duration, &max_duration))
-    g_error ("%s.generator.duration_range (lfmd): can't get", name);
+    g_error ("generator.%s.duration_range (lfmd): can't get", name);
 
   if (min_duration != info->generator.min_lfm_duration || max_duration != info->generator.max_lfm_duration)
-    g_error ("%s.generator.duration_range (lfmd): mismatch", name);
+    g_error ("generator.%s.duration_range (lfmd): mismatch", name);
 
   /* Преднастройки генератора. */
   presets = hyscan_generator_control_list_presets (control, source);
   if (presets == NULL)
-    g_error ("%s.generator.presets: can't get", name);
+    g_error ("generator.%s.presets: can't get", name);
 
   for (i = 0; i <= GENERATOR_N_PRESETS; i++)
     {
@@ -891,7 +895,7 @@ check_generator_control (HyScanGeneratorControl *control,
           has_preset = TRUE;
 
       if (!has_preset)
-        g_error ("%s.generator.presets: can't find preset %s", name, info->generator.preset_names[i]);
+        g_error ("generator.%s.presets: can't find preset %s", name, info->generator.preset_names[i]);
     }
 
   for (i = 0; presets[i] != NULL; i++)
@@ -902,7 +906,7 @@ check_generator_control (HyScanGeneratorControl *control,
           (info->generator.cur_preset != info->generator.preset_ids[i]) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.generator.presets: can't set preset %s", name, presets[i]->name);
+          g_error ("generator.%s.presets: can't set preset %s", name, presets[i]->name);
         }
     }
 
@@ -919,7 +923,7 @@ check_generator_control (HyScanGeneratorControl *control,
           (info->generator.cur_signal != signal) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.generator.auto: can't set mode", name);
+          g_error ("generator.%s.auto: can't set mode", name);
         }
     }
 
@@ -936,7 +940,7 @@ check_generator_control (HyScanGeneratorControl *control,
           (info->generator.cur_power != power) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.generator.simple: can't set mode", name);
+          g_error ("generator.%s.simple: can't set mode", name);
         }
     }
 
@@ -963,7 +967,7 @@ check_generator_control (HyScanGeneratorControl *control,
           (info->generator.cur_power != power) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.generator.extended: can't set mode", name);
+          g_error ("generator.%s.extended: can't set mode", name);
         }
     }
 
@@ -973,14 +977,14 @@ check_generator_control (HyScanGeneratorControl *control,
       (info->generator.enable != TRUE) ||
       (prev_counter + 1 != counter))
     {
-      g_error ("%s.generator.enable: can't enable", name);
+      g_error ("generator.%s.enable: can't enable", name);
     }
   prev_counter = counter;
   if (!hyscan_generator_control_set_enable (control, source, FALSE) ||
       (info->generator.enable != FALSE) ||
       (prev_counter + 1 != counter))
     {
-      g_error ("%s.generator.enable: can't disable", name);
+      g_error ("generator.%s.enable: can't disable", name);
     }
 }
 
@@ -989,8 +993,8 @@ void
 check_tvg_control (HyScanTVGControl *control,
                    HyScanSourceType  source)
 {
-  SourceInfo *info = select_source (source);
-  const gchar *name = source_name (source);
+  SourceInfo *info = source_info (source);
+  const gchar *name = hyscan_control_get_source_name (source);
 
   HyScanTVGModeType capabilities;
 
@@ -1006,14 +1010,14 @@ check_tvg_control (HyScanTVGControl *control,
   /* Возможности ВАРУ. */
   capabilities = hyscan_tvg_control_get_capabilities (control, source);
   if (capabilities != info->tvg.capabilities)
-    g_error ("%s.tvg.capabilities: mismatch", name);
+    g_error ("tvg.%s.capabilities: mismatch", name);
 
   /* Диапазон значений коэффициентов усилений ВАРУ. */
   if (!hyscan_tvg_control_get_gain_range (control, source, &min_gain, &max_gain))
-    g_error ("%s.tvg.gain_range: can't get", name);
+    g_error ("tvg.%s.gain_range: can't get", name);
 
   if (min_gain != info->tvg.min_gain || max_gain != info->tvg.max_gain)
-    g_error ("%s.tvg.gain_range: mismatch", name);
+    g_error ("tvg.%s.gain_range: mismatch", name);
 
   /* Автоматический режим. */
   for (i = 0; i < N_TESTS; i++)
@@ -1028,7 +1032,7 @@ check_tvg_control (HyScanTVGControl *control,
           (info->tvg.cur_sensitivity != sensitivity) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.tvg.auto: can't set mode", name);
+          g_error ("tvg.%s.auto: can't set mode", name);
         }
     }
 
@@ -1043,7 +1047,7 @@ check_tvg_control (HyScanTVGControl *control,
           (info->tvg.cur_gain != gain) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.tvg.constant: can't set mode", name);
+          g_error ("tvg.%s.constant: can't set mode", name);
         }
     }
 
@@ -1060,7 +1064,7 @@ check_tvg_control (HyScanTVGControl *control,
           (info->tvg.cur_step != step) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.tvg.linear_db: can't set mode", name);
+          g_error ("tvg.%s.linear_db: can't set mode", name);
         }
     }
 
@@ -1079,7 +1083,7 @@ check_tvg_control (HyScanTVGControl *control,
           (info->tvg.cur_alpha != alpha) ||
           (prev_counter + 1 != counter))
         {
-          g_error ("%s.tvg.logarithmic: can't set mode", name);
+          g_error ("tvg.%s.logarithmic: can't set mode", name);
         }
     }
 
@@ -1089,14 +1093,14 @@ check_tvg_control (HyScanTVGControl *control,
       (info->tvg.enable != TRUE) ||
       (prev_counter + 1 != counter))
     {
-      g_error ("%s.tvg.enable: can't enable", name);
+      g_error ("tvg.%s.enable: can't enable", name);
     }
   prev_counter = counter;
   if (!hyscan_tvg_control_set_enable (control, source, FALSE) ||
       (info->tvg.enable != FALSE) ||
       (prev_counter + 1 != counter))
     {
-      g_error ("%s.tvg.enable: can't disable", name);
+      g_error ("tvg.%s.enable: can't disable", name);
     }
 }
 
@@ -1105,11 +1109,10 @@ void
 check_sonar_control (HyScanSonarControl *control)
 {
   HyScanSonarSyncType capabilities;
-  HyScanAntennaPosition position;
 
   gint64 prev_counter;
   gboolean status;
-  guint i;
+  guint i, j;
 
   /* Типы синхронизации излучения. */
   capabilities = hyscan_sonar_control_get_sync_capabilities (control);
@@ -1145,96 +1148,52 @@ check_sonar_control (HyScanSonarControl *control)
   /* Время приёма эхосигналов. */
   for (i = 0; i < N_TESTS; i++)
     {
-      gdouble receive_time;
-
-      receive_time = g_random_double_range (0.001, starboard.max_receive_time);
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD, receive_time) ||
-          (starboard.cur_receive_time != receive_time) ||
-          (prev_counter + 1 != counter))
+      for (j = 0; j < SONAR_N_SOURCES; j++)
         {
-          g_error ("sonar.starboard.receive_time: can't set");
-        }
+          HyScanSourceType source = select_source_by_index (j);
+          SourceInfo *info = source_info (source);
+          gdouble receive_time;
 
-      receive_time = g_random_double_range (0.001, port.max_receive_time);
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_SIDE_SCAN_PORT, receive_time) ||
-          (port.cur_receive_time != receive_time) ||
-          (prev_counter + 1 != counter))
-        {
-          g_error ("sonar.port.receive_time: can't set");
-        }
-
-      receive_time = g_random_double_range (0.001, echosounder.max_receive_time);
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_receive_time (control, HYSCAN_SOURCE_ECHOSOUNDER, receive_time) ||
-          (echosounder.cur_receive_time != receive_time) ||
-          (prev_counter + 1 != counter))
-        {
-          g_error ("sonar.echosounder.receive_time: can't set");
+          receive_time = g_random_double_range (0.001, info->max_receive_time);
+          prev_counter = counter;
+          if (!hyscan_sonar_control_set_receive_time (control, source, receive_time) ||
+              (info->cur_receive_time != receive_time) ||
+              (prev_counter + 1 != counter))
+            {
+              g_error ("sonar.%s.receive_time: can't set", hyscan_control_get_source_name (source));
+            }
         }
     }
 
   /* Местоположение приёмных антенн. */
-
-  position.x = g_random_double ();
-  position.y = g_random_double ();
-  position.z = g_random_double ();
-  position.psi = g_random_double ();
-  position.gamma = g_random_double ();
-  position.theta = g_random_double ();
-
-  prev_counter = counter;
-  status = hyscan_sonar_control_set_position (control, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD, &position);
-  if (!status || (prev_counter + 1 != counter) ||
-      (starboard.position.x != position.x) ||
-      (starboard.position.y != position.y) ||
-      (starboard.position.z != position.z) ||
-      (starboard.position.psi != position.psi) ||
-      (starboard.position.gamma != position.gamma) ||
-      (starboard.position.theta != position.theta))
+  for (i = 0; i < N_TESTS; i++)
     {
-      g_error ("sonar.starboard: can't set position");
-    }
+      for (j = 0; j < SONAR_N_SOURCES; j++)
+        {
+          HyScanSourceType source = select_source_by_index (j);
+          SourceInfo *info = source_info (source);
+          HyScanAntennaPosition position;
 
-  position.x = g_random_double ();
-  position.y = g_random_double ();
-  position.z = g_random_double ();
-  position.psi = g_random_double ();
-  position.gamma = g_random_double ();
-  position.theta = g_random_double ();
+          position.x = g_random_double ();
+          position.y = g_random_double ();
+          position.z = g_random_double ();
+          position.psi = g_random_double ();
+          position.gamma = g_random_double ();
+          position.theta = g_random_double ();
 
-  prev_counter = counter;
-  hyscan_sonar_control_set_position (control, HYSCAN_SOURCE_SIDE_SCAN_PORT, &position);
-  if (!status || (prev_counter + 1 != counter) ||
-      (port.position.x != position.x) ||
-      (port.position.y != position.y) ||
-      (port.position.z != position.z) ||
-      (port.position.psi != position.psi) ||
-      (port.position.gamma != position.gamma) ||
-      (port.position.theta != position.theta))
-    {
-      g_error ("sonar.starboard: can't set position");
-    }
-
-  position.x = g_random_double ();
-  position.y = g_random_double ();
-  position.z = g_random_double ();
-  position.psi = g_random_double ();
-  position.gamma = g_random_double ();
-  position.theta = g_random_double ();
-
-  prev_counter = counter;
-  hyscan_sonar_control_set_position (control, HYSCAN_SOURCE_ECHOSOUNDER, &position);
-  if (!status || (prev_counter + 1 != counter) ||
-      (echosounder.position.x != position.x) ||
-      (echosounder.position.y != position.y) ||
-      (echosounder.position.z != position.z) ||
-      (echosounder.position.psi != position.psi) ||
-      (echosounder.position.gamma != position.gamma) ||
-      (echosounder.position.theta != position.theta))
-    {
-      g_error ("sonar.starboard: can't set position");
+          prev_counter = counter;
+          status = hyscan_sonar_control_set_position (control, source, &position);
+          if (!status || (prev_counter + 1 != counter) ||
+              (info->position.x != position.x) ||
+              (info->position.y != position.y) ||
+              (info->position.z != position.z) ||
+              (info->position.psi != position.psi) ||
+              (info->position.gamma != position.gamma) ||
+              (info->position.theta != position.theta))
+            {
+              g_error ("sonar.%s: can't set position", hyscan_control_get_source_name (source));
+            }
+        }
     }
 
   /* Включаем гидролокатор в работу. */
@@ -1254,7 +1213,12 @@ check_sonar_control (HyScanSonarControl *control)
           g_error ("sonar: can't start");
         }
 
-      hyscan_sonar_control_ping (control);
+      prev_counter = counter;
+      if( !hyscan_sonar_control_ping (control) ||
+          (prev_counter + 1 != counter))
+        {
+          g_error ("sonar: can't ping");
+        }
 
       g_free (project_name);
       g_free (track_name);
@@ -1336,13 +1300,6 @@ main (int    argc,
         break;
 
       memset (info, 0, sizeof (SourceInfo));
-
-      info->position.x = g_random_double ();
-      info->position.y = g_random_double ();
-      info->position.z = g_random_double ();
-      info->position.psi = g_random_double ();
-      info->position.gamma = g_random_double ();
-      info->position.theta = g_random_double ();
 
       info->raw_info.antenna.pattern.vertical = g_random_double ();
       info->raw_info.antenna.pattern.horizontal = g_random_double ();
@@ -1461,21 +1418,10 @@ main (int    argc,
   hyscan_sonar_schema_sync_add (schema, sonar_info.sync_capabilities);
 
   /* Источники данных. */
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < SONAR_N_SOURCES; i++)
     {
-      HyScanSourceType source;
-      SourceInfo *info;
-
-      if (i == 0)
-        source = HYSCAN_SOURCE_SIDE_SCAN_STARBOARD;
-      else if (i == 1)
-        source = HYSCAN_SOURCE_SIDE_SCAN_PORT;
-      else if (i == 2)
-        source = HYSCAN_SOURCE_ECHOSOUNDER;
-      else
-        break;
-
-      info = select_source (source);
+      HyScanSourceType source = select_source_by_index (i);
+      SourceInfo *info = source_info (source);
 
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,
@@ -1494,7 +1440,7 @@ main (int    argc,
       info->generator.preset_names[0] = g_strdup ("Disabled");
       for (j = 1; j <= GENERATOR_N_PRESETS; j++)
         {
-          gchar *preset_name = g_strdup_printf ("%s.preset.%d", source_name (source), j + 1);
+          gchar *preset_name = g_strdup_printf ("%s.preset.%d", hyscan_control_get_source_name (source), j + 1);
 
           info->generator.preset_ids[j] = hyscan_sonar_schema_generator_add_preset (schema, source, preset_name);
           info->generator.preset_names[j] = preset_name;
@@ -1646,6 +1592,7 @@ main (int    argc,
 
   g_message ("All done");
 
+exit:
   g_hash_table_unref (ports);
 
   for (i = 0; i <= SENSOR_N_UART_DEVICES; i++)
@@ -1655,21 +1602,10 @@ main (int    argc,
   for (i = 0; i <= SENSOR_N_IP_ADDRESSES; i++)
     g_free (ip_address_names[i]);
 
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < SONAR_N_SOURCES; i++)
     {
-      HyScanSourceType source;
-      SourceInfo *info;
-
-      if (i == 0)
-        source = HYSCAN_SOURCE_SIDE_SCAN_STARBOARD;
-      else if (i == 1)
-        source = HYSCAN_SOURCE_SIDE_SCAN_PORT;
-      else if (i == 2)
-        source = HYSCAN_SOURCE_ECHOSOUNDER;
-      else
-        break;
-
-      info = select_source (source);
+      HyScanSourceType source = select_source_by_index (i);
+      SourceInfo *info = source_info (source);
 
       for (j = 0; j <= GENERATOR_N_PRESETS; j++)
         g_free (info->generator.preset_names[j]);
@@ -1678,7 +1614,6 @@ main (int    argc,
   g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
 
-exit:
   g_object_unref (control);
   g_clear_object (&proxy);
   g_object_unref (server.sensor);
