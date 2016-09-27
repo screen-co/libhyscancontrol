@@ -17,7 +17,7 @@ enum
 {
   PROP_O,
   PROP_CONTROL,
-  PROP_FORWARD_RAW
+  PROP_PROXY_MODE
 };
 
 struct _HyScanGeneratorProxyPrivate
@@ -26,8 +26,7 @@ struct _HyScanGeneratorProxyPrivate
   HyScanGeneratorControlServer *server;                        /* Прокси сервер генераторов. */
 
   GHashTable                   *sources;                       /* Список таблиц трансляции преднастроек генераторов. */
-
-  gboolean                      forward_raw;                   /* Признак трансляции "сырых" данных. */
+  HyScanSonarProxyMode          proxy_mode;                    /* Режим трансляции команд и данных. */
 };
 
 static void        hyscan_generator_proxy_set_property         (GObject                       *object,
@@ -72,9 +71,10 @@ hyscan_generator_proxy_class_init (HyScanGeneratorProxyClass *klass)
     g_param_spec_object ("control", "Control", "Generator control", HYSCAN_TYPE_GENERATOR_CONTROL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
-  g_object_class_install_property (object_class, PROP_FORWARD_RAW,
-    g_param_spec_boolean ("forward-raw", "ForawrdRAW", "Forward raw data",
-                          FALSE, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+  g_object_class_install_property (object_class, PROP_PROXY_MODE,
+    g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
+                      HYSCAN_SONAR_PROXY_FORWARD_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
+                      HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -99,9 +99,9 @@ hyscan_generator_proxy_set_property (GObject      *object,
       priv->control = g_value_dup_object (value);
       break;
 
-    case PROP_FORWARD_RAW:
+    case PROP_PROXY_MODE:
       G_OBJECT_CLASS (hyscan_generator_proxy_parent_class)->set_property (object, prop_id, value, pspec);
-      priv->forward_raw = g_value_get_boolean (value);
+      priv->proxy_mode = g_value_get_int (value);
       break;
 
     default:
@@ -230,7 +230,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
                             G_CALLBACK (hyscan_generator_proxy_set_enable), priv);
 
   /* Обработчик образов сигналов. */
-  if (priv->forward_raw)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
     {
       g_signal_connect_swapped (priv->control, "signal-image",
                                 G_CALLBACK (hyscan_generator_control_server_send_signal), priv->server);

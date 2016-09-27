@@ -16,10 +16,10 @@
  * как базовый для классов прокси серверов управления локаторами.
  *
  * Работа с проксируемым гидролокатором осуществляется через \link HyScanSensorControl \endlink.
- * Класс реализует два режимы трансляции портов:
+ * Класс реализует два режимы трансляции портов \link HyScanSonarProxyMode \endlink:
  *
- * - трансляция данных от всех портов один к одному;
- * - трансляция одного из портов в виртуальный NMEA порт.
+ * - #HYSCAN_SONAR_PROXY_FORWARD_ALL - трансляция данных от всех портов один к одному;
+ * - #HYSCAN_SONAR_PROXY_FORWARD_COMPUTED - трансляция одного из портов в виртуальный NMEA порт.
  *
  * Выбор порта, данные которого будут передаваться в виртуальный NMEA порт,
  * осуществляется функцией #hyscan_sensor_proxy_set_source.
@@ -34,6 +34,13 @@
 #include <hyscan-sonar-box.h>
 
 G_BEGIN_DECLS
+
+/** \brief Режимы трансляции команд управления гидролокатором и данных от него */
+typedef enum
+{
+  HYSCAN_SONAR_PROXY_FORWARD_ALL,            /**< Трансляция один к одному без изменений. */
+  HYSCAN_SONAR_PROXY_FORWARD_COMPUTED        /**< Транслировать обработанные данные. */
+} HyScanSonarProxyMode;
 
 #define HYSCAN_TYPE_SENSOR_PROXY             (hyscan_sensor_proxy_get_type ())
 #define HYSCAN_SENSOR_PROXY(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_SENSOR_PROXY, HyScanSensorProxy))

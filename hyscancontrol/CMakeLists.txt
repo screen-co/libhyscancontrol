@@ -19,8 +19,6 @@ add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marsha
                     VERBATIM)
 
 add_library (hyscancontrol SHARED
-             hyscan-control.c
-             hyscan-control-common.c
              hyscan-sonar-box.c
              hyscan-sonar-schema.c
              hyscan-sensor-control.c
@@ -38,6 +36,9 @@ add_library (hyscancontrol SHARED
              hyscan-tvg-proxy.c
              hyscan-sonar-proxy.c
              hyscan-ssse-proxy.c
+             hyscan-control.c
+             hyscan-control-common.c
+             hyscan-proxy-common.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
 target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${ADDON_LIBRARIES})

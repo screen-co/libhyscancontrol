@@ -20,7 +20,7 @@
 #define SONAR_N_SOURCES                5
 #define SENSOR_N_PORTS                 4
 
-#define DATA_N_POINTS                  2048
+#define DATA_N_POINTS                  4096
 #define SIGNAL_N_POINTS                1024
 #define TVG_N_GAINS                    512
 
@@ -89,7 +89,7 @@ source_info_by_index (guint index)
 const gchar *
 select_port_by_index (guint index)
 {
-  const gchar *names[SENSOR_N_PORTS] = {"port.1", "port.2", "port.3", "port.4" };
+  const gchar *names[SENSOR_N_PORTS] = {"nmea", "port.1", "port.2", "port.3" };
 
   if (index < SENSOR_N_PORTS)
     return names[index];
@@ -111,7 +111,7 @@ port_info_by_index (guint index)
 gboolean
 sonar_ping_cb (ServerInfo *server)
 {
-  guint16 *values = g_new (guint16, DATA_N_POINTS);
+  gfloat *values = g_new (gfloat, DATA_N_POINTS);
   HyScanComplexFloat *signal_points = g_new (HyScanComplexFloat, SIGNAL_N_POINTS);
   gfloat *tvg_gains = g_new (gfloat, TVG_N_GAINS);
 
@@ -141,26 +141,21 @@ sonar_ping_cb (ServerInfo *server)
           SourceInfo *info = source_info_by_index (j);
 
           /* Гидролокационные данные. */
-          for (k = 0; k < DATA_N_POINTS; k += SIDE_SCALE)
-            {
-            values[k + 0] = (i / TRACK_SCALE) + j + k + n_track;
-            values[k + 1] = (i / TRACK_SCALE) + j + k + n_track;
-            values[k + 2] = (i / TRACK_SCALE) + j + k + n_track;
-            values[k + 3] = (i / TRACK_SCALE) + j + k + n_track;
-            }
+          for (k = 0; k < DATA_N_POINTS; k++)
+            values[k] = (i / TRACK_SCALE) + j + (k / SIDE_SCALE) + n_track;
 
           data.time = time;
-          data.size = DATA_N_POINTS * sizeof (guint16);
+          data.size = DATA_N_POINTS * sizeof (gfloat);
           data.data = values;
 
-          hyscan_sonar_control_server_send_raw_data (server->sonar, source, 1, HYSCAN_DATA_ADC_16LE,
+          hyscan_sonar_control_server_send_raw_data (server->sonar, source, 1, HYSCAN_DATA_FLOAT,
                                                      info->raw_info.data.rate, &data);
 
-          hyscan_sonar_control_server_send_noise_data (server->sonar, source, 1, HYSCAN_DATA_ADC_16LE,
+          hyscan_sonar_control_server_send_noise_data (server->sonar, source, 1, HYSCAN_DATA_FLOAT,
                                                        info->raw_info.data.rate, &data);
 
           hyscan_ssse_control_server_send_acoustic_data (HYSCAN_SSSE_CONTROL_SERVER (server->ssse),
-                                                         source, HYSCAN_DATA_ADC_16LE,
+                                                         source, HYSCAN_DATA_FLOAT,
                                                          info->acoustic_info.data.rate, &data);
 
           /* Сигналы и ВАРУ. */
@@ -244,19 +239,22 @@ sonar_ping_cb (ServerInfo *server)
 
 /* Функция проверяет управление гидролокатором. */
 void
-generate_data (HyScanSSSEControl *control,
-               const gchar       *project_name)
+generate_data (HyScanSSSEControl    *control,
+               const gchar          *project_name,
+               HyScanSonarProxyMode  proxy_mode)
 {
   guint i;
+  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? SENSOR_N_PORTS : 1;
 
   /* Местоположение приёмных антенн датчиков. */
-  for (i = 0; i < SENSOR_N_PORTS; i++)
+  for (i = 0; i < sensor_n_ports; i++)
     {
       PortInfo *port = port_info_by_index (i);
       const gchar *name = select_port_by_index (i);
 
       hyscan_sensor_control_set_position (HYSCAN_SENSOR_CONTROL (control), name, &port->position);
       hyscan_sensor_control_set_virtual_port_param (HYSCAN_SENSOR_CONTROL (control), name, i + 1, port->time_offset);
+      hyscan_sensor_control_set_enable (HYSCAN_SENSOR_CONTROL (control), name, TRUE);
     }
 
   /* Местоположение приёмных антенн гидролокатора. */
@@ -288,20 +286,25 @@ generate_data (HyScanSSSEControl *control,
 
 /* Функция проверяет записанные данные. */
 void
-check_data (HyScanDB *db,
-            gint32    project_id)
+check_data (HyScanDB             *db,
+            gint32                project_id,
+            HyScanSonarProxyMode  proxy_mode)
 {
   gint32 track_id;
 
+  gfloat *values;
   HyScanComplexFloat *signal_points;
   gfloat *tvg_gains;
-  guint16 *values;
 
   gpointer buffer;
   gint32 buffer_size;
   gint32 data_size;
   gint64 time;
 
+  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? SENSOR_N_PORTS : 1;
+  guint sonar_n_sub_types = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 3 : 1;
+  guint side_scale = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 1 : SIDE_SCALE;
+  guint track_scale = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 1 : TRACK_SCALE;
   gint n_track;
   gint i, j, k;
 
@@ -318,7 +321,7 @@ check_data (HyScanDB *db,
         g_error ("can't open %s", track_name);
 
       /* Проверяем данные от датчиков. */
-      for (j = 0; j < SENSOR_N_PORTS; j++)
+      for (j = 0; j < sensor_n_ports; j++)
         {
           PortInfo *port = port_info_by_index (j);
           gint n_source;
@@ -454,8 +457,6 @@ check_data (HyScanDB *db,
             }
         }
 
-
-
       /* Проверяем гидролокационные источники данных. */
       for (j = 0; j < SONAR_N_SOURCES; j++)
         {
@@ -472,7 +473,7 @@ check_data (HyScanDB *db,
           gint sub_type;
           gint n_signal;
 
-          for (sub_type = 0; sub_type < 3; sub_type++)
+          for (sub_type = 0; sub_type < sonar_n_sub_types; sub_type++)
             {
               gchar *channel_name;
               gboolean raw = (sub_type > 0) ? TRUE : FALSE;
@@ -530,12 +531,12 @@ check_data (HyScanDB *db,
 
               /* Параметры данных. */
               string_value = hyscan_db_param_get_string (db, param_id, NULL, "/data/type");
-              if (g_strcmp0 (string_value, hyscan_data_get_type_name (HYSCAN_DATA_ADC_16LE)) != 0)
+              if (g_strcmp0 (string_value, hyscan_data_get_type_name (HYSCAN_DATA_FLOAT)) != 0)
                 g_error ("%s.%s: '/data/type' error", track_name, channel_name);
               g_free (string_value);
 
               if (!hyscan_db_param_get_double (db, param_id, NULL, "/data/rate", &double_value) ||
-                  fabs (double_value - signal_rate) > FLOAT_EPSILON)
+                  fabs ((side_scale * double_value) - signal_rate) > FLOAT_EPSILON)
                 {
                   g_error ("%s.%s: '/data/rate' error", track_name, channel_name);
                 }
@@ -581,19 +582,35 @@ check_data (HyScanDB *db,
 
               /* Гидролокационные данные. */
               values = buffer;
-              for (i = 0; i < N_TESTS; i++)
+              for (i = 0; i < (N_TESTS / track_scale); i++)
                 {
+                  gint64 ref_time;
+
+                  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+                    ref_time = 1000 * (i + 1);
+                  else
+                    ref_time = (1000 * (i * TRACK_SCALE + 1)) + (1000 * (TRACK_SCALE - 1) / 2);
+
                   data_size = buffer_size;
                   if (!hyscan_db_channel_get_data (db, channel_id, i, buffer, &data_size, &time) ||
-                      data_size != DATA_N_POINTS * sizeof (guint16) ||
-                      time != 1000 * (i + 1))
+                      data_size != (gint)((DATA_N_POINTS / side_scale)  * sizeof (gfloat)) ||
+                      time != ref_time)
                     {
                       g_error ("%s.%s: can't get data", track_name, channel_name);
                     }
 
-                  for (k = 0; k < DATA_N_POINTS; k++)
-                    if (values[k] != ((i / TRACK_SCALE) + j + k - (k % SIDE_SCALE) + n_track))
-                      g_error ("%s.%s: data error", track_name, channel_name);
+                  for (k = 0; k < (DATA_N_POINTS / side_scale); k++)
+                    {
+                      gfloat ref_value;
+
+                      if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+                        ref_value = (i / TRACK_SCALE) + j + (k / SIDE_SCALE) + n_track;
+                      else
+                        ref_value = i + j + k + n_track;
+
+                      if (values[k] != ref_value)
+                        g_error ("%s.%s: data error", track_name, channel_name);
+                    }
                 }
 
               hyscan_db_close (db, param_id);
@@ -602,7 +619,7 @@ check_data (HyScanDB *db,
             }
 
           /* Образы сигналов и ВАРУ. */
-          if (n_track > 0)
+          if ((n_track > 0) && (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL))
             {
               gchar *signal_name;
               gchar *tvg_name;
@@ -745,7 +762,8 @@ main (int    argc,
   HyScanDB *db;
   gint32 project_id;
 
-  gboolean enable_proxy = FALSE;
+  gchar *proxy_mode_string = NULL;
+  HyScanSonarProxyMode proxy_mode = 0;
 
   guint i;
 
@@ -756,7 +774,7 @@ main (int    argc,
     GOptionContext *context;
     GOptionEntry entries[] =
       {
-        { "proxy", 'p', 0, G_OPTION_ARG_NONE, &enable_proxy, "Enable proxy", NULL },
+        { "proxy", 'p', 0, G_OPTION_ARG_STRING, &proxy_mode_string, "Proxy mode (all, computed)", NULL },
         { NULL } };
 
 #ifdef G_OS_WIN32
@@ -771,7 +789,7 @@ main (int    argc,
     g_option_context_set_ignore_unknown_options (context, FALSE);
     if (!g_option_context_parse_strv (context, &args, &error))
       {
-        g_message( error->message);
+        g_message (error->message);
         return -1;
       }
 
@@ -779,6 +797,27 @@ main (int    argc,
       {
         g_print ("%s", g_option_context_get_help (context, FALSE, NULL));
         return 0;
+      }
+
+    if (proxy_mode_string != NULL)
+      {
+        if (g_strcmp0 (proxy_mode_string, "all") == 0)
+          {
+            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
+          }
+        else if (g_strcmp0 (proxy_mode_string, "computed") == 0)
+          {
+            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_COMPUTED;
+          }
+        else
+          {
+            g_print ("%s", g_option_context_get_help (context, FALSE, NULL));
+            return 0;
+          }
+      }
+    else
+      {
+        proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
       }
 
     g_option_context_free (context);
@@ -884,10 +923,11 @@ main (int    argc,
     g_error ("can't open db at: %s", db_uri);
 
   /* Управление ГБОЭ. */
-  if (enable_proxy)
+  if (proxy_mode_string != NULL)
     {
-      proxy = hyscan_ssse_proxy_new (HYSCAN_SONAR (sonar), HYSCAN_SSSE_PROXY_FORWARD_RAW, 1, 1, db);
-      control = hyscan_ssse_control_new (HYSCAN_SONAR (proxy), NULL);
+      proxy = hyscan_ssse_proxy_new (HYSCAN_SONAR (sonar), proxy_mode, SIDE_SCALE, TRACK_SCALE, NULL);
+      hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), select_port_by_index (0));
+      control = hyscan_ssse_control_new (HYSCAN_SONAR (proxy), db);
     }
   else
     {
@@ -902,11 +942,11 @@ main (int    argc,
 
   /* Проверка управления гидролокатором. */
   g_message ("Generating data");
-  generate_data (control, PROJECT_NAME);
+  generate_data (control, PROJECT_NAME, proxy_mode);
 
   /* Проверка записанных данных. */
   g_message ("Checking data");
-  check_data (db, project_id);
+  check_data (db, project_id, proxy_mode);
 
   /* Освобождаем память. */
   hyscan_db_close (db, project_id);
