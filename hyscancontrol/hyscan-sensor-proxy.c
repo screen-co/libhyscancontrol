@@ -279,10 +279,8 @@ hyscan_sensor_proxy_set_position (HyScanSensorProxyPrivate *priv,
     {
       gboolean status = FALSE;
 
-      g_rw_lock_reader_lock (&priv->lock);
-      if (g_strcmp0 (priv->virtual_source, name) == 0)
+      if (g_strcmp0 (name, HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME) == 0)
         status = TRUE;
-      g_rw_lock_reader_unlock (&priv->lock);
 
       return status;
     }
@@ -305,7 +303,7 @@ hyscan_sensor_proxy_set_enable (HyScanSensorProxyPrivate *priv,
       gboolean status = FALSE;
 
       g_rw_lock_reader_lock (&priv->lock);
-      if (g_strcmp0 (priv->virtual_source, name) == 0)
+      if (g_strcmp0 (name, HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME) == 0)
         {
           priv->virtual_enable = enable;
           status = TRUE;
@@ -338,7 +336,7 @@ hyscan_sensor_proxy_data_forwarder (HyScanSensorProxyPrivate *priv,
         return;
 
       g_rw_lock_reader_lock (&priv->lock);
-      if ((g_strcmp0 (priv->virtual_source, name) == 0) && (priv->virtual_enable))
+      if ((g_strcmp0 (name, priv->virtual_source) == 0) && (priv->virtual_enable))
         forward = TRUE;
       g_rw_lock_reader_unlock (&priv->lock);
 
