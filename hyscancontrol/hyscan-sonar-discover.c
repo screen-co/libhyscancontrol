@@ -3,7 +3,7 @@
  *
  * \brief Исходный файл интерфейса обнаружения гидролокаторов
  * \author Andrei Fadeev (andrei@webcontrol.ru)
- * \date 2015
+ * \date 2016
  * \license Проприетарная лицензия ООО "Экран"
  *
  */
@@ -71,4 +71,35 @@ hyscan_sonar_discover_list (HyScanSonarDiscover *discover)
     return (* iface->list) (discover);
 
   return NULL;
+}
+
+HyScanSonar *
+hyscan_sonar_discover_connect (HyScanSonarDiscover *discover,
+                               const gchar         *uri)
+{
+  HyScanSonarDiscoverInterface *iface;
+
+  g_return_val_if_fail (HYSCAN_IS_SONAR_DISCOVER (discover), NULL);
+
+  iface = HYSCAN_SONAR_DISCOVER_GET_IFACE (discover);
+  if (iface->connect != NULL)
+    return (* iface->connect) (discover, uri);
+
+  return NULL;
+}
+
+/* Функция освобождает память занятую списоком гидролокаторов. */
+void
+hyscan_sonar_discover_free (HyScanSonarDiscoverInfo **list)
+{
+  guint i;
+
+  for (i = 0; list != NULL && list[i] != NULL; i++)
+    {
+      g_free (list[i]->model);
+      g_free (list[i]->uri);
+      g_free (list[i]);
+    }
+
+  g_free (list);
 }

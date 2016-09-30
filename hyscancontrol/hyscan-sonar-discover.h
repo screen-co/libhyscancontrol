@@ -3,7 +3,7 @@
  *
  * \brief Заголовочный файл интерфейса обнаружения гидролокаторов
  * \author Andrei Fadeev (andrei@webcontrol.ru)
- * \date 2015
+ * \date 2016
  * \license Проприетарная лицензия ООО "Экран"
  *
  * \defgroup HyScanSonarDiscover HyScanSonarDiscover - интерфейс обнаружения гидролокаторов
@@ -20,6 +20,8 @@
  *
  * Список обнаруженных гидролокаторов можно получить функцией #hyscan_sonar_discover_list.
  * Память, используемая списоком, должена быть освобождена функцией #hyscan_sonar_discover_free.
+ *
+ * Для подключения к гидролокатору используется функция #hyscan_sonar_discover_connect.
  *
  */
 
@@ -57,6 +59,9 @@ struct _HyScanSonarDiscoverInterface
   guint                        (*progress)                     (HyScanSonarDiscover           *discover);
 
   HyScanSonarDiscoverInfo    **(*list)                         (HyScanSonarDiscover           *discover);
+
+  HyScanSonar                 *(*connect)                      (HyScanSonarDiscover           *discover,
+                                                                const gchar                   *uri);
 };
 
 HYSCAN_API
@@ -111,6 +116,20 @@ guint                          hyscan_sonar_discover_progress  (HyScanSonarDisco
  */
 HYSCAN_API
 HyScanSonarDiscoverInfo      **hyscan_sonar_discover_list      (HyScanSonarDiscover           *discover);
+
+/**
+ *
+ * Функция подключается к гидролокатору.
+ *
+ * \param discover указатель на интерфейс \link HyScanSonarDsicover \endlink;
+ * \param uri путь для подключения к гидролокатору.
+ *
+ * \return Указатель на интерфейс \link HyScanSonar \endlink или NULL.
+ *
+ */
+HYSCAN_API
+HyScanSonar                   *hyscan_sonar_discover_connect   (HyScanSonarDiscover           *discover,
+                                                                const gchar                   *uri);
 
 /**
  *
