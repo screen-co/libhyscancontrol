@@ -48,6 +48,8 @@
  * - \link HyScanSonarProxy \endlink - класс прокси сервера управления гидролокатором;
  * - \link HyScanSSSEProxy \endlink - класс прокси сервера ГБОЭ.
  *
+ * Библиотека содержит описание интерфейса обнаружения гидролокаторов \link HyScanSonarDiscover \endlink.
+ *
  * Также библиотека содержит класс для динамического создания схемы данных гидролокатора -
  * \link HyScanSonarSchema \endlink.
  *

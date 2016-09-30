@@ -39,6 +39,7 @@ add_library (hyscancontrol SHARED
              hyscan-control.c
              hyscan-control-common.c
              hyscan-proxy-common.c
+             hyscan-sonar-discover.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
 target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${ADDON_LIBRARIES})
