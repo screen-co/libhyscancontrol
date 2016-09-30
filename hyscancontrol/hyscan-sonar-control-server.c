@@ -23,7 +23,7 @@ enum
 enum
 {
   SIGNAL_SONAR_SET_SYNC_TYPE,
-  SIGNAL_SONAR_ENABLE_RAW_DATA,
+  SIGNAL_SONAR_SET_DATA_MODE,
   SIGNAL_SONAR_SET_POSITION,
   SIGNAL_SONAR_SET_RECEIVE_TIME,
   SIGNAL_SONAR_START,
@@ -85,7 +85,7 @@ static gboolean    hyscan_sonar_control_server_set_sync_type           (HyScanSo
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
                                                                         GVariant                   **values);
-static gboolean    hyscan_sonar_control_server_enable_raw_data         (HyScanSonarControlServer    *server,
+static gboolean    hyscan_sonar_control_server_set_data_mode           (HyScanSonarControlServer    *server,
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
                                                                         GVariant                   **values);
@@ -131,12 +131,12 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
                   G_TYPE_BOOLEAN,
                   1, G_TYPE_INT);
 
-  hyscan_sonar_control_server_signals[SIGNAL_SONAR_ENABLE_RAW_DATA] =
-    g_signal_new ("sonar-enable-raw-data", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
+  hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_DATA_MODE] =
+    g_signal_new ("sonar-set-data-mode", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__BOOLEAN,
+                  g_cclosure_user_marshal_BOOLEAN__INT,
                   G_TYPE_BOOLEAN,
-                  1, G_TYPE_BOOLEAN);
+                  1, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_POSITION] =
     g_signal_new ("sonar-set-position", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
@@ -374,14 +374,14 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       operation_path = g_strdup ("/sync/type");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
-      /* Команда - hyscan_sonar_control_enable_raw_data. */
+      /* Команда - hyscan_sonar_control_set_data_mode. */
       operation = g_new0 (HyScanSonarControlServerCtl, 1);
       operation->source = 0;
       operation->name = NULL;
-      operation->func = hyscan_sonar_control_server_enable_raw_data;
+      operation->func = hyscan_sonar_control_server_set_data_mode;
       g_hash_table_insert (priv->operations, operation, operation);
 
-      operation_path = g_strdup ("/control/raw-data");
+      operation_path = g_strdup ("/control/data-mode");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
       /* Команды - hyscan_sonar_control_start / hyscan_sonar_control_stop. */
@@ -542,21 +542,24 @@ hyscan_sonar_control_server_set_sync_type (HyScanSonarControlServer     *server,
   return TRUE;
 }
 
-/* Команда - hyscan_sonar_control_enable_raw_data. */
+/* Команда - hyscan_sonar_control_set_data_mode. */
 static gboolean
-hyscan_sonar_control_server_enable_raw_data (HyScanSonarControlServer     *server,
-                                             HyScanSonarControlServerCtl  *ctl,
-                                             const gchar *const           *names,
-                                             GVariant                    **values)
+hyscan_sonar_control_server_set_data_mode (HyScanSonarControlServer     *server,
+                                           HyScanSonarControlServerCtl  *ctl,
+                                           const gchar *const           *names,
+                                           GVariant                    **values)
 {
   gboolean cancel;
-  gboolean enable;
 
-  if (!hyscan_control_find_boolean_param ("/control/raw-data", names, values, &enable))
+  gint64 value;
+  HyScanSonarDataMode data_mode = 0;
+
+  if (!hyscan_control_find_integer_param ("/control/data-mode", names, values, &value))
     return FALSE;
 
-  g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_ENABLE_RAW_DATA], 0,
-                 enable, &cancel);
+  data_mode = value;
+  g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_DATA_MODE], 0,
+                 data_mode, &cancel);
   if (cancel)
     return FALSE;
 

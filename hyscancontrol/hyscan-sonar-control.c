@@ -36,7 +36,7 @@ struct _HyScanSonarControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
 
-  gboolean                     raw_enabled;                    /* Режим приёма и записи "сырых" данных. */
+  HyScanSonarDataMode          data_mode;                      /* Предпочитаемый вид данных от гидролокатора. */
 
   GHashTable                  *channels;                       /* Список приёмных каналов гидролокатора. */
   GHashTable                  *noises;                         /* Список источников шумов приёмных каналов гидролокатора. */
@@ -365,9 +365,6 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
   HyScanDataWriterData data;
   gboolean noise = FALSE;
 
-  if (!control->priv->raw_enabled)
-    return;
-
   /* Ищем приёмный канал. */
   channel = g_hash_table_lookup (control->priv->channels, GINT_TO_POINTER (message->id));
   if (channel == NULL)
@@ -450,16 +447,16 @@ hyscan_sonar_control_set_sync_type (HyScanSonarControl  *control,
   return hyscan_sonar_set_enum (control->priv->sonar, "/sync/type", sync_type);
 }
 
-/* Функция включает или выключает выдачу "сырых" данных от гидролокатора. */
+/* Функция задаёт предпочитаемый вид данных от гидролокатора. */
 gboolean
-hyscan_sonar_control_enable_raw_data (HyScanSonarControl *control,
-                                      gboolean            enable)
+hyscan_sonar_control_set_data_mode (HyScanSonarControl  *control,
+                                    HyScanSonarDataMode  data_mode)
 {
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
-  control->priv->raw_enabled = enable;
+  control->priv->data_mode = data_mode;
 
-  return hyscan_sonar_set_boolean (control->priv->sonar, "/control/raw-data", enable);
+  return hyscan_sonar_set_enum (control->priv->sonar, "/control/data-mode", data_mode);
 }
 
 /* Функция устанавливает информацию о местоположении приёмных антенн. */

@@ -19,7 +19,7 @@
  * Класс посылает следующие сигналы:
  *
  * - "sonar-set-sync-type" - при изменении типа синхронизации излучения;
- * - "sonar-enable-raw-data" - при изменении выдачи "сырых" данных гидролокатором;
+ * - "sonar-set-data-mode" - при изменении предпочитаемого вида данных от гидролокатора;
  * - "sonar-set-position" - при установке информации о местоположении приёмных антенн;
  * - "sonar-set-receive-time" - при установке времни приёма эхосигнала гидролокатором;
  * - "sonar-start" - при включении гидролокатора в рабочий режим;
@@ -35,8 +35,8 @@
  *                                     HyScanSonarSyncType         sync_type,
  *                                     gpointer                    user_data);
  *
- * gboolean sonar_enable_raw_data_cb  (HyScanSonarControlServer   *server,
- *                                     gboolean                    enable,
+ * gboolean sonar_set_data_mode_cb    (HyScanSonarControlServer   *server,
+ *                                     HyScanSonarDataMode         data_mode,
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_set_position_cb     (HyScanSonarControlServer   *server,
@@ -67,7 +67,7 @@
  * \endcode
  *
  * Описание параметров сигналов аналогично параметрам функций \link hyscan_sonar_control_set_sync_type \endlink,
- * \link hyscan_sonar_control_enable_raw_data \endlink, \link hyscan_sonar_control_set_position \endlink,
+ * \link hyscan_sonar_control_set_data_mode \endlink, \link hyscan_sonar_control_set_position \endlink,
  * \link hyscan_sonar_control_set_receive_time \endlink, \link hyscan_sonar_control_start \endlink,
  * \link hyscan_sonar_control_stop \endlink и \link hyscan_sonar_control_ping \endlink,
  * класса \link HyScanSonarControl \endlink.

@@ -344,7 +344,7 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
 
       schema = hyscan_proxy_schema_new (sonar, 10.0);
       hyscan_proxy_schema_sensor_virtual (schema);
-      hyscan_proxy_schema_ssse_acoustic (schema, sonar, HYSCAN_SSSE_CONTROL (control));
+      hyscan_proxy_schema_ssse_acoustic (schema, sonar, control);
       schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (schema));
       g_object_unref (schema);
     }
@@ -362,4 +362,12 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
   g_free (schema_data);
 
   return proxy;
+}
+
+HyScanSSSEControl *
+hyscan_ssse_proxy_get_control (HyScanSSSEProxy *proxy)
+{
+  g_return_val_if_fail (HYSCAN_IS_SSSE_PROXY (proxy), NULL);
+
+  return proxy->priv->control;
 }

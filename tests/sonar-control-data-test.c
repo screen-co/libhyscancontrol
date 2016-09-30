@@ -267,7 +267,7 @@ generate_data (HyScanSSSEControl    *control,
     }
 
   /* Включаем гидролокатор в работу. */
-  hyscan_sonar_control_enable_raw_data (HYSCAN_SONAR_CONTROL (control), TRUE);
+  hyscan_sonar_control_set_data_mode (HYSCAN_SONAR_CONTROL (control), HYSCAN_SONAR_DATA_BOTH);
 
   for (i = 0; i < N_TESTS; i++)
     {

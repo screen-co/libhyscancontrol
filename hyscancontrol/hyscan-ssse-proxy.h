@@ -20,7 +20,10 @@
  * в указанную базу данных. Таким образом можно организовать полную запись данных для
  * последующей обработки, а клиенту передавать прореженные данные для предварительного
  * просмотра.
-
+ *
+ * Получить указатель на объект управления проксируемым гидролокатором можно
+ * с помощью функции #hyscan_ssse_proxy_get_control.
+ *
  * Класс реализует режимы трансляции определённые типом \link HyScanSonarProxyMode \endlink:
  *
  * - #HYSCAN_SONAR_PROXY_FORWARD_ALL - при трансляции один к одному без изменений все
@@ -36,6 +39,7 @@
 #define __HYSCAN_SSSE_PROXY_H__
 
 #include <hyscan-sonar-proxy.h>
+#include <hyscan-ssse-control.h>
 #include <hyscan-core-types.h>
 #include <hyscan-db.h>
 
@@ -91,6 +95,22 @@ HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanSonar     
                                                                 guint                          side_scale,
                                                                 guint                          track_scale,
                                                                 HyScanDB                      *db);
+
+/**
+ *
+ * Функция возвращает указатель на объект управления проксируемым ГБОЭ - \link HyScanSSSEControl \endlink.
+ * Объект управления принадлежит \link HyScanSSSEProxy \endlink и действителен всё время
+ * его жизни. Пользователь должен самостоятельно увеличить счётчик ссылок, если необходимо
+ * использовать этот объект и дальше. Функция может вернуть NULL, если интерфейс управления
+ * гидролокатором \link HyScanSonar \endlink не совместим со схемой ГБОЭ.
+ *
+ * \param proxy указатель на объект \link HyScanSSSEProxy \endlink.
+ *
+ * \return Указатель на объект \link HyScanSSSEControl \endlink или NULL.
+ *
+ */
+HYSCAN_API
+HyScanSSSEControl     *hyscan_ssse_proxy_get_control           (HyScanSSSEProxy               *proxy);
 
 G_END_DECLS
 

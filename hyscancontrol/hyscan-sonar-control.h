@@ -65,13 +65,22 @@
 G_BEGIN_DECLS
 
 /** \brief Типы синхронизации излучения */
-typedef enum {
+typedef enum
+{
   HYSCAN_SONAR_SYNC_INVALID                    = 0,            /**< Недопустимый тип, ошибка. */
 
   HYSCAN_SONAR_SYNC_INTERNAL                   = (1 << 0),     /**< Внутренняя синхронизация. */
   HYSCAN_SONAR_SYNC_EXTERNAL                   = (1 << 1),     /**< Внешняя синхронизация. */
   HYSCAN_SONAR_SYNC_SOFTWARE                   = (1 << 2)      /**< Программная синхронизация. */
 } HyScanSonarSyncType;
+
+/** \brief Виды данных от гидролокатора. */
+typedef enum
+{
+  HYSCAN_SONAR_DATA_RAW                        = 101,          /**< Предпочтительно "сырые" данные. */
+  HYSCAN_SONAR_DATA_COMPUTED                   = 102,          /**< Предпочтительно обработанные данные. */
+  HYSCAN_SONAR_DATA_BOTH                       = 103           /**< Данные обоих видов.  */
+} HyScanSonarDataMode;
 
 #define HYSCAN_TYPE_SONAR_CONTROL             (hyscan_sonar_control_get_type ())
 #define HYSCAN_SONAR_CONTROL(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_SONAR_CONTROL, HyScanSonarControl))
@@ -141,17 +150,18 @@ gboolean               hyscan_sonar_control_set_sync_type              (HyScanSo
 
 /**
  *
- * Функция включает или выключает выдачу "сырых" данных гидролокатором.
+ * Функция задаёт предпочитаемый вид данных от гидролокатора. Если указанный вид
+ * данных не может передаваться гидролокатором используется альтернативный вид.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param enable включёно или выключено.
+ * \param data_mode вид данных \link HyScanSonarDataMode \endlink.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
  */
 HYSCAN_API
-gboolean               hyscan_sonar_control_enable_raw_data            (HyScanSonarControl    *control,
-                                                                        gboolean               enable);
+gboolean               hyscan_sonar_control_set_data_mode              (HyScanSonarControl    *control,
+                                                                        HyScanSonarDataMode    data_mode);
 
 /**
  *

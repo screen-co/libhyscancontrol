@@ -45,6 +45,7 @@ static void    hyscan_sonar_schema_enum_add_uart_devs          (HyScanSonarSchem
 static void    hyscan_sonar_schema_enum_add_uart_modes         (HyScanSonarSchema             *schema);
 
 static void    hyscan_sonar_schema_enum_add_sync_type          (HyScanSonarSchema             *schema);
+static void    hyscan_sonar_schema_enum_add_data_mode          (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_track_type         (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_signal_type        (HyScanSonarSchema             *schema);
 
@@ -122,6 +123,7 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_sonar_schema_enum_add_uart_devs (schema);
   hyscan_sonar_schema_enum_add_uart_modes (schema);
   hyscan_sonar_schema_enum_add_sync_type (schema);
+  hyscan_sonar_schema_enum_add_data_mode (schema);
   hyscan_sonar_schema_enum_add_track_type (schema);
   hyscan_sonar_schema_enum_add_signal_type (schema);
 
@@ -163,9 +165,9 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_data_schema_builder_key_enum_create    (builder, "/control/track-type",
                                                  "track-type", "Track type", FALSE,
                                                  "track-type", HYSCAN_TRACK_SURVEY);
-  hyscan_data_schema_builder_key_boolean_create (builder, "/control/raw-data",
-                                                 "raw-data", "Enable raw data", FALSE,
-                                                 FALSE);
+  hyscan_data_schema_builder_key_enum_create    (builder, "/control/data-mode",
+                                                 "data-mode", "Preferred data mode", FALSE,
+                                                 "data-mode", HYSCAN_SONAR_DATA_BOTH);
 
   /* Идентификатор для сообщений от гидролокатора. */
   id = schema->priv->id_counter++;
@@ -311,6 +313,25 @@ hyscan_sonar_schema_enum_add_sync_type (HyScanSonarSchema *schema)
   hyscan_data_schema_builder_enum_value_create (builder, "sync-type",
                                                 HYSCAN_SONAR_SYNC_SOFTWARE,
                                                 "Software", NULL);
+}
+
+/* Функция создаёт enum значение data-mode. */
+static void
+hyscan_sonar_schema_enum_add_data_mode (HyScanSonarSchema *schema)
+{
+  HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+
+  hyscan_data_schema_builder_enum_create (builder, "data-mode");
+
+  hyscan_data_schema_builder_enum_value_create (builder, "data-mode",
+                                                HYSCAN_SONAR_DATA_RAW,
+                                                "Prefer raw data", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "data-mode",
+                                                HYSCAN_SONAR_DATA_COMPUTED,
+                                                "Prefer computed data", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "data-mode",
+                                                HYSCAN_SONAR_DATA_BOTH,
+                                                "Both data types", NULL);
 }
 
 /* Функция создаёт enum значение track-type. */

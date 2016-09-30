@@ -37,8 +37,8 @@ static void        hyscan_sonar_proxy_object_finalize          (GObject         
 
 static gboolean    hyscan_sonar_proxy_set_sync_type            (HyScanSonarProxyPrivate     *priv,
                                                                 HyScanSonarSyncType          sync_type);
-static gboolean    hyscan_sonar_proxy_enable_raw_data          (HyScanSonarProxyPrivate     *priv,
-                                                                gboolean                     enable);
+static gboolean    hyscan_sonar_proxy_set_data_mode            (HyScanSonarProxyPrivate     *priv,
+                                                                HyScanSonarDataMode          data_mode);
 static gboolean    hyscan_sonar_proxy_set_position             (HyScanSonarProxyPrivate     *priv,
                                                                 HyScanSourceType             source,
                                                                 HyScanAntennaPosition       *position);
@@ -149,8 +149,8 @@ hyscan_sonar_proxy_object_constructed (GObject *object)
   /* Обработчики команд. */
   g_signal_connect_swapped (priv->server, "sonar-set-sync-type",
                             G_CALLBACK (hyscan_sonar_proxy_set_sync_type), priv);
-  g_signal_connect_swapped (priv->server, "sonar-enable-raw-data",
-                            G_CALLBACK (hyscan_sonar_proxy_enable_raw_data), priv);
+  g_signal_connect_swapped (priv->server, "sonar-set-data-mode",
+                            G_CALLBACK (hyscan_sonar_proxy_set_data_mode), priv);
   g_signal_connect_swapped (priv->server, "sonar-set-position",
                             G_CALLBACK (hyscan_sonar_proxy_set_position), priv);
   g_signal_connect_swapped (priv->server, "sonar-set-receive-time",
@@ -194,12 +194,15 @@ hyscan_sonar_proxy_set_sync_type (HyScanSonarProxyPrivate *priv,
   return hyscan_sonar_control_set_sync_type (priv->control, sync_type);
 }
 
-/* Команда - hyscan_sonar_control_enable_raw_data. */
+/* Команда - hyscan_sonar_control_set_data_mode. */
 static gboolean
-hyscan_sonar_proxy_enable_raw_data (HyScanSonarProxyPrivate *priv,
-                                    gboolean                 enable)
+hyscan_sonar_proxy_set_data_mode (HyScanSonarProxyPrivate *priv,
+                                  HyScanSonarDataMode      data_mode)
 {
-  return hyscan_sonar_control_enable_raw_data (priv->control, enable);
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+    return hyscan_sonar_control_set_data_mode (priv->control, data_mode);
+
+  return TRUE;
 }
 
 /* Команда - hyscan_sonar_control_set_position. */

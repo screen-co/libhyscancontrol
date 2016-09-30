@@ -112,7 +112,7 @@ typedef struct
   gboolean                             enable;
   gint64                               sync_capabilities;
   gint64                               sync_type;
-  gboolean                             enable_raw_data;
+  HyScanSonarDataMode                  data_mode;
   gchar                               *project_name;
   gchar                               *track_name;
   HyScanTrackType                      track_type;
@@ -529,12 +529,12 @@ sonar_set_sync_type_cb (ServerInfo          *server,
   return TRUE;
 }
 
-/* Функция управляет отправкой "сырых" данных. */
+/* Функция задаёт предпочитаемый вид данных от гидролокатора. */
 gboolean
-sonar_enable_raw_data_cb (ServerInfo *server,
-                          gboolean    enable)
+sonar_set_data_mode_cb (ServerInfo          *server,
+                        HyScanSonarDataMode  data_mode)
 {
-  sonar_info.enable_raw_data = enable;
+  sonar_info.data_mode = data_mode;
   *server->counter += 1;
 
   return TRUE;
@@ -1137,7 +1137,8 @@ check_tvg_control (HyScanTVGControl *control,
 
 /* Функция проверяет управление гидролокатором. */
 void
-check_sonar_control (HyScanSonarControl *control)
+check_sonar_control (HyScanSonarControl   *control,
+                     HyScanSonarProxyMode  proxy_mode)
 {
   HyScanSonarSyncType capabilities;
 
@@ -1160,20 +1161,30 @@ check_sonar_control (HyScanSonarControl *control)
         }
     }
 
-  /* Включение / выключение "сырых" данных. */
-  prev_counter = counter;
-  if (!hyscan_sonar_control_enable_raw_data (control, FALSE) ||
-      (sonar_info.enable_raw_data != FALSE) ||
-      (prev_counter + 1 != counter))
+  /* Предпочитаемый вид данных от гидролокатора. */
+  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
     {
-      g_error ("sonar.raw_data.enable: can't disable");
-    }
-  prev_counter = counter;
-  if (!hyscan_sonar_control_enable_raw_data (control, TRUE) ||
-      (sonar_info.enable_raw_data != TRUE) ||
-      (prev_counter + 1 != counter))
-    {
-      g_error ("sonar.raw_data.enable: can't enable");
+      prev_counter = counter;
+      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_RAW) ||
+          (sonar_info.data_mode != HYSCAN_SONAR_DATA_RAW) ||
+          (prev_counter + 1 != counter))
+        {
+          g_error ("sonar.data.mode: can't set raw");
+        }
+      prev_counter = counter;
+      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_COMPUTED) ||
+          (sonar_info.data_mode != HYSCAN_SONAR_DATA_COMPUTED) ||
+          (prev_counter + 1 != counter))
+        {
+          g_error ("sonar.data.mode: can't set computed");
+        }
+      prev_counter = counter;
+      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_BOTH) ||
+          (sonar_info.data_mode != HYSCAN_SONAR_DATA_BOTH) ||
+          (prev_counter + 1 != counter))
+        {
+          g_error ("sonar.data.mode: can't set both");
+        }
     }
 
   /* Время приёма эхосигналов. */
@@ -1579,8 +1590,8 @@ main (int    argc,
 
   g_signal_connect_swapped (server.sonar, "sonar-set-sync-type",
                             G_CALLBACK (sonar_set_sync_type_cb), &server);
-  g_signal_connect_swapped (server.sonar, "sonar-enable-raw-data",
-                            G_CALLBACK (sonar_enable_raw_data_cb), &server);
+  g_signal_connect_swapped (server.sonar, "sonar-set-data-mode",
+                            G_CALLBACK (sonar_set_data_mode_cb), &server);
   g_signal_connect_swapped (server.sonar, "sonar-set-position",
                             G_CALLBACK (sonar_set_position_cb), &server);
   g_signal_connect_swapped (server.sonar, "sonar-set-receive-time",
@@ -1657,7 +1668,7 @@ main (int    argc,
 
   /* Проверка управления гидролокатором. */
   g_message ("Checking sonar control");
-  check_sonar_control (HYSCAN_SONAR_CONTROL (control));
+  check_sonar_control (HYSCAN_SONAR_CONTROL (control), proxy_mode);
 
   g_message ("All done");
 
