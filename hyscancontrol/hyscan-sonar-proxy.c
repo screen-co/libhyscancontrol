@@ -25,7 +25,7 @@ struct _HyScanSonarProxyPrivate
   HyScanSonarControl          *control;                        /* Клиент управления проксируемым гидролокатором. */
   HyScanSonarControlServer    *server;                         /* Прокси сервер гидролокатора. */
 
-  HyScanSonarProxyMode         proxy_mode;                     /* Режим трансляции команд и данных. */
+  HyScanSonarProxyModeType     proxy_mode;                     /* Режим трансляции команд и данных. */
 };
 
 static void        hyscan_sonar_proxy_set_property             (GObject                     *object,
@@ -81,7 +81,7 @@ hyscan_sonar_proxy_class_init (HyScanSonarProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_FORWARD_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
                       HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -163,7 +163,7 @@ hyscan_sonar_proxy_object_constructed (GObject *object)
                             G_CALLBACK (hyscan_sonar_proxy_ping), priv);
 
   /* Обработчики "сырых" данных от гидролокатора. */
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       g_signal_connect_swapped (priv->control, "raw-data",
                                 G_CALLBACK (hyscan_sonar_proxy_raw_data_forwarder), priv);
@@ -199,7 +199,7 @@ static gboolean
 hyscan_sonar_proxy_set_data_mode (HyScanSonarProxyPrivate *priv,
                                   HyScanSonarDataMode      data_mode)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     return hyscan_sonar_control_set_data_mode (priv->control, data_mode);
 
   return TRUE;

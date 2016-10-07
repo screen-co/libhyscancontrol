@@ -40,7 +40,7 @@ struct _HyScanSSSEProxyPrivate
   HyScanSSSEControl           *control;                        /* Клиент управления проксируемым гидролокатором. */
   HyScanSSSEControlServer     *server;                         /* Сервер прокси гидролокатора. */
 
-  HyScanSonarProxyMode         proxy_mode;                     /* Режим трансляции команд и данных. */
+  HyScanSonarProxyModeType     proxy_mode;                     /* Режим трансляции команд и данных. */
 
   GHashTable                  *buffers;                        /* Буферы для данных от гидролокатора по каналам. */
 
@@ -83,7 +83,7 @@ hyscan_ssse_proxy_class_init (HyScanSSSEProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_FORWARD_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
                       HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_SIDE_SCALE,
@@ -207,7 +207,7 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
                                   HyScanDataWriterData   *data)
 {
   /* Перенаправляем данные без обработки. */
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       hyscan_ssse_control_server_send_acoustic_data (priv->server, source, info->data.type, info->data.rate, data);
     }
@@ -317,7 +317,7 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
 /* Функция создаёт новый объект HyScanSSSEProxy. */
 HyScanSSSEProxy *
 hyscan_ssse_proxy_new (HyScanSonar                *sonar,
-                       HyScanSonarProxyMode        proxy_mode,
+                       HyScanSonarProxyModeType    proxy_mode,
                        guint                       side_scale,
                        guint                       track_scale,
                        HyScanDB                   *db)
@@ -334,7 +334,7 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
   control = hyscan_ssse_control_new (sonar, db);
 
   /* Трансляция 1:1. */
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       schema_data = hyscan_data_schema_get_data (HYSCAN_DATA_SCHEMA (sonar));
     }
@@ -348,6 +348,10 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
       schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (schema));
       g_object_unref (schema);
     }
+  else
+    {
+      return NULL;
+    }
 
   proxy = g_object_new (HYSCAN_TYPE_SSSE_PROXY,
                         "control", control,
@@ -360,6 +364,9 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
 
   g_object_unref (control);
   g_free (schema_data);
+
+  if (proxy->priv->server == NULL)
+    g_clear_object (&proxy);
 
   return proxy;
 }

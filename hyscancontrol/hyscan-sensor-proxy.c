@@ -26,7 +26,7 @@ struct _HyScanSensorProxyPrivate
   HyScanSensorControl         *control;                        /* Клиент управления проксируемыми датчиками. */
   HyScanSensorControlServer   *server;                         /* Прокси сервер датчиков. */
 
-  HyScanSonarProxyMode         proxy_mode;                     /* Режим трансляции команд и данных. */
+  HyScanSonarProxyModeType     proxy_mode;                     /* Режим трансляции команд и данных. */
   gchar                       *virtual_source;                 /* Название порта источника данных для виртуального NMEA порта. */
   gboolean                     virtual_enable;                 /* Признак включения виртуального порта. */
 
@@ -89,7 +89,7 @@ hyscan_sensor_proxy_class_init (HyScanSensorProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_FORWARD_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
                       HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -208,7 +208,7 @@ hyscan_sensor_proxy_set_virtual_port_param (HyScanSensorProxyPrivate *priv,
                                             guint                     channel,
                                             gint64                    time_offset)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       return hyscan_sensor_control_set_virtual_port_param (priv->control, name, channel, time_offset);
     }
@@ -237,7 +237,7 @@ hyscan_sensor_proxy_set_uart_port_param (HyScanSensorProxyPrivate *priv,
                                          guint                     uart_device,
                                          guint                     uart_mode)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       return hyscan_sensor_control_set_uart_port_param (priv->control, name, channel, time_offset,
                                                         protocol, uart_device, uart_mode);
@@ -256,7 +256,7 @@ hyscan_sensor_proxy_set_udp_ip_port_param (HyScanSensorProxyPrivate *priv,
                                            guint                     ip_address,
                                            guint16                   udp_port)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       return hyscan_sensor_control_set_udp_ip_port_param (priv->control, name, channel, time_offset,
                                                           protocol, ip_address, udp_port);
@@ -271,7 +271,7 @@ hyscan_sensor_proxy_set_position (HyScanSensorProxyPrivate *priv,
                                   const gchar              *name,
                                   HyScanAntennaPosition    *position)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       return hyscan_sensor_control_set_position (priv->control, name, position);
     }
@@ -294,7 +294,7 @@ hyscan_sensor_proxy_set_enable (HyScanSensorProxyPrivate *priv,
                                 const gchar              *name,
                                 gboolean                  enable)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       return hyscan_sensor_control_set_enable (priv->control, name, enable);
     }
@@ -324,7 +324,7 @@ hyscan_sensor_proxy_data_forwarder (HyScanSensorProxyPrivate *priv,
                                     HyScanDataType            type,
                                     HyScanDataWriterData     *data)
 {
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       hyscan_sensor_control_server_send_data (priv->server, name, type, data);
     }
@@ -356,7 +356,7 @@ hyscan_sensor_proxy_set_source (HyScanSensorProxy *proxy,
 
   priv = proxy->priv;
 
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     return FALSE;
 
   g_rw_lock_writer_lock (&priv->lock);

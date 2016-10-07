@@ -75,7 +75,7 @@ GType                  hyscan_ssse_proxy_get_type              (void);
  *
  * Функция создаёт новый объект \link HyScanSSSEProxy \endlink и возвращает
  * указатель на него. Если тип гидролокатора не совпадает с \link HYSCAN_SONAR_SSSE \endlink
- * или указаны невеные параметры, функция возвращает NULL.
+ * или указаны неверные параметры, функция возвращает NULL.
  *
  * Если при создании класса указан объект работы с базой данных - db, все
  * данные от гидролокатора до трансляции будут записаны в эту базу.
@@ -91,7 +91,7 @@ GType                  hyscan_ssse_proxy_get_type              (void);
  */
 HYSCAN_API
 HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanSonar                   *sonar,
-                                                                HyScanSonarProxyMode           proxy_mode,
+                                                                HyScanSonarProxyModeType       proxy_mode,
                                                                 guint                          side_scale,
                                                                 guint                          track_scale,
                                                                 HyScanDB                      *db);
@@ -99,10 +99,9 @@ HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanSonar     
 /**
  *
  * Функция возвращает указатель на объект управления проксируемым ГБОЭ - \link HyScanSSSEControl \endlink.
- * Объект управления принадлежит \link HyScanSSSEProxy \endlink и действителен всё время
- * его жизни. Пользователь должен самостоятельно увеличить счётчик ссылок, если необходимо
- * использовать этот объект и дальше. Функция может вернуть NULL, если интерфейс управления
- * гидролокатором \link HyScanSonar \endlink не совместим со схемой ГБОЭ.
+ * Объект управления принадлежит \link HyScanSSSEProxy \endlink и действителен только во время
+ * его жизни. Функция может вернуть NULL, если интерфейс управления гидролокатором
+ * \link HyScanSonar \endlink не совместим со схемой ГБОЭ.
  *
  * \param proxy указатель на объект \link HyScanSSSEProxy \endlink.
  *

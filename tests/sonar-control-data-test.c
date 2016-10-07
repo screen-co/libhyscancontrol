@@ -239,12 +239,12 @@ sonar_ping_cb (ServerInfo *server)
 
 /* Функция проверяет управление гидролокатором. */
 void
-generate_data (HyScanSSSEControl    *control,
-               const gchar          *project_name,
-               HyScanSonarProxyMode  proxy_mode)
+generate_data (HyScanSSSEControl        *control,
+               const gchar              *project_name,
+               HyScanSonarProxyModeType  proxy_mode)
 {
   guint i;
-  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? SENSOR_N_PORTS : 1;
+  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? SENSOR_N_PORTS : 1;
 
   /* Местоположение приёмных антенн датчиков. */
   for (i = 0; i < sensor_n_ports; i++)
@@ -286,9 +286,9 @@ generate_data (HyScanSSSEControl    *control,
 
 /* Функция проверяет записанные данные. */
 void
-check_data (HyScanDB             *db,
-            gint32                project_id,
-            HyScanSonarProxyMode  proxy_mode)
+check_data (HyScanDB                 *db,
+            gint32                    project_id,
+            HyScanSonarProxyModeType  proxy_mode)
 {
   gint32 track_id;
 
@@ -301,10 +301,10 @@ check_data (HyScanDB             *db,
   gint32 data_size;
   gint64 time;
 
-  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? SENSOR_N_PORTS : 1;
-  guint sonar_n_sub_types = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 3 : 1;
-  guint side_scale = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 1 : SIDE_SCALE;
-  guint track_scale = (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL) ? 1 : TRACK_SCALE;
+  guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? SENSOR_N_PORTS : 1;
+  guint sonar_n_sub_types = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 3 : 1;
+  guint side_scale = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 1 : SIDE_SCALE;
+  guint track_scale = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 1 : TRACK_SCALE;
   gint n_track;
   gint i, j, k;
 
@@ -586,7 +586,7 @@ check_data (HyScanDB             *db,
                 {
                   gint64 ref_time;
 
-                  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+                  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
                     ref_time = 1000 * (i + 1);
                   else
                     ref_time = (1000 * (i * TRACK_SCALE + 1)) + (1000 * (TRACK_SCALE - 1) / 2);
@@ -603,7 +603,7 @@ check_data (HyScanDB             *db,
                     {
                       gfloat ref_value;
 
-                      if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+                      if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
                         ref_value = (i / TRACK_SCALE) + j + (k / SIDE_SCALE) + n_track;
                       else
                         ref_value = i + j + k + n_track;
@@ -619,7 +619,7 @@ check_data (HyScanDB             *db,
             }
 
           /* Образы сигналов и ВАРУ. */
-          if ((n_track > 0) && (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL))
+          if ((n_track > 0) && (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL))
             {
               gchar *signal_name;
               gchar *tvg_name;
@@ -763,7 +763,7 @@ main (int    argc,
   gint32 project_id;
 
   gchar *proxy_mode_string = NULL;
-  HyScanSonarProxyMode proxy_mode = 0;
+  HyScanSonarProxyModeType proxy_mode = 0;
 
   guint i;
 
@@ -803,7 +803,7 @@ main (int    argc,
       {
         if (g_strcmp0 (proxy_mode_string, "all") == 0)
           {
-            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
+            proxy_mode = HYSCAN_SONAR_PROXY_MODE_ALL;
           }
         else if (g_strcmp0 (proxy_mode_string, "computed") == 0)
           {
@@ -817,7 +817,7 @@ main (int    argc,
       }
     else
       {
-        proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
+        proxy_mode = HYSCAN_SONAR_PROXY_MODE_ALL;
       }
 
     g_option_context_free (context);

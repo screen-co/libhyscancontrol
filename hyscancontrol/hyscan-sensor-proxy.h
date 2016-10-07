@@ -38,9 +38,11 @@ G_BEGIN_DECLS
 /** \brief Режимы трансляции команд управления гидролокатором и данных от него */
 typedef enum
 {
-  HYSCAN_SONAR_PROXY_FORWARD_ALL,            /**< Трансляция один к одному без изменений. */
-  HYSCAN_SONAR_PROXY_FORWARD_COMPUTED        /**< Транслировать обработанные данные. */
-} HyScanSonarProxyMode;
+  HYSCAN_SONAR_PROXY_MODE_INVALID     = 0,   /**< Недопустимый режим, ошибка. */
+
+  HYSCAN_SONAR_PROXY_MODE_ALL         = 101, /**< Трансляция один к одному без изменений. */
+  HYSCAN_SONAR_PROXY_FORWARD_COMPUTED = 102  /**< Транслировать обработанные данные. */
+} HyScanSonarProxyModeType;
 
 #define HYSCAN_TYPE_SENSOR_PROXY             (hyscan_sensor_proxy_get_type ())
 #define HYSCAN_SENSOR_PROXY(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_SENSOR_PROXY, HyScanSensorProxy))

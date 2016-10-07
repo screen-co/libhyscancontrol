@@ -25,7 +25,7 @@ struct _HyScanTVGProxyPrivate
   HyScanTVGControl            *control;                        /* Клиент управления проксируемой системой ВАРУ. */
   HyScanTVGControlServer      *server;                         /* Прокси сервер системы ВАРУ. */
 
-  HyScanSonarProxyMode         proxy_mode;                     /* Режим трансляции команд и данных. */
+  HyScanSonarProxyModeType     proxy_mode;                     /* Режим трансляции команд и данных. */
 };
 
 static void        hyscan_tvg_proxy_set_property               (GObject               *object,
@@ -73,7 +73,7 @@ hyscan_tvg_proxy_class_init (HyScanTVGProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_FORWARD_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
                       HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -151,7 +151,7 @@ hyscan_tvg_proxy_object_constructed (GObject *object)
                             G_CALLBACK (hyscan_tvg_proxy_set_enable), priv);
 
   /* Обработчик параметров ВАРУ. */
-  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       g_signal_connect_swapped (priv->control, "gains",
                                 G_CALLBACK (hyscan_tvg_control_server_send_gains), priv->server);

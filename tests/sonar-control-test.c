@@ -618,8 +618,8 @@ sonar_ping_cb (ServerInfo *server)
 
 /* Функция проверяет управление портами для подключения датчиков. */
 void
-check_sensor_control (HyScanSensorControl  *control,
-                      HyScanSonarProxyMode  proxy_mode)
+check_sensor_control (HyScanSensorControl      *control,
+                      HyScanSonarProxyModeType  proxy_mode)
 {
   HyScanDataSchemaEnumValue **uart_devices;
   HyScanDataSchemaEnumValue **uart_modes;
@@ -635,7 +635,7 @@ check_sensor_control (HyScanSensorControl  *control,
     g_error ("can't list sensor ports");
 
   /* Проверка числа портов. */
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       if (g_strv_length (names) != 3 * SENSOR_N_PORTS)
         g_error ("wrong number of sensor ports");
@@ -651,7 +651,7 @@ check_sensor_control (HyScanSensorControl  *control,
   if (uart_devices == NULL)
     g_error ("sensor.uart-devices: can't get");
 
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       for (i = 0; i <= SENSOR_N_UART_DEVICES; i++)
         {
@@ -671,7 +671,7 @@ check_sensor_control (HyScanSensorControl  *control,
   if (uart_modes == NULL)
     g_error ("sensor.uart-modes: can't get");
 
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       for (i = 0; i <= SENSOR_N_UART_MODES; i++)
         {
@@ -691,7 +691,7 @@ check_sensor_control (HyScanSensorControl  *control,
   if (ip_addresses == NULL)
     g_error ("sensor.ip-addresses: can't get");
 
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       for (i = 0; i < SENSOR_N_IP_ADDRESSES; i++)
         {
@@ -721,7 +721,7 @@ check_sensor_control (HyScanSensorControl  *control,
       if (port == NULL)
         g_error ("can't find sensor port %s", names[i]);
 
-      if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+      if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
         {
           /* Позиция приёмной антенны. */
           position.x = g_random_double ();
@@ -763,7 +763,7 @@ check_sensor_control (HyScanSensorControl  *control,
 
               prev_counter = counter;
               status = hyscan_sensor_control_set_virtual_port_param (control, names[i], j, time_offset);
-              if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+              if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
                 {
                   if (!status || (prev_counter + 1 != counter) ||
                       (port->channel != j) ||
@@ -841,7 +841,7 @@ check_sensor_control (HyScanSensorControl  *control,
                 }
         }
 
-      if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+      if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
         {
           /* Включаем порт. */
           prev_counter = counter;
@@ -1137,8 +1137,8 @@ check_tvg_control (HyScanTVGControl *control,
 
 /* Функция проверяет управление гидролокатором. */
 void
-check_sonar_control (HyScanSonarControl   *control,
-                     HyScanSonarProxyMode  proxy_mode)
+check_sonar_control (HyScanSonarControl       *control,
+                     HyScanSonarProxyModeType  proxy_mode)
 {
   HyScanSonarSyncType capabilities;
 
@@ -1162,7 +1162,7 @@ check_sonar_control (HyScanSonarControl   *control,
     }
 
   /* Предпочитаемый вид данных от гидролокатора. */
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       prev_counter = counter;
       if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_RAW) ||
@@ -1290,7 +1290,7 @@ main (int    argc,
   HyScanSSSEControl *control;
 
   gchar *proxy_mode_string = NULL;
-  HyScanSonarProxyMode proxy_mode = 0;
+  HyScanSonarProxyModeType proxy_mode = 0;
   gboolean print_schema = FALSE;
 
   guint pow2;
@@ -1327,7 +1327,7 @@ main (int    argc,
       {
         if (g_strcmp0 (proxy_mode_string, "all") == 0)
           {
-            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
+            proxy_mode = HYSCAN_SONAR_PROXY_MODE_ALL;
           }
         else if (g_strcmp0 (proxy_mode_string, "computed") == 0)
           {
@@ -1341,7 +1341,7 @@ main (int    argc,
       }
     else
       {
-        proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_ALL;
+        proxy_mode = HYSCAN_SONAR_PROXY_MODE_ALL;
       }
 
     g_option_context_free (context);
@@ -1439,7 +1439,7 @@ main (int    argc,
   /* Порты для датчиков. */
   ports = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
-  if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_ALL)
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       for (i = 0; i < SENSOR_N_PORTS; i++)
         {
