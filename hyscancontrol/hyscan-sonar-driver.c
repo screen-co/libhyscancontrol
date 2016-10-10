@@ -108,7 +108,7 @@ hyscan_sonar_driver_object_constructed (GObject *object)
     return;
 
   /* Путь к файлу драйвера. */
-  module_name = g_strdup_printf ("hyscan-%s-drv.%s", priv->name, G_MODULE_SUFFIX);
+  module_name = g_strdup_printf ("hyscan-sonar-%s-drv.%s", priv->name, G_MODULE_SUFFIX);
   module_path = g_build_filename (priv->path, module_name, NULL);
 
   /* Загрузка драйвера. */
