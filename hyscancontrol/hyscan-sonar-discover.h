@@ -23,12 +23,15 @@
  *
  * Для подключения к гидролокатору используется функция #hyscan_sonar_discover_connect.
  *
+ * Параметры драйвера можно узнать с помощью функции #hyscan_sonar_discover_config.
+ *
  */
 
 #ifndef __HYSCAN_SONAR_DISCOVER_H__
 #define __HYSCAN_SONAR_DISCOVER_H__
 
 #include <hyscan-control.h>
+#include <hyscan-data-box.h>
 
 G_BEGIN_DECLS
 
@@ -61,6 +64,10 @@ struct _HyScanSonarDiscoverInterface
   HyScanSonarDiscoverInfo    **(*list)                         (HyScanSonarDiscover           *discover);
 
   HyScanSonar                 *(*connect)                      (HyScanSonarDiscover           *discover,
+                                                                const gchar                   *uri,
+                                                                const gchar                   *config);
+
+  HyScanDataBox               *(*config)                       (HyScanSonarDiscover           *discover,
                                                                 const gchar                   *uri);
 };
 
@@ -119,16 +126,36 @@ HyScanSonarDiscoverInfo      **hyscan_sonar_discover_list      (HyScanSonarDisco
 
 /**
  *
- * Функция подключается к гидролокатору.
+ * Функция производит подключение к гидролокатору.
  *
  * \param discover указатель на интерфейс \link HyScanSonarDsicover \endlink;
- * \param uri путь для подключения к гидролокатору.
+ * \param uri путь для подключения к гидролокатору;
+ * \param config параметры драйвера или NULL.
  *
  * \return Указатель на интерфейс \link HyScanSonar \endlink или NULL.
  *
  */
 HYSCAN_API
 HyScanSonar                   *hyscan_sonar_discover_connect   (HyScanSonarDiscover           *discover,
+                                                                const gchar                   *uri,
+                                                                const gchar                   *config);
+
+/**
+ *
+ * Функция возвращает объект с параметрами драйвера гидролокатора. Эти параметры,
+ * в сериализованном виде (см. \link hyscan_data_box_serialize \endlink), можно
+ * передать в функцию #hyscan_sonar_discover_connect.
+ *
+ * Если драйвер не содержит настраиваемых параметров, функция вернёт NULL.
+ *
+ * \param discover указатель на интерфейс \link HyScanSonarDsicover \endlink;
+ * \param uri путь для подключения к гидролокатору.
+ *
+ * \return Указатель на объект \link HyScanDataBox \endlink или NULL.
+ *
+ */
+HYSCAN_API
+HyScanDataBox                 *hyscan_sonar_discover_config    (HyScanSonarDiscover           *discover,
                                                                 const gchar                   *uri);
 
 /**

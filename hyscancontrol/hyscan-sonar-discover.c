@@ -75,7 +75,8 @@ hyscan_sonar_discover_list (HyScanSonarDiscover *discover)
 
 HyScanSonar *
 hyscan_sonar_discover_connect (HyScanSonarDiscover *discover,
-                               const gchar         *uri)
+                               const gchar         *uri,
+                               const gchar         *config)
 {
   HyScanSonarDiscoverInterface *iface;
 
@@ -83,7 +84,22 @@ hyscan_sonar_discover_connect (HyScanSonarDiscover *discover,
 
   iface = HYSCAN_SONAR_DISCOVER_GET_IFACE (discover);
   if (iface->connect != NULL)
-    return (* iface->connect) (discover, uri);
+    return (* iface->connect) (discover, uri, config);
+
+  return NULL;
+}
+
+HyScanDataBox *
+hyscan_sonar_discover_config (HyScanSonarDiscover *discover,
+                              const gchar         *uri)
+{
+  HyScanSonarDiscoverInterface *iface;
+
+  g_return_val_if_fail (HYSCAN_IS_SONAR_DISCOVER (discover), NULL);
+
+  iface = HYSCAN_SONAR_DISCOVER_GET_IFACE (discover);
+  if (iface->config != NULL)
+    return (* iface->config) (discover, uri);
 
   return NULL;
 }
