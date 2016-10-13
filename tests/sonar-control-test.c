@@ -867,7 +867,7 @@ check_generator_control (HyScanGeneratorControl *control,
                          HyScanSourceType        source)
 {
   SourceInfo *info = source_info (source);
-  const gchar *name = hyscan_control_get_source_name (source);
+  const gchar *name = hyscan_channel_get_name_by_types (source, FALSE, 1);
 
   HyScanGeneratorModeType capabilities;
   HyScanGeneratorSignalType signals;
@@ -1025,7 +1025,7 @@ check_tvg_control (HyScanTVGControl *control,
                    HyScanSourceType  source)
 {
   SourceInfo *info = source_info (source);
-  const gchar *name = hyscan_control_get_source_name (source);
+  const gchar *name = hyscan_channel_get_name_by_types (source, FALSE, 1);
 
   HyScanTVGModeType capabilities;
 
@@ -1202,7 +1202,7 @@ check_sonar_control (HyScanSonarControl       *control,
               (info->cur_receive_time != receive_time) ||
               (prev_counter + 1 != counter))
             {
-              g_error ("sonar.%s.receive_time: can't set", hyscan_control_get_source_name (source));
+              g_error ("sonar.%s.receive_time: can't set", hyscan_channel_get_name_by_types (source, FALSE, 1));
             }
         }
     }
@@ -1233,7 +1233,7 @@ check_sonar_control (HyScanSonarControl       *control,
               (info->position.gamma != position.gamma) ||
               (info->position.theta != position.theta))
             {
-              g_error ("sonar.%s: can't set position", hyscan_control_get_source_name (source));
+              g_error ("sonar.%s: can't set position", hyscan_channel_get_name_by_types (source, FALSE, 1));
             }
         }
     }
@@ -1519,7 +1519,7 @@ main (int    argc,
       info->generator.preset_names[0] = g_strdup ("Disabled");
       for (j = 1; j <= GENERATOR_N_PRESETS; j++)
         {
-          gchar *preset_name = g_strdup_printf ("%s.preset.%d", hyscan_control_get_source_name (source), j + 1);
+          gchar *preset_name = g_strdup_printf ("%s.preset.%d", hyscan_channel_get_name_by_types (source, FALSE, 1), j + 1);
 
           info->generator.preset_ids[j] = hyscan_sonar_schema_generator_add_preset (schema, source, preset_name);
           info->generator.preset_names[j] = preset_name;
