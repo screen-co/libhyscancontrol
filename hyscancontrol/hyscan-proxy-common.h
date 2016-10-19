@@ -17,7 +17,7 @@
 #define HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME  "nmea"
 
 /* Функция создаёт новый объект для определения схемы прокси гидролокатора. */
-HyScanSonarSchema     *hyscan_proxy_schema_new                 (HyScanSonar                   *sonar,
+HyScanSonarSchema     *hyscan_proxy_schema_new                 (HyScanDataSchema              *schema,
                                                                 gdouble                        timeout);
 
 /* Функция определяет один виртуальный nmea порт прокси гидролокатора. */

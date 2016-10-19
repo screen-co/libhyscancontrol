@@ -13,15 +13,15 @@
 
 /* Функция создаёт новый объект для определения схемы прокси гидролокатора. */
 HyScanSonarSchema *
-hyscan_proxy_schema_new (HyScanSonar *sonar,
-                         gdouble      timeout)
+hyscan_proxy_schema_new (HyScanDataSchema *schema,
+                         gdouble           timeout)
 {
-  HyScanSonarSchema *schema;
+  HyScanSonarSchema *proxy_schema;
 
   GVariant *value;
   HyScanSonarSyncType sync_capabilities = 0;
 
-  value = hyscan_data_schema_key_get_default (HYSCAN_DATA_SCHEMA (sonar), "/sync/capabilities");
+  value = hyscan_data_schema_key_get_default (schema, "/sync/capabilities");
   if (value != NULL)
     {
       sync_capabilities = g_variant_get_int64 (value);
@@ -34,17 +34,17 @@ hyscan_proxy_schema_new (HyScanSonar *sonar,
     }
 
   /* Схема прокси гидролокатора. */
-  schema = hyscan_sonar_schema_new (timeout);
+  proxy_schema = hyscan_sonar_schema_new (timeout);
 
   /* Режимы синхронизации излучения. */
-  if (!hyscan_sonar_schema_sync_add (schema, sync_capabilities))
+  if (!hyscan_sonar_schema_sync_add (proxy_schema, sync_capabilities))
     {
       g_warning ("HyScanSonarProxy: can't set sync capabilities");
-      g_object_unref (schema);
+      g_object_unref (proxy_schema);
       return NULL;
     }
 
-  return schema;
+  return proxy_schema;
 }
 
 /* Функция определяет один виртуальный nmea порт прокси гидролокатора. */

@@ -81,8 +81,8 @@ hyscan_sonar_proxy_class_init (HyScanSonarProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
-                      HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -134,11 +134,11 @@ hyscan_sonar_proxy_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;

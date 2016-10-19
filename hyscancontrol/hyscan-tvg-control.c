@@ -33,6 +33,7 @@ typedef struct
 struct _HyScanTVGControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   GHashTable                  *tvgs_by_id;                     /* Список систем ВАРУ. */
   GHashTable                  *tvgs_by_source;                 /* Список систем ВАРУ. */
@@ -138,7 +139,8 @@ hyscan_tvg_control_object_constructed (GObject *object)
     return;
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
+  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -226,6 +228,7 @@ hyscan_tvg_control_object_finalize (GObject *object)
 
   g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
+  g_clear_object (&priv->schema);
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->tvgs_by_source);
@@ -311,8 +314,8 @@ hyscan_tvg_control_get_gain_range (HyScanTVGControl     *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/constant/gain", tvg->path);
-  min_gain_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
-  max_gain_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  min_gain_value = hyscan_data_schema_key_get_minimum (control->priv->schema, param_name);
+  max_gain_value = hyscan_data_schema_key_get_maximum (control->priv->schema, param_name);
   g_free (param_name);
 
   if (min_gain_value != NULL && max_gain_value != NULL)

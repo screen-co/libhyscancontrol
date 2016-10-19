@@ -17,7 +17,7 @@
 enum
 {
   PROP_0,
-  PROP_PARAMS
+  PROP_SONAR
 };
 
 enum
@@ -47,7 +47,7 @@ struct _HyScanSensorControlServerPort
 
 struct _HyScanSensorControlServerPrivate
 {
-  HyScanDataBox                         *params;                         /* Параметры гидролокатора. */
+  HyScanSonarBox                        *sonar;                          /* Базовый класс гидролокатора. */
 
   GHashTable                            *operations;                     /* Таблица возможных запросов. */
   GHashTable                            *paths;                          /* Таблица названий параметров запросов. */
@@ -63,10 +63,9 @@ static void        hyscan_sensor_control_server_object_finalize          (GObjec
 
 static void        hyscan_sensor_control_server_free_port                (gpointer                       data);
 
-static gboolean    hyscan_sensor_control_server_set_cb                   (HyScanDataBox                 *params,
+static gboolean    hyscan_sensor_control_server_set_cb                   (HyScanSensorControlServer     *server,
                                                                           const gchar *const            *names,
-                                                                          GVariant                     **values,
-                                                                          HyScanSensorControlServer     *server);
+                                                                          GVariant                     **values);
 
 static gboolean    hyscan_sensor_control_server_virtual_port_param       (HyScanSensorControlServer     *server,
                                                                           HyScanSensorControlServerPort *port,
@@ -103,8 +102,8 @@ hyscan_sensor_control_server_class_init (HyScanSensorControlServerClass *klass)
   object_class->constructed = hyscan_sensor_control_server_object_constructed;
   object_class->finalize = hyscan_sensor_control_server_object_finalize;
 
-  g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
+  g_object_class_install_property (object_class, PROP_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar base class HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_VIRTUAL_PORT_PARAM] =
@@ -160,8 +159,8 @@ hyscan_sensor_control_server_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_PARAMS:
-      priv->params = g_value_get_object (value);
+    case PROP_SONAR:
+      priv->sonar = g_value_get_object (value);
       break;
 
     default:
@@ -176,6 +175,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
   HyScanSensorControlServer *server = HYSCAN_SENSOR_CONTROL_SERVER (object);
   HyScanSensorControlServerPrivate *priv = server->priv;
 
+  HyScanDataSchema *schema;
   HyScanDataSchemaNode *params;
   HyScanDataSchemaNode *sensors;
 
@@ -190,15 +190,15 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->ids = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
-  /* Обязательно должны быть переданы параметры гидролокатора. */
-  if (priv->params == NULL)
+  /* Обязательно должен быть передан указатель на базовый класс гидролокатора. */
+  if (priv->sonar == NULL)
     {
       g_warning ("HyScanControlServer: empty parameters");
       return;
     }
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
     {
       g_warning ("HyScanControlServer: unknown sonar schema id");
       return;
@@ -208,7 +208,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
       g_warning ("HyScanControlServer: sonar schema id mismatch");
       return;
     }
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
     {
       g_warning ("HyScanControlServer: unknown sonar schema version");
       return;
@@ -220,7 +220,9 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
     }
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
+  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  params = hyscan_data_schema_list_nodes (schema);
+  g_clear_object (&schema);
 
   /* Ветка схемы с описанием портов - "/sensors". */
   for (i = 0, sensors = NULL; i < params->n_nodes; i++)
@@ -255,7 +257,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
           param_names[1] = g_strdup_printf ("%s/type", sensors->nodes[i]->path);
           param_names[2] = NULL;
 
-          status = hyscan_data_box_get (HYSCAN_DATA_BOX (priv->params), (const gchar **)param_names, param_values);
+          status = hyscan_sonar_get (HYSCAN_SONAR (priv->sonar), (const gchar **)param_names, param_values);
 
           if (status)
             {
@@ -387,8 +389,9 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
           g_strfreev (pathv);
         }
 
-      g_signal_connect (priv->params, "set",
-                        G_CALLBACK (hyscan_sensor_control_server_set_cb), server);
+      g_signal_connect_swapped (priv->sonar, "set",
+                                G_CALLBACK (hyscan_sensor_control_server_set_cb),
+                                server);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -400,7 +403,7 @@ hyscan_sensor_control_server_object_finalize (GObject *object)
   HyScanSensorControlServer *server = HYSCAN_SENSOR_CONTROL_SERVER (object);
   HyScanSensorControlServerPrivate *priv = server->priv;
 
-  g_signal_handlers_disconnect_by_data (priv->params, server);
+  g_signal_handlers_disconnect_by_data (priv->sonar, server);
 
   g_hash_table_unref (priv->ids);
   g_hash_table_unref (priv->paths);
@@ -421,11 +424,11 @@ hyscan_sensor_control_server_free_port (gpointer data)
 
 /* Функция - обработчик параметров. */
 static gboolean
-hyscan_sensor_control_server_set_cb (HyScanDataBox              *params,
+hyscan_sensor_control_server_set_cb (HyScanSensorControlServer  *server,
                                      const gchar *const         *names,
-                                     GVariant                  **values,
-                                     HyScanSensorControlServer  *server)
+                                     GVariant                  **values)
 {
+  HyScanSensorControlServerPrivate *priv = server->priv;
   HyScanSensorControlServerPort *port0;
   HyScanSensorControlServerPort *portn;
   guint n_names;
@@ -435,7 +438,7 @@ hyscan_sensor_control_server_set_cb (HyScanDataBox              *params,
   if (n_names == 0)
     return FALSE;
 
-  port0 = g_hash_table_lookup (server->priv->paths, names[0]);
+  port0 = g_hash_table_lookup (priv->paths, names[0]);
   if (port0 == NULL)
     return TRUE;
 
@@ -444,7 +447,7 @@ hyscan_sensor_control_server_set_cb (HyScanDataBox              *params,
    * Параметры должны относиться только к одному запроса. */
   for (i = 1; i < n_names; i++)
     {
-      portn = g_hash_table_lookup (server->priv->paths, names[i]);
+      portn = g_hash_table_lookup (priv->paths, names[i]);
 
       if (port0 != portn)
         return FALSE;
@@ -717,9 +720,9 @@ hyscan_sensor_control_server_set_enable (HyScanSensorControlServer     *server,
 
 /* Функция создаёт новый объект HyScanSensorControlServer. */
 HyScanSensorControlServer *
-hyscan_sensor_control_server_new (HyScanSonarBox *params)
+hyscan_sensor_control_server_new (HyScanSonarBox *sonar)
 {
-  return g_object_new (HYSCAN_TYPE_SENSOR_CONTROL_SERVER, "params", params, NULL);
+  return g_object_new (HYSCAN_TYPE_SENSOR_CONTROL_SERVER, "sonar", sonar, NULL);
 }
 
 /* Функция передаёт данные датчиков. */
@@ -734,7 +737,7 @@ hyscan_sensor_control_server_send_data (HyScanSensorControlServer   *server,
 
   g_return_if_fail (HYSCAN_IS_SENSOR_CONTROL_SERVER (server));
 
-  if (server->priv->params == NULL)
+  if (server->priv->sonar == NULL)
     return;
 
   id = g_hash_table_lookup (server->priv->ids, name);
@@ -748,5 +751,5 @@ hyscan_sensor_control_server_send_data (HyScanSensorControlServer   *server,
   message.size = data->size;
   message.data = data->data;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
 }

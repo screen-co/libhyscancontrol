@@ -40,6 +40,7 @@ typedef struct
 struct _HyScanSensorControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   GHashTable                  *ports_by_id;                    /* Список портов для подключения датчиков. */
   GHashTable                  *ports_by_name;                  /* Список портов для подключения датчиков. */
@@ -167,7 +168,8 @@ hyscan_sensor_control_object_constructed (GObject *object)
     }
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
+  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием портов - "/sensors". */
   for (i = 0, sensors = NULL; i < params->n_nodes; i++)
@@ -271,6 +273,7 @@ hyscan_sensor_control_object_finalize (GObject *object)
 
   g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
+  g_clear_object (&priv->schema);
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->ports_by_id);
@@ -444,7 +447,7 @@ hyscan_sensor_control_list_uart_devices (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-devices");
+  return hyscan_data_schema_key_get_enum_values (control->priv->schema, "/sensors/uart-devices");
 }
 
 /* Функция возвращает список допустимых режимов обмена данными через UART устройство. */
@@ -456,7 +459,7 @@ hyscan_sensor_control_list_uart_modes (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/uart-modes");
+  return hyscan_data_schema_key_get_enum_values (control->priv->schema, "/sensors/uart-modes");
 }
 
 /* Функция возвращает список допустимых IP адресов для портов типа IP. */
@@ -468,7 +471,7 @@ hyscan_sensor_control_list_ip_addresses (HyScanSensorControl *control)
   if (control->priv->sonar == NULL)
     return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), "/sensors/ip-addresses");
+  return hyscan_data_schema_key_get_enum_values (control->priv->schema, "/sensors/ip-addresses");
 }
 
 /* Функция возвращает тип порта. */

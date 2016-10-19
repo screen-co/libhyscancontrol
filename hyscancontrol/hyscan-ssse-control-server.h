@@ -57,13 +57,13 @@ GType                          hyscan_ssse_control_server_get_type             (
  * Функция не создаёт дополнительной ссылки на бъект с параметрами гидролокатора,
  * этот объект должен существовать всё время работы сервера.
  *
- * \param params указатель на параметры гидролокатора \link HyScanSonarBox \endlink.
+ * \param sonar указатель на базовый класс \link HyScanSonarBox \endlink.
  *
  * \return Указатель на объект \link HyScanSSSEControlServer \endlink.
  *
  */
 HYSCAN_API
-HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (HyScanSonarBox              *params);
+HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (HyScanSonarBox              *sonar);
 
 /**
  *

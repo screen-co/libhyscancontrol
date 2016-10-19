@@ -73,8 +73,8 @@ hyscan_generator_proxy_class_init (HyScanGeneratorProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
-                      HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -116,6 +116,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
   HyScanGeneratorProxy *proxy = HYSCAN_GENERATOR_PROXY (object);
   HyScanGeneratorProxyPrivate *priv = proxy->priv;
 
+  HyScanDataSchema *schema;
   HyScanDataSchemaNode *params;
   HyScanDataSchemaNode *sources;
 
@@ -130,11 +131,11 @@ hyscan_generator_proxy_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -144,7 +145,8 @@ hyscan_generator_proxy_object_constructed (GObject *object)
                                          NULL, (GDestroyNotify)g_hash_table_unref);
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (proxy));
+  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (proxy));
+  params = hyscan_data_schema_list_nodes (schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -189,7 +191,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
 
           param_name = g_strdup_printf ("%s/generator/preset/id", sources->nodes[i]->path);
           sonar_values = hyscan_generator_control_list_presets (priv->control, source);
-          proxy_values = hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (proxy), param_name);
+          proxy_values = hyscan_data_schema_key_get_enum_values (schema, param_name);
 
           for (j = 0; proxy_values != NULL && proxy_values[j] != NULL; j++)
             {
@@ -213,6 +215,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
     }
 
   hyscan_data_schema_free_nodes (params);
+  g_clear_object (&schema);
 
   /* Прокси сервер. */
   priv->server = hyscan_generator_control_server_new (HYSCAN_SONAR_BOX (proxy));

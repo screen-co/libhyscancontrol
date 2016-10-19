@@ -146,7 +146,7 @@ hyscan_ssse_control_object_constructed (GObject *object)
     return;
 
   /* Проверка наличия источников данных гидролокатора. */
-  schema = HYSCAN_DATA_SCHEMA (priv->sonar);
+  schema = hyscan_sonar_get_schema (priv->sonar);
 
   priv->has_starboard    = hyscan_ssse_control_is_source (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD);
   priv->has_port         = hyscan_ssse_control_is_source (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT);
@@ -160,6 +160,8 @@ hyscan_ssse_control_object_constructed (GObject *object)
   priv->starboard_hi = hyscan_ssse_control_get_acoustic_info (priv->sonar, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI);
   priv->port_hi      = hyscan_ssse_control_get_acoustic_info (priv->sonar, HYSCAN_SOURCE_SIDE_SCAN_PORT_HI);
   priv->echosounder  = hyscan_ssse_control_get_acoustic_info (priv->sonar, HYSCAN_SOURCE_ECHOSOUNDER);
+
+  g_clear_object (&schema);
 
   /* Обработчик данных от приёмных каналов гидролокатора. */
   g_signal_connect_swapped (priv->sonar, "data",

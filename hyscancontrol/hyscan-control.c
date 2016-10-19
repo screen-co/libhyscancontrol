@@ -15,8 +15,11 @@
 HyScanSonarType
 hyscan_control_sonar_probe (HyScanSonar *sonar)
 {
-  HyScanDataSchema *schema = HYSCAN_DATA_SCHEMA (sonar);
+  HyScanDataSchema *schema = hyscan_sonar_get_schema (sonar);
   HyScanSonarType type = HYSCAN_SONAR_INVALID;
+
+  if (sonar == NULL)
+    return HYSCAN_SONAR_INVALID;
 
   /* Проверка ГБОЭ. */
   {
@@ -50,6 +53,8 @@ hyscan_control_sonar_probe (HyScanSonar *sonar)
     g_free (starboard_hi_id_key);
     g_free (port_hi_id_key);
   }
+
+  g_clear_object (&schema);
 
   return type;
 }

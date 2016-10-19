@@ -89,8 +89,8 @@ hyscan_sensor_proxy_class_init (HyScanSensorProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
-                      HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -142,7 +142,7 @@ hyscan_sensor_proxy_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
     {
       g_warning ("HyScanControlProxy: unknown sonar schema id");
       return;
@@ -152,7 +152,7 @@ hyscan_sensor_proxy_object_constructed (GObject *object)
       g_warning ("HyScanControlProxy: sonar schema id mismatch");
       return;
     }
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
     {
       g_warning ("HyScanControlProxy: unknown sonar schema version");
       return;
@@ -212,7 +212,7 @@ hyscan_sensor_proxy_set_virtual_port_param (HyScanSensorProxyPrivate *priv,
     {
       return hyscan_sensor_control_set_virtual_port_param (priv->control, name, channel, time_offset);
     }
-  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
       gboolean status = FALSE;
 
@@ -275,7 +275,7 @@ hyscan_sensor_proxy_set_position (HyScanSensorProxyPrivate *priv,
     {
       return hyscan_sensor_control_set_position (priv->control, name, position);
     }
-  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
       gboolean status = FALSE;
 
@@ -298,7 +298,7 @@ hyscan_sensor_proxy_set_enable (HyScanSensorProxyPrivate *priv,
     {
       return hyscan_sensor_control_set_enable (priv->control, name, enable);
     }
-  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
       gboolean status = FALSE;
 
@@ -328,7 +328,7 @@ hyscan_sensor_proxy_data_forwarder (HyScanSensorProxyPrivate *priv,
     {
       hyscan_sensor_control_server_send_data (priv->server, name, type, data);
     }
-  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
       gboolean forward = FALSE;
 

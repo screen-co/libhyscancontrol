@@ -17,7 +17,7 @@
 enum
 {
   PROP_0,
-  PROP_PARAMS
+  PROP_SONAR
 };
 
 enum
@@ -51,7 +51,7 @@ struct _HyScanSonarControlServerCtl
 
 struct _HyScanSonarControlServerPrivate
 {
-  HyScanDataBox                           *params;                     /* Параметры гидролокатора. */
+  HyScanSonarBox                          *sonar;                      /* Базовый класс гидролокатора. */
 
   GHashTable                              *operations;                 /* Таблица возможных запросов. */
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
@@ -76,10 +76,9 @@ static gpointer    hyscan_sonar_control_server_uniq_channel            (HyScanSo
 
 static gpointer    hyscan_sonar_control_server_quard                   (gpointer                     data);
 
-static gboolean    hyscan_sonar_control_server_set_cb                  (HyScanDataBox               *params,
+static gboolean    hyscan_sonar_control_server_set_cb                  (HyScanSonarControlServer    *server,
                                                                         const gchar *const          *names,
-                                                                        GVariant                   **values,
-                                                                        HyScanSonarControlServer    *server);
+                                                                        GVariant                   **values);
 
 static gboolean    hyscan_sonar_control_server_set_sync_type           (HyScanSonarControlServer    *server,
                                                                         HyScanSonarControlServerCtl *ctl,
@@ -120,8 +119,8 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
   object_class->constructed = hyscan_sonar_control_server_object_constructed;
   object_class->finalize = hyscan_sonar_control_server_object_finalize;
 
-  g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
+  g_object_class_install_property (object_class, PROP_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar base class HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_SYNC_TYPE] =
@@ -193,8 +192,8 @@ hyscan_sonar_control_server_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_PARAMS:
-      priv->params = g_value_get_object (value);
+    case PROP_SONAR:
+      priv->sonar = g_value_get_object (value);
       break;
 
     default:
@@ -209,6 +208,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   HyScanSonarControlServer *server = HYSCAN_SONAR_CONTROL_SERVER (object);
   HyScanSonarControlServerPrivate *priv = server->priv;
 
+  HyScanDataSchema *schema;
   HyScanDataSchemaNode *params;
   HyScanDataSchemaNode *sources;
 
@@ -221,28 +221,30 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   priv->channels = g_hash_table_new (g_direct_hash, g_direct_equal);
   priv->noises = g_hash_table_new (g_direct_hash, g_direct_equal);
 
-  /* Обязательно должны быть переданы параметры гидролокатора. */
-  if (priv->params == NULL)
+  /* Обязательно должен быть передан указатель на базовый класс гидролокатора. */
+  if (priv->sonar == NULL)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
-  if (hyscan_data_box_get_double (priv->params, "/info/alive-timeout", &priv->alive_timeout))
+  if (hyscan_sonar_get_double (HYSCAN_SONAR (priv->sonar), "/info/alive-timeout", &priv->alive_timeout))
     {
       priv->alive_timer = g_timer_new ();
       priv->guard = g_thread_new ("sonar-control-server-alive", hyscan_sonar_control_server_quard, server);
     }
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
+  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  params = hyscan_data_schema_list_nodes (schema);
+  g_clear_object (&schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -301,7 +303,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                   g_strfreev (pathv);
 
                   param_id = g_strdup_printf ("%s/noise/id", channels->nodes[j]->path);
-                  if (hyscan_data_box_get_integer (priv->params, param_id, &id) &&
+                  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_id, &id) &&
                       (id > 0 || id <= G_MAXINT32))
                     {
                       noise_id = id;
@@ -314,7 +316,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                   g_free (param_id);
 
                   param_id = g_strdup_printf ("%s/id", channels->nodes[j]->path);
-                  if (hyscan_data_box_get_integer (priv->params, param_id, &id) &&
+                  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_id, &id) &&
                       (id > 0 || id <= G_MAXINT32))
                     {
                       channel_id = id;
@@ -413,12 +415,10 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       operation_path = g_strdup ("/sync/ping");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
-      g_signal_connect (priv->params, "set",
-                        G_CALLBACK (hyscan_sonar_control_server_set_cb), server);
+      g_signal_connect_swapped (priv->sonar, "set",
+                                G_CALLBACK (hyscan_sonar_control_server_set_cb),
+                                server);
     }
-
-  g_signal_connect_swapped (priv->params, "changed",
-                            G_CALLBACK (g_timer_start), priv->alive_timer);
 
   hyscan_data_schema_free_nodes (params);
 }
@@ -429,8 +429,8 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   HyScanSonarControlServer *server = HYSCAN_SONAR_CONTROL_SERVER (object);
   HyScanSonarControlServerPrivate *priv = server->priv;
 
-  g_signal_handlers_disconnect_by_data (priv->params, server);
-  g_signal_handlers_disconnect_by_data (priv->params, priv->alive_timer);
+  g_signal_handlers_disconnect_by_data (priv->sonar, server);
+  g_signal_handlers_disconnect_by_data (priv->sonar, priv->alive_timer);
 
   if (priv->guard != NULL)
     {
@@ -480,21 +480,23 @@ hyscan_sonar_control_server_quard (gpointer data)
 
 /* Функция - обработчик параметров. */
 static gboolean
-hyscan_sonar_control_server_set_cb (HyScanDataBox             *params,
+hyscan_sonar_control_server_set_cb (HyScanSonarControlServer  *server,
                                     const gchar *const        *names,
-                                    GVariant                 **values,
-                                    HyScanSonarControlServer  *server)
+                                    GVariant                 **values)
 {
+  HyScanSonarControlServerPrivate *priv = server->priv;
   HyScanSonarControlServerCtl *ctl0;
   HyScanSonarControlServerCtl *ctln;
   guint n_names;
   guint i;
 
+  g_timer_start (priv->alive_timer);
+
   n_names = g_strv_length ((gchar**)names);
   if (n_names == 0)
     return FALSE;
 
-  ctl0 = g_hash_table_lookup (server->priv->paths, names[0]);
+  ctl0 = g_hash_table_lookup (priv->paths, names[0]);
   if (ctl0 == NULL)
     return TRUE;
 
@@ -503,7 +505,7 @@ hyscan_sonar_control_server_set_cb (HyScanDataBox             *params,
    * Параметры должны относиться только к одному запроса. */
   for (i = 1; i < n_names; i++)
     {
-      ctln = g_hash_table_lookup (server->priv->paths, names[i]);
+      ctln = g_hash_table_lookup (priv->paths, names[i]);
 
       if (ctl0 != ctln)
         return FALSE;
@@ -724,9 +726,9 @@ hyscan_sonar_control_server_ping (HyScanSonarControlServer     *server,
 
 /* Функция создаёт новый объект HyScanSonarControlServer. */
 HyScanSonarControlServer *
-hyscan_sonar_control_server_new (HyScanSonarBox *params)
+hyscan_sonar_control_server_new (HyScanSonarBox *sonar)
 {
-  return g_object_new (HYSCAN_TYPE_SONAR_CONTROL_SERVER, "params", params, NULL);
+  return g_object_new (HYSCAN_TYPE_SONAR_CONTROL_SERVER, "sonar", sonar, NULL);
 }
 
 /* Функция передаёт "сырые" данные от гидролокатора. */
@@ -744,7 +746,7 @@ hyscan_sonar_control_server_send_raw_data (HyScanSonarControlServer *server,
 
   g_return_if_fail (HYSCAN_IS_SONAR_CONTROL_SERVER (server));
 
-  if (server->priv->params == NULL)
+  if (server->priv->sonar == NULL)
     return;
 
   uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
@@ -759,7 +761,7 @@ hyscan_sonar_control_server_send_raw_data (HyScanSonarControlServer *server,
   message.size = data->size;
   message.data = data->data;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
 }
 
 /* Функция передаёт "сырые" данные от гидролокатора принятые при отключенном излучении - шумов. */
@@ -777,7 +779,7 @@ hyscan_sonar_control_server_send_noise_data (HyScanSonarControlServer *server,
 
   g_return_if_fail (HYSCAN_IS_SONAR_CONTROL_SERVER (server));
 
-  if (server->priv->params == NULL)
+  if (server->priv->sonar == NULL)
     return;
 
   uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
@@ -792,5 +794,5 @@ hyscan_sonar_control_server_send_noise_data (HyScanSonarControlServer *server,
   message.size = data->size;
   message.data = data->data;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
 }

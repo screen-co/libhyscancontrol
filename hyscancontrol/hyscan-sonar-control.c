@@ -35,6 +35,7 @@ typedef struct
 struct _HyScanSonarControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   HyScanSonarDataMode          data_mode;                      /* Предпочитаемый вид данных от гидролокатора. */
 
@@ -165,7 +166,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
     priv->guard = g_thread_new ("sonar-control-alive", hyscan_sonar_control_quard, priv);
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
+  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -238,7 +240,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
               gdouble adc_vref;
 
               key_id = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
-              has_channel = hyscan_data_schema_has_key (HYSCAN_DATA_SCHEMA (priv->sonar), key_id);
+              has_channel = hyscan_data_schema_has_key (priv->schema, key_id);
               g_free (key_id);
 
               if (!has_channel)
@@ -321,6 +323,7 @@ hyscan_sonar_control_object_finalize (GObject *object)
       g_thread_join (priv->guard);
     }
 
+  g_clear_object (&priv->schema);
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->channels);
@@ -425,7 +428,7 @@ hyscan_sonar_control_get_max_receive_time (HyScanSonarControl *control,
 
   param_name = g_strdup_printf ("/sources/%s/control/receive-time",
                                 hyscan_control_get_source_name (source));
-  value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  value = hyscan_data_schema_key_get_maximum (control->priv->schema, param_name);
   g_free (param_name);
 
   if (value == NULL)

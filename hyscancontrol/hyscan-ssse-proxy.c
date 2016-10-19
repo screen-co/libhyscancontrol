@@ -22,6 +22,7 @@ enum
   PROP_O,
   PROP_CONTROL,
   PROP_PROXY_MODE,
+  PROP_SONAR,
   PROP_SIDE_SCALE,
   PROP_TRACK_SCALE
 };
@@ -37,6 +38,7 @@ typedef struct
 
 struct _HyScanSSSEProxyPrivate
 {
+  HyScanSonar                 *sonar;                          /* Интерфейс управления проксируемым гидролокатором. */
   HyScanSSSEControl           *control;                        /* Клиент управления проксируемым гидролокатором. */
   HyScanSSSEControlServer     *server;                         /* Сервер прокси гидролокатора. */
 
@@ -77,14 +79,18 @@ hyscan_ssse_proxy_class_init (HyScanSSSEProxyClass *klass)
   object_class->constructed = hyscan_ssse_proxy_object_constructed;
   object_class->finalize = hyscan_ssse_proxy_object_finalize;
 
+  g_object_class_install_property (object_class, PROP_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+                         G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
   g_object_class_install_property (object_class, PROP_CONTROL,
     g_param_spec_object ("control", "Control", "SSSE control", HYSCAN_TYPE_SSSE_CONTROL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_PROXY_MODE,
     g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
-                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_FORWARD_COMPUTED,
-                      HYSCAN_SONAR_PROXY_FORWARD_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                      HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
+                      HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_SIDE_SCALE,
     g_param_spec_uint ("side-scale", "SideScale", "Side scale",
@@ -112,6 +118,10 @@ hyscan_ssse_proxy_set_property (GObject      *object,
 
   switch (prop_id)
     {
+    case PROP_SONAR:
+      priv->sonar = g_value_dup_object (value);
+      break;
+
     case PROP_CONTROL:
       G_OBJECT_CLASS (hyscan_ssse_proxy_parent_class)->set_property (object, prop_id, value, pspec);
       priv->control = g_value_dup_object (value);
@@ -142,8 +152,40 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
   HyScanSSSEProxy *proxy = HYSCAN_SSSE_PROXY (object);
   HyScanSSSEProxyPrivate *priv = proxy->priv;
 
+  gchar *schema_data = NULL;
   gint64 version;
   gint64 id;
+
+  /* Обязательно должен быть передан указатель на HyScanSSSEControl. */
+  if ((priv->sonar == NULL) || (priv->control == NULL))
+    return;
+
+  if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
+    {
+      HyScanDataSchema *schema = hyscan_sonar_get_schema (priv->sonar);
+      schema_data = hyscan_data_schema_get_data (schema);
+      g_object_unref (schema);
+    }
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
+    {
+      HyScanDataSchema *schema;
+      HyScanSonarSchema *proxy_schema;
+
+      schema = hyscan_sonar_get_schema (priv->sonar);
+      proxy_schema = hyscan_proxy_schema_new (schema, 10.0);
+
+      hyscan_proxy_schema_sensor_virtual (proxy_schema);
+      hyscan_proxy_schema_ssse_acoustic (proxy_schema, priv->sonar, priv->control);
+
+      schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (proxy_schema));
+
+      g_object_unref (proxy_schema);
+      g_object_unref (schema);
+    }
+
+  /* Устанавливаем схему параметров гидролокатора. */
+  hyscan_sonar_box_set_schema (HYSCAN_SONAR_BOX (proxy), schema_data, "sonar");
+  g_free (schema_data);
 
   G_OBJECT_CLASS (hyscan_ssse_proxy_parent_class)->constructed (object);
 
@@ -151,16 +193,12 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
   priv->buffers = g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                          NULL, hyscan_ssse_proxy_free_data);
 
-  /* Обязательно должен быть передан указатель на HyScanSSSEControl. */
-  if (priv->control == NULL)
-    return;
-
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (HYSCAN_DATA_BOX (proxy), "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -182,9 +220,10 @@ hyscan_ssse_proxy_object_finalize (GObject *object)
 
   g_clear_object (&priv->server);
   g_clear_object (&priv->control);
+  g_clear_object (&priv->sonar);
 
-  g_hash_table_unref (priv->buffers);
   g_free (priv->input_data);
+  g_clear_pointer (&priv->buffers, g_hash_table_unref);
 
   G_OBJECT_CLASS (hyscan_ssse_proxy_parent_class)->finalize (object);
 }
@@ -213,7 +252,7 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
     }
 
   /* Масштабируем данные. */
-  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
+  else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
       gint32 input_n_points;
       gint32 output_n_points;
@@ -324,46 +363,31 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
 {
   HyScanSSSEProxy *proxy = NULL;
   HyScanSSSEControl *control;
-  gchar *schema_data = NULL;
+
+  /* Режим проксирования. */
+  if ((proxy_mode != HYSCAN_SONAR_PROXY_MODE_ALL) &&
+      (proxy_mode != HYSCAN_SONAR_PROXY_MODE_COMPUTED))
+    {
+      return NULL;
+    }
 
   /* Проверяем тип гидролокатора. */
-  if ((sonar == NULL) || (hyscan_control_sonar_probe (sonar) != HYSCAN_SONAR_SSSE))
+  if (hyscan_control_sonar_probe (sonar) != HYSCAN_SONAR_SSSE)
     return NULL;
 
   /* Объект управления гидролокатором. */
   control = hyscan_ssse_control_new (sonar, db);
 
-  /* Трансляция 1:1. */
-  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
-    {
-      schema_data = hyscan_data_schema_get_data (HYSCAN_DATA_SCHEMA (sonar));
-    }
-  else if (proxy_mode == HYSCAN_SONAR_PROXY_FORWARD_COMPUTED)
-    {
-      HyScanSonarSchema *schema;
-
-      schema = hyscan_proxy_schema_new (sonar, 10.0);
-      hyscan_proxy_schema_sensor_virtual (schema);
-      hyscan_proxy_schema_ssse_acoustic (schema, sonar, control);
-      schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (schema));
-      g_object_unref (schema);
-    }
-  else
-    {
-      return NULL;
-    }
-
+  /* Прокси сервер. */
   proxy = g_object_new (HYSCAN_TYPE_SSSE_PROXY,
+                        "sonar", sonar,
                         "control", control,
-                        "schema-data", schema_data,
-                        "schema-id", "sonar",
                         "proxy-mode", proxy_mode,
                         "side-scale", side_scale,
                         "track-scale", track_scale,
                         NULL);
 
   g_object_unref (control);
-  g_free (schema_data);
 
   if (proxy->priv->server == NULL)
     g_clear_object (&proxy);

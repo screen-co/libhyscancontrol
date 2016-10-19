@@ -14,12 +14,12 @@
 enum
 {
   PROP_O,
-  PROP_PARAMS
+  PROP_SONAR
 };
 
 struct _HyScanSSSEControlServerPrivate
 {
-  HyScanDataBox               *params;                         /* Параметры гидролокатора. */
+  HyScanSonarBox              *sonar;                          /* Базовый класс гидролокатора. */
 
   guint32                      starboard_id;                   /* Источника акустических данных правого борта. */
   guint32                      port_id;                        /* Источника акустических данных левого борта. */
@@ -45,8 +45,8 @@ hyscan_ssse_control_server_class_init (HyScanSSSEControlServerClass *klass)
 
   object_class->constructed = hyscan_ssse_control_server_object_constructed;
 
-  g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
+  g_object_class_install_property (object_class, PROP_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar base class HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -67,8 +67,8 @@ hyscan_ssse_control_server_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_PARAMS:
-      priv->params = g_value_get_object (value);
+    case PROP_SONAR:
+      priv->sonar = g_value_get_object (value);
       break;
 
     default:
@@ -88,16 +88,16 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   gint64 version;
   gint64 id;
 
-  /* Обязательно должны быть переданы параметры гидролокатора. */
-  if (priv->params == NULL)
+  /* Обязательно должен быть передан указатель на базовый класс гидролокатора. */
+  if (priv->sonar == NULL)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -105,35 +105,35 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   /* Идентификаторы источников акустических данных. */
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD));
-  if (hyscan_data_box_get_integer (priv->params, param_name, &id))
+  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT));
-  if (hyscan_data_box_get_integer (priv->params, param_name, &id))
+  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->port_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI));
-  if (hyscan_data_box_get_integer (priv->params, param_name, &id))
+  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT_HI));
-  if (hyscan_data_box_get_integer (priv->params, param_name, &id))
+  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->port_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_ECHOSOUNDER));
-  if (hyscan_data_box_get_integer (priv->params, param_name, &id))
+  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->echosounder_id = id;
   g_free (param_name);
@@ -141,9 +141,9 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
 
 /* Функция создаёт новый объект HyScanSSSEControlServer. */
 HyScanSSSEControlServer *
-hyscan_ssse_control_server_new (HyScanSonarBox *params)
+hyscan_ssse_control_server_new (HyScanSonarBox *sonar)
 {
-  return g_object_new (HYSCAN_TYPE_SSSE_CONTROL_SERVER, "params", params, NULL);
+  return g_object_new (HYSCAN_TYPE_SSSE_CONTROL_SERVER, "sonar", sonar, NULL);
 }
 
 /* Функция передаёт акустические данные от гидролокатора */
@@ -163,7 +163,7 @@ hyscan_ssse_control_server_send_acoustic_data (HyScanSSSEControlServer *server,
 
   priv = server->priv;
 
-  if (priv->params == NULL)
+  if (priv->sonar == NULL)
     return;
 
   switch (source)
@@ -202,5 +202,5 @@ hyscan_ssse_control_server_send_acoustic_data (HyScanSSSEControlServer *server,
   message.size = data->size;
   message.data = data->data;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
 }

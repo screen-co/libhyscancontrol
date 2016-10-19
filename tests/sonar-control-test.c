@@ -1331,7 +1331,7 @@ main (int    argc,
           }
         else if (g_strcmp0 (proxy_mode_string, "computed") == 0)
           {
-            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_COMPUTED;
+            proxy_mode = HYSCAN_SONAR_PROXY_MODE_COMPUTED;
           }
         else
           {
@@ -1544,7 +1544,8 @@ main (int    argc,
   g_object_unref (schema);
 
   /* Параметры гидролокатора - интерфейс HyScanSonar + HyScanDataBox. */
-  sonar = hyscan_sonar_box_new (schema_data, "sonar");
+  sonar = hyscan_sonar_box_new ();
+  hyscan_sonar_box_set_schema (sonar, schema_data, "sonar");
   g_free (schema_data);
 
   /* Сервер управления. */
@@ -1619,14 +1620,19 @@ main (int    argc,
   /* Только печать схемы на экране. */
   if (print_schema)
     {
+      HyScanDataSchema *schema;
+
       if (proxy_mode_string != NULL)
-        schema_data = hyscan_data_schema_get_data (HYSCAN_DATA_SCHEMA (proxy));
+        schema = hyscan_sonar_get_schema (HYSCAN_SONAR (proxy));
       else
-        schema_data = hyscan_data_schema_get_data (HYSCAN_DATA_SCHEMA (sonar));
+        schema = hyscan_sonar_get_schema (HYSCAN_SONAR (sonar));
 
+      schema_data = hyscan_data_schema_get_data (schema);
       g_print ("%s", schema_data);
-
       g_free (schema_data);
+
+      g_object_unref (schema);
+
       goto exit;
     }
 

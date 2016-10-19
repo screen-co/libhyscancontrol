@@ -807,7 +807,7 @@ main (int    argc,
           }
         else if (g_strcmp0 (proxy_mode_string, "computed") == 0)
           {
-            proxy_mode = HYSCAN_SONAR_PROXY_FORWARD_COMPUTED;
+            proxy_mode = HYSCAN_SONAR_PROXY_MODE_COMPUTED;
           }
         else
           {
@@ -906,7 +906,8 @@ main (int    argc,
   g_object_unref (schema);
 
   /* Параметры гидролокатора - интерфейс HyScanSonar + HyScanDataBox. */
-  sonar = hyscan_sonar_box_new (schema_data, "sonar");
+  sonar = hyscan_sonar_box_new ();
+  hyscan_sonar_box_set_schema (sonar, schema_data, "sonar");
   g_free (schema_data);
 
   /* Сервер управления. */

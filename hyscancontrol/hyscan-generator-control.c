@@ -35,6 +35,7 @@ typedef struct
 struct _HyScanGeneratorControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   GHashTable                  *gens_by_id;                     /* Список генераторов гидролокатора. */
   GHashTable                  *gens_by_source;                 /* Список генераторов гидролокатора. */
@@ -140,7 +141,8 @@ hyscan_generator_control_object_constructed (GObject *object)
     return;
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->sonar));
+  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -234,6 +236,7 @@ hyscan_generator_control_object_finalize (GObject *object)
 
   g_signal_handlers_disconnect_by_data (priv->sonar, control);
 
+  g_clear_object (&priv->schema);
   g_clear_object (&priv->sonar);
 
   g_hash_table_unref (priv->gens_by_source);
@@ -344,8 +347,8 @@ hyscan_generator_control_get_duration_range (HyScanGeneratorControl    *control,
   else
     return FALSE;
 
-  min_duration_value = hyscan_data_schema_key_get_minimum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
-  max_duration_value = hyscan_data_schema_key_get_maximum (HYSCAN_DATA_SCHEMA (control->priv->sonar), param_name);
+  min_duration_value = hyscan_data_schema_key_get_minimum (control->priv->schema, param_name);
+  max_duration_value = hyscan_data_schema_key_get_maximum (control->priv->schema, param_name);
 
   if (min_duration_value != NULL && max_duration_value != NULL)
     {
@@ -383,7 +386,7 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
     return NULL;
 
   params_name = g_strdup_printf ("%s/preset/id", generator->path);
-  param_values = hyscan_data_schema_key_get_enum_values (HYSCAN_DATA_SCHEMA (control->priv->sonar), params_name);
+  param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, params_name);
   g_free (params_name);
 
   return param_values;

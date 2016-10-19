@@ -9,14 +9,32 @@
  * \defgroup HyScanSonarBox HyScanSonarBox - базовый класс для реализации интерфейса HyScanSonar
  *
  * Класс предназначен для реализации интерфеса \link HyScanSonar \endlink классами,
- * осуществляющими непосредственное взаимодействие гидролокаторами. Класс HyScanSonarBox
- * наследуется от класса \link HyScanDataBox \endlink.
+ * осуществляющими непосредственное взаимодействие гидролокаторами.
  *
- * Создание класса осуществляется функцией #hyscan_sonar_box_new.
+ * Создание класса осуществляется функцией #hyscan_sonar_box_new. Изначально объект создаётся
+ * с пустой схемой параметров гидролокатора. Для задания схемы используется функция
+ * #hyscan_sonar_box_set_schema.
  *
- * Класс используется для отправки данных через сигнал  "data",
+ * Класс используется для отправки данных через сигнал "data",
  * интерфейса \link HyScanSonar \endlink. Для этого используется функция
  * #hyscan_sonar_box_send.
+ *
+ * Перед изменением параметров гидролокатора объект посылает сигнал "set". В нём передаются
+ * названия изменяемых параметров и их новые значения. Пользователь может обработать этот
+ * сигнал и проверить валидность новых значений. Пользователь может зарегистрировать несколько
+ * обработчиков сигнала "set". Если любой из обработчиков сигнала вернёт значение FALSE, новые
+ * значения не будут установлены.
+ *
+ * Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * gboolean sonar_box_set_param_cb  (HyScanSonarBox        *sonar,
+ *                                   const gchar *const    *names,
+ *                                   GVariant             **values,
+ *                                   gpointer               user_data);
+ *
+ * \endcode
  *
  */
 
@@ -24,7 +42,6 @@
 #define __HYSCAN_SONAR_BOX_H__
 
 #include <hyscan-sonar.h>
-#include <hyscan-data-box.h>
 
 G_BEGIN_DECLS
 
@@ -41,14 +58,14 @@ typedef struct _HyScanSonarBoxClass HyScanSonarBoxClass;
 
 struct _HyScanSonarBox
 {
-  HyScanDataBox parent_instance;
+  GObject parent_instance;
 
   HyScanSonarBoxPrivate *priv;
 };
 
 struct _HyScanSonarBoxClass
 {
-  HyScanDataBoxClass parent_class;
+  GObjectClass parent_class;
 };
 
 HYSCAN_API
@@ -58,14 +75,26 @@ GType                  hyscan_sonar_box_get_type               (void);
  *
  * Функция создаёт новый объект \link HyScanSonarBox \endlink.
  *
- * \param schema_data строка с описанием схемы в формате XML;
- * \param schema_id идентификатор загружаемой схемы.
- *
  * \return Указатель на объект \link HyScanSonarBox \endlink.
  *
  */
 HYSCAN_API
-HyScanSonarBox        *hyscan_sonar_box_new                    (const gchar           *schema_data,
+HyScanSonarBox        *hyscan_sonar_box_new                    (void);
+
+/**
+ *
+ * Функция задаёт схему параметров гидролокатора.
+ *
+ * \param sonar указатель на объект \link HyScanSonarBox \endlink;
+ * \param schema_data строка с описанием схемы в формате XML;
+ * \param schema_id идентификатор загружаемой схемы.
+ *
+ * \return Нет.
+ *
+ */
+HYSCAN_API
+void                   hyscan_sonar_box_set_schema             (HyScanSonarBox        *sonar,
+                                                                const gchar           *schema_data,
                                                                 const gchar           *schema_id);
 
 /**

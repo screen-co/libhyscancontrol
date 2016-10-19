@@ -17,7 +17,7 @@
 enum
 {
   PROP_0,
-  PROP_PARAMS
+  PROP_SONAR
 };
 
 enum
@@ -48,7 +48,7 @@ struct _HyScanGeneratorControlServerGen
 
 struct _HyScanGeneratorControlServerPrivate
 {
-  HyScanDataBox                            *params;                      /* Параметры гидролокатора. */
+  HyScanSonarBox                           *sonar;                       /* Базовый класс гидролокатора. */
 
   GHashTable                               *operations;                  /* Таблица возможных запросов. */
   GHashTable                               *paths;                       /* Таблица названий параметров запросов. */
@@ -62,10 +62,9 @@ static void        hyscan_generator_control_server_set_property          (GObjec
 static void        hyscan_generator_control_server_object_constructed    (GObject                         *object);
 static void        hyscan_generator_control_server_object_finalize       (GObject                         *object);
 
-static gboolean    hyscan_generator_control_server_set_cb                (HyScanDataBox                   *params,
+static gboolean    hyscan_generator_control_server_set_cb                (HyScanGeneratorControlServer    *server,
                                                                           const gchar *const              *names,
-                                                                          GVariant                       **values,
-                                                                          HyScanGeneratorControlServer    *server);
+                                                                          GVariant                       **values);
 
 static gboolean    hyscan_generator_control_server_set_preset            (HyScanGeneratorControlServer    *server,
                                                                           HyScanGeneratorControlServerGen *gen,
@@ -106,8 +105,8 @@ hyscan_generator_control_server_class_init (HyScanGeneratorControlServerClass *k
   object_class->constructed = hyscan_generator_control_server_object_constructed;
   object_class->finalize = hyscan_generator_control_server_object_finalize;
 
-  g_object_class_install_property (object_class, PROP_PARAMS,
-    g_param_spec_object ("params", "SonarParams", "Sonar parameters via HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
+  g_object_class_install_property (object_class, PROP_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar base class HyScanSonarBox", HYSCAN_TYPE_SONAR_BOX,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_PRESET] =
@@ -163,8 +162,8 @@ hyscan_generator_control_server_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_PARAMS:
-      priv->params = g_value_get_object (value);
+    case PROP_SONAR:
+      priv->sonar = g_value_get_object (value);
       break;
 
     default:
@@ -179,6 +178,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
   HyScanGeneratorControlServer *server = HYSCAN_GENERATOR_CONTROL_SERVER (object);
   HyScanGeneratorControlServerPrivate *priv = server->priv;
 
+  HyScanDataSchema *schema;
   HyScanDataSchemaNode *params;
   HyScanDataSchemaNode *sources;
 
@@ -190,22 +190,24 @@ hyscan_generator_control_server_object_constructed (GObject *object)
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->ids = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
-  /* Обязательно должны быть переданы параметры гидролокатора. */
-  if (priv->params == NULL)
+  /* Обязательно должен быть передан указатель на базовый класс гидролокатора. */
+  if (priv->sonar == NULL)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/id", &id))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_data_box_get_integer (priv->params, "/schema/version", &version))
+  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Параметры гидролокатора. */
-  params = hyscan_data_schema_list_nodes (HYSCAN_DATA_SCHEMA (priv->params));
+  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  params = hyscan_data_schema_list_nodes (schema);
+  g_clear_object (&schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -250,7 +252,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           param_names[2] = g_strdup_printf ("%s/generator/signals", sources->nodes[i]->path);
           param_names[3] = NULL;
 
-          status = hyscan_data_box_get (HYSCAN_DATA_BOX (priv->params), (const gchar **)param_names, param_values);
+          status = hyscan_sonar_get (HYSCAN_SONAR (priv->sonar), (const gchar **)param_names, param_values);
 
           if (status)
             {
@@ -366,8 +368,9 @@ hyscan_generator_control_server_object_constructed (GObject *object)
 }
         }
 
-      g_signal_connect (priv->params, "set",
-                        G_CALLBACK (hyscan_generator_control_server_set_cb), server);
+      g_signal_connect_swapped (priv->sonar, "set",
+                                G_CALLBACK (hyscan_generator_control_server_set_cb),
+                                server);
     }
 
   hyscan_data_schema_free_nodes (params);
@@ -379,7 +382,7 @@ hyscan_generator_control_server_object_finalize (GObject *object)
   HyScanGeneratorControlServer *server = HYSCAN_GENERATOR_CONTROL_SERVER (object);
   HyScanGeneratorControlServerPrivate *priv = server->priv;
 
-  g_signal_handlers_disconnect_by_data (priv->params, server);
+  g_signal_handlers_disconnect_by_data (priv->sonar, server);
 
   g_hash_table_unref (priv->ids);
   g_hash_table_unref (priv->paths);
@@ -390,11 +393,11 @@ hyscan_generator_control_server_object_finalize (GObject *object)
 
 /* Функция - обработчик параметров. */
 static gboolean
-hyscan_generator_control_server_set_cb (HyScanDataBox                 *params,
+hyscan_generator_control_server_set_cb (HyScanGeneratorControlServer  *server,
                                         const gchar *const            *names,
-                                        GVariant                     **values,
-                                        HyScanGeneratorControlServer  *server)
+                                        GVariant                     **values)
 {
+  HyScanGeneratorControlServerPrivate *priv = server->priv;
   HyScanGeneratorControlServerGen *gen0;
   HyScanGeneratorControlServerGen *genn;
   guint n_names;
@@ -404,7 +407,7 @@ hyscan_generator_control_server_set_cb (HyScanDataBox                 *params,
   if (n_names == 0)
     return FALSE;
 
-  gen0 = g_hash_table_lookup (server->priv->paths, names[0]);
+  gen0 = g_hash_table_lookup (priv->paths, names[0]);
   if (gen0 == NULL)
     return TRUE;
 
@@ -413,7 +416,7 @@ hyscan_generator_control_server_set_cb (HyScanDataBox                 *params,
    * Параметры должны относиться только к одному запроса. */
   for (i = 1; i < n_names; i++)
     {
-      genn = g_hash_table_lookup (server->priv->paths, names[i]);
+      genn = g_hash_table_lookup (priv->paths, names[i]);
 
       if (gen0 != genn)
         return FALSE;
@@ -632,9 +635,9 @@ hyscan_generator_control_server_set_enable (HyScanGeneratorControlServer    *ser
 
 /* Функция создаёт новый объект HyScanGeneratorControlServer. */
 HyScanGeneratorControlServer *
-hyscan_generator_control_server_new (HyScanSonarBox *params)
+hyscan_generator_control_server_new (HyScanSonarBox *sonar)
 {
-  return g_object_new (HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, "params", params, NULL);
+  return g_object_new (HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, "sonar", sonar, NULL);
 }
 
 /* Функция передаёт образы излучаемых сигналов. */
@@ -648,7 +651,7 @@ hyscan_generator_control_server_send_signal (HyScanGeneratorControlServer  *serv
 
   g_return_if_fail (HYSCAN_IS_GENERATOR_CONTROL_SERVER (server));
 
-  if (server->priv->params == NULL)
+  if (server->priv->sonar == NULL)
     return;
 
   id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (source));
@@ -662,5 +665,5 @@ hyscan_generator_control_server_send_signal (HyScanGeneratorControlServer  *serv
   message.size = signal->n_points * hyscan_data_get_point_size (HYSCAN_DATA_COMPLEX_FLOAT);
   message.data = signal->points;
 
-  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->params), &message);
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
 }

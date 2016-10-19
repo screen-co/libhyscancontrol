@@ -24,13 +24,13 @@
  * Получить указатель на объект управления проксируемым гидролокатором можно
  * с помощью функции #hyscan_ssse_proxy_get_control.
  *
- * Класс реализует режимы трансляции определённые типом \link HyScanSonarProxyMode \endlink:
+ * Класс реализует режимы трансляции определённые типом \link HyScanSonarProxyModeType \endlink:
  *
- * - #HYSCAN_SONAR_PROXY_FORWARD_ALL - при трансляции один к одному без изменений все
+ * - #HYSCAN_SONAR_PROXY_MODE_ALL - при трансляции один к одному без изменений все
  * команды передаются в проксируемый гидролокатор без изменений и все данные от
  * гидролокатора транслируются клиенту.
  *
- * - #HYSCAN_SONAR_PROXY_FORWARD_COMPUTED - в режиме трансляции обработанных данных,
+ * - #HYSCAN_SONAR_PROXY_MODE_COMPUTED - в режиме трансляции обработанных данных,
  * клиенту будут передаваться только обработанные данные от акустических источников.
  *
  */
@@ -81,7 +81,7 @@ GType                  hyscan_ssse_proxy_get_type              (void);
  * данные от гидролокатора до трансляции будут записаны в эту базу.
  *
  * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
- * \param proxy_mode режим трансляции \link HyScanSonarProxyMode \endlink;
+ * \param proxy_mode режим трансляции \link HyScanSonarProxyModeType \endlink;
  * \param side_scale коэффициент масштабирования данных по наклонной дальности;
  * \param track_scale коэффициент масштабирования данных вдоль оси движения;
  * \param db указатель на интерфейс \link HyScanDB \endlink или NULL.
