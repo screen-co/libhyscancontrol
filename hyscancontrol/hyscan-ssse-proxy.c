@@ -361,6 +361,7 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
                        guint                       track_scale,
                        HyScanDB                   *db)
 {
+  HyScanSonarType type = hyscan_control_sonar_probe (sonar);
   HyScanSSSEProxy *proxy = NULL;
   HyScanSSSEControl *control;
 
@@ -372,8 +373,12 @@ hyscan_ssse_proxy_new (HyScanSonar                *sonar,
     }
 
   /* Проверяем тип гидролокатора. */
-  if (hyscan_control_sonar_probe (sonar) != HYSCAN_SONAR_SSSE)
-    return NULL;
+  if ((type != HYSCAN_SONAR_ECHO) && (type != HYSCAN_SONAR_SSS) &&
+      (type != HYSCAN_SONAR_SSSE) && (type != HYSCAN_SONAR_DSSS) &&
+      (type != HYSCAN_SONAR_DSSSE))
+    {
+      return NULL;
+    }
 
   /* Объект управления гидролокатором. */
   control = hyscan_ssse_control_new (sonar, db);

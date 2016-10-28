@@ -727,7 +727,7 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
   /* Время приёма эхосигнала источником данных. */
   key_id = g_strdup_printf ("%s/control/receive-time", prefix);
   status = hyscan_data_schema_builder_key_double_create (builder, key_id, "receive-time", NULL, FALSE,
-                                                         0.0, 0.0, max_receive_time, 0);
+                                                         0.0, 0.0, max_receive_time, 0.0);
   g_free (key_id);
 
   if (!status)

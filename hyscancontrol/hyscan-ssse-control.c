@@ -292,8 +292,14 @@ HyScanSSSEControl *
 hyscan_ssse_control_new (HyScanSonar *sonar,
                          HyScanDB    *db)
 {
-  if (hyscan_control_sonar_probe (sonar) != HYSCAN_SONAR_SSSE)
-    return NULL;
+  HyScanSonarType type = hyscan_control_sonar_probe (sonar);
+
+  if ((type != HYSCAN_SONAR_ECHO) && (type != HYSCAN_SONAR_SSS) &&
+      (type != HYSCAN_SONAR_SSSE) && (type != HYSCAN_SONAR_DSSS) &&
+      (type != HYSCAN_SONAR_DSSSE))
+    {
+      return NULL;
+    }
 
   return g_object_new (HYSCAN_TYPE_SSSE_CONTROL,
                        "sonar", sonar,

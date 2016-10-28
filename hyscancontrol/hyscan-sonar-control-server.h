@@ -149,7 +149,7 @@ HyScanSonarControlServer      *hyscan_sonar_control_server_new                 (
 HYSCAN_API
 void                           hyscan_sonar_control_server_send_raw_data       (HyScanSonarControlServer    *server,
                                                                                 HyScanSourceType             source,
-                                                                                gint                         channel,
+                                                                                guint                        channel,
                                                                                 HyScanDataType               type,
                                                                                 gdouble                      rate,
                                                                                 HyScanDataWriterData        *data);
@@ -171,7 +171,7 @@ void                           hyscan_sonar_control_server_send_raw_data       (
 HYSCAN_API
 void                           hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
                                                                                 HyScanSourceType             source,
-                                                                                gint                         channel,
+                                                                                guint                        channel,
                                                                                 HyScanDataType               type,
                                                                                 gdouble                      rate,
                                                                                 HyScanDataWriterData        *data);
