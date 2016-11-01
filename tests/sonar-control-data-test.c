@@ -297,8 +297,8 @@ check_data (HyScanDB                 *db,
   gfloat *tvg_gains;
 
   gpointer buffer;
-  gint32 buffer_size;
-  gint32 data_size;
+  guint32 buffer_size;
+  guint32 data_size;
   gint64 time;
 
   guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? SENSOR_N_PORTS : 1;
