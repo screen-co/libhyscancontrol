@@ -182,7 +182,7 @@ sonar_ping_cb (ServerInfo *server)
               tvg.rate = info->tvg_rate;
               tvg.n_gains = TVG_N_GAINS;
               tvg.gains = tvg_gains;
-              hyscan_tvg_control_server_send_gains (HYSCAN_TVG_CONTROL_SERVER (server->tvg), source, &tvg);
+              hyscan_tvg_control_server_send_gains (HYSCAN_TVG_CONTROL_SERVER (server->tvg), source, 1, &tvg);
             }
         }
 

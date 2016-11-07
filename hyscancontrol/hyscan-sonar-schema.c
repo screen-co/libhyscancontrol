@@ -1256,6 +1256,16 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
   if (!status)
     goto exit;
 
+  /* Идентификатор ВАРУ. */
+  key_id = g_strdup_printf ("%s/tvg/id", prefix);
+  id = schema->priv->id_counter++;
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
+                                                          id, id, id, 0);
+  g_free (key_id);
+
+  if (!status)
+    goto exit;
+
   /* Идентификатор приёмного канала. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;

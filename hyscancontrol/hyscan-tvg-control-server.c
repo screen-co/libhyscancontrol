@@ -62,6 +62,9 @@ static void        hyscan_tvg_control_server_set_property              (GObject 
 static void        hyscan_tvg_control_server_object_constructed        (GObject                     *object);
 static void        hyscan_tvg_control_server_object_finalize           (GObject                     *object);
 
+static gpointer    hyscan_tvg_control_uniq_channel                     (HyScanSourceType               type,
+                                                                        guint                          channel);
+
 static gboolean    hyscan_tvg_control_server_set_cb                    (HyScanTVGControlServer      *server,
                                                                         const gchar *const          *names,
                                                                         GVariant                   **values);
@@ -180,7 +183,7 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i;
+  gint i, j;
 
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -203,7 +206,6 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
   /* Параметры гидролокатора. */
   schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
   params = hyscan_data_schema_list_nodes (schema);
-  g_clear_object (&schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
   for (i = 0, sources = NULL; i < params->n_nodes; i++)
@@ -338,8 +340,30 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
               operation_path = g_strdup_printf ("/sources/%s/tvg/enable", operation->name);
               g_hash_table_insert (priv->paths, operation_path, operation);
 
-              /* Идентификатор ВАРУ. */
-              g_hash_table_insert (priv->ids, GINT_TO_POINTER (source), GINT_TO_POINTER (id));
+              /* ВАРУ приёмных каналов. */
+              for (j = 1; TRUE; j++)
+                {
+                  gchar *key_id;
+                  gboolean has_channel;
+
+                  gint64 tvg_id;
+
+                  key_id = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
+                  has_channel = hyscan_data_schema_has_key (schema, key_id);
+                  g_free (key_id);
+
+                  if (!has_channel)
+                    break;
+
+                  /* Идентификатор ВАРУ канала. */
+                  key_id = g_strdup_printf ("%s/channels/%d/tvg/id", sources->nodes[i]->path, j);
+                  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), key_id, &tvg_id))
+                    {
+                      g_hash_table_insert (priv->ids, hyscan_tvg_control_uniq_channel (source, j),
+                                                      GINT_TO_POINTER (tvg_id));
+                    }
+                  g_free (key_id);
+                }
             }
         }
 
@@ -349,6 +373,7 @@ hyscan_tvg_control_server_object_constructed (GObject *object)
     }
 
   hyscan_data_schema_free_nodes (params);
+  g_clear_object (&schema);
 }
 
 static void
@@ -364,6 +389,15 @@ hyscan_tvg_control_server_object_finalize (GObject *object)
   g_hash_table_unref (priv->operations);
 
   G_OBJECT_CLASS (hyscan_tvg_control_server_parent_class)->finalize (object);
+}
+
+/* Функция возвращает уникальный идентификатор для дуплета: источник данных, индекс канала. */
+static gpointer
+hyscan_tvg_control_uniq_channel (HyScanSourceType type,
+                                 guint            channel)
+{
+  gint uniq = 1000 * type + channel;
+  return GINT_TO_POINTER (uniq);
 }
 
 /* Функция - обработчик параметров. */
@@ -585,6 +619,7 @@ hyscan_tvg_control_server_new (HyScanSonarBox *sonar)
 void
 hyscan_tvg_control_server_send_gains (HyScanTVGControlServer *server,
                                       HyScanSourceType        source,
+                                      guint                   channel,
                                       HyScanDataWriterTVG    *tvg)
 {
   HyScanSonarMessage message;
@@ -595,7 +630,7 @@ hyscan_tvg_control_server_send_gains (HyScanTVGControlServer *server,
   if (server->priv->sonar == NULL)
     return;
 
-  id = g_hash_table_lookup (server->priv->ids, GINT_TO_POINTER (source));
+  id = g_hash_table_lookup (server->priv->ids, hyscan_tvg_control_uniq_channel (source, channel));
   if (id == NULL)
     return;
 

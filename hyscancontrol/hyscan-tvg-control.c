@@ -30,6 +30,12 @@ typedef struct
   HyScanTVGModeType            capabilities;                   /* Режимы работы системы ВАРУ. */
 } HyScanTVGControlTVG;
 
+typedef struct
+{
+  HyScanSourceType             source;                         /* Тип источника данных. */
+  guint                        channel;                        /* Индекс приёмного канала. */
+} HyScanTVGControlChannelTVG;
+
 struct _HyScanTVGControlPrivate
 {
   HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
@@ -71,9 +77,9 @@ hyscan_tvg_control_class_init (HyScanTVGControlClass *klass)
 
   hyscan_tvg_control_signals[SIGNAL_GAINS] =
     g_signal_new ("gains", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_POINTER,
+                  g_cclosure_user_marshal_VOID__INT_INT_POINTER,
                   G_TYPE_NONE,
-                  2, G_TYPE_INT, G_TYPE_POINTER);
+                  3, G_TYPE_INT, G_TYPE_INT, G_TYPE_POINTER);
 }
 
 static void
@@ -115,14 +121,14 @@ hyscan_tvg_control_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i;
+  gint i, j;
 
   G_OBJECT_CLASS (hyscan_tvg_control_parent_class)->constructed (object);
 
   /* Список систем ВАРУ. */
-  priv->tvgs_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
-                                            NULL, hyscan_tvg_control_free_tvg);
-  priv->tvgs_by_source = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->tvgs_by_id = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->tvgs_by_source = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                                                NULL, hyscan_tvg_control_free_tvg);
 
   /* Обязательно должен быть передан указатель на HyScanSonar. */
   if (priv->sonar == NULL)
@@ -208,8 +214,36 @@ hyscan_tvg_control_object_constructed (GObject *object)
           tvg->path = g_strdup_printf ("%s/tvg", sources->nodes[i]->path);
           tvg->capabilities = capabilities;
 
-          g_hash_table_insert (priv->tvgs_by_id, GINT_TO_POINTER (id), tvg);
           g_hash_table_insert (priv->tvgs_by_source, GINT_TO_POINTER (source), tvg);
+
+          /* ВАРУ приёмных каналов. */
+          for (j = 1; TRUE; j++)
+            {
+              HyScanTVGControlChannelTVG *channel_tvg;
+
+              gchar *key_id;
+              gboolean has_channel;
+
+              gint64 tvg_id;
+
+              key_id = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
+              has_channel = hyscan_data_schema_has_key (priv->schema, key_id);
+              g_free (key_id);
+
+              if (!has_channel)
+                break;
+
+              /* Идентификатор ВАРУ канала. */
+              key_id = g_strdup_printf ("%s/channels/%d/tvg/id", sources->nodes[i]->path, j);
+              if (hyscan_sonar_get_integer (priv->sonar, key_id, &tvg_id))
+                {
+                  channel_tvg = g_new0 (HyScanTVGControlChannelTVG, 1);
+                  channel_tvg->source = source;
+                  channel_tvg->channel = j;
+                  g_hash_table_insert (priv->tvgs_by_id, GINT_TO_POINTER (tvg_id), channel_tvg);
+                }
+              g_free (key_id);
+            }
         }
 
       /* Обработчик параметров системы ВАРУ от гидролокатора. */
@@ -242,7 +276,7 @@ static void
 hyscan_tvg_control_tvg_receiver (HyScanTVGControl   *control,
                                  HyScanSonarMessage *message)
 {
-  HyScanTVGControlTVG *tvg;
+  HyScanTVGControlChannelTVG *tvg;
 
   HyScanDataWriterTVG gain;
 
@@ -261,9 +295,9 @@ hyscan_tvg_control_tvg_receiver (HyScanTVGControl   *control,
   gain.n_gains = message->size / sizeof (gfloat);
   gain.gains = message->data;
 
-  hyscan_data_writer_raw_add_tvg (HYSCAN_DATA_WRITER (control), tvg->source, &gain);
+  hyscan_data_writer_raw_add_tvg (HYSCAN_DATA_WRITER (control), tvg->source, tvg->channel, &gain);
 
-  g_signal_emit (control, hyscan_tvg_control_signals[SIGNAL_GAINS], 0, tvg->source, &gain);
+  g_signal_emit (control, hyscan_tvg_control_signals[SIGNAL_GAINS], 0, tvg->source, tvg->channel, &gain);
 }
 
 /* Функция освобождает память, занятую структурой HyScanTVGControlTVG. */

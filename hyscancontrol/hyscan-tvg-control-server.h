@@ -125,6 +125,7 @@ HyScanTVGControlServer        *hyscan_tvg_control_server_new                   (
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
  * \param source идентификатор источника данных;
+ * \param channel индекс канала данных, начиная с 1;
  * \param tvg параметры ВАРУ.
  *
  * \return Нет.
@@ -133,6 +134,7 @@ HyScanTVGControlServer        *hyscan_tvg_control_server_new                   (
 HYSCAN_API
 void                           hyscan_tvg_control_server_send_gains            (HyScanTVGControlServer      *server,
                                                                                 HyScanSourceType             source,
+                                                                                guint                        channel,
                                                                                 HyScanDataWriterTVG         *tvg);
 
 G_END_DECLS
