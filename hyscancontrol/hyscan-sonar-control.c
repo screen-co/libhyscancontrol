@@ -162,7 +162,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
     priv->sync_types = sync_types;
 
   /* Поток отправки сигнала alive. */
-  if (hyscan_sonar_get_double (priv->sonar, "/info/alive-timeout", &priv->alive_timeout))
+  if (hyscan_sonar_get_double (priv->sonar, "/control/timeout", &priv->alive_timeout))
     priv->guard = g_thread_new ("sonar-control-alive", hyscan_sonar_control_quard, priv);
 
   /* Параметры гидролокатора. */

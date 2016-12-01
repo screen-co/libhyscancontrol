@@ -128,62 +128,53 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_sonar_schema_enum_add_signal_type (schema);
 
   /* Версия и идентификатор схемы данных гидролокатора. */
-  hyscan_data_schema_builder_key_integer_create (builder, "/schema/id",
-                                                 "id", "Sonar schema id", TRUE,
-                                                 HYSCAN_SONAR_SCHEMA_ID,
-                                                 HYSCAN_SONAR_SCHEMA_ID,
-                                                 HYSCAN_SONAR_SCHEMA_ID,
-                                                 0);
-  hyscan_data_schema_builder_key_integer_create (builder, "/schema/version",
-                                                 "version", "Sonar schema version", TRUE,
-                                                 HYSCAN_SONAR_SCHEMA_VERSION,
-                                                 HYSCAN_SONAR_SCHEMA_VERSION,
-                                                 HYSCAN_SONAR_SCHEMA_VERSION,
-                                                 0);
+  hyscan_data_schema_builder_key_integer_create (builder, "/schema/id", "id",
+                                                 "Sonar schema id", HYSCAN_SONAR_SCHEMA_ID);
+  hyscan_data_schema_builder_key_set_access (builder, "/schema/id", HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
 
-  /* Таймаут команд от пользователя. */
-  hyscan_data_schema_builder_key_double_create (builder, "/info/alive-timeout",
-                                                "alive-timeout", "Alive timeout", TRUE,
-                                                priv->timeout,
-                                                priv->timeout,
-                                                priv->timeout,
-                                                0.0);
+  hyscan_data_schema_builder_key_integer_create (builder, "/schema/version", "version",
+                                                 "Sonar schema version", HYSCAN_SONAR_SCHEMA_VERSION);
+  hyscan_data_schema_builder_key_set_access (builder, "/schema/version", HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+
+  /* Название и модель гидролокатора. */
 
   /* Параметры управления. */
-  hyscan_data_schema_builder_key_boolean_create (builder, "/control/alive",
-                                                 "alive", "Sonar watchdog", FALSE,
-                                                 FALSE);
-  hyscan_data_schema_builder_key_boolean_create (builder, "/control/enable",
-                                                 "enable", "Enable sonar", FALSE,
-                                                 FALSE);
-  hyscan_data_schema_builder_key_string_create  (builder, "/control/project-name",
-                                                 "project-name", "Project name", FALSE,
-                                                 NULL);
-  hyscan_data_schema_builder_key_string_create  (builder, "/control/track-name",
-                                                 "track-name", "Track name", FALSE,
-                                                 NULL);
-  hyscan_data_schema_builder_key_enum_create    (builder, "/control/track-type",
-                                                 "track-type", "Track type", FALSE,
-                                                 "track-type", HYSCAN_TRACK_SURVEY);
-  hyscan_data_schema_builder_key_enum_create    (builder, "/control/data-mode",
-                                                 "data-mode", "Preferred data mode", FALSE,
-                                                 "data-mode", HYSCAN_SONAR_DATA_BOTH);
+  hyscan_data_schema_builder_key_double_create (builder, "/control/timeout", "alive-timeout",
+                                                "Alive timeout", priv->timeout);
+  hyscan_data_schema_builder_key_set_access (builder, "/control/timeout", HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+
+  hyscan_data_schema_builder_key_boolean_create (builder, "/control/alive", "alive",
+                                                 "Sonar watchdog", FALSE);
+  hyscan_data_schema_builder_key_boolean_create (builder, "/control/enable", "enable",
+                                                 "Enable sonar", FALSE);
+
+  hyscan_data_schema_builder_key_string_create  (builder, "/control/project-name", "project-name",
+                                                 "Project name", NULL);
+  hyscan_data_schema_builder_key_string_create  (builder, "/control/track-name", "track-name",
+                                                 "Track name", NULL);
+
+  hyscan_data_schema_builder_key_enum_create    (builder, "/control/track-type", "track-type",
+                                                 "Track type", "track-type", HYSCAN_TRACK_SURVEY);
+  hyscan_data_schema_builder_key_enum_create    (builder, "/control/data-mode", "data-mode",
+                                                 "Preferred data mode", "data-mode", HYSCAN_SONAR_DATA_BOTH);
 
   /* Идентификатор для сообщений от гидролокатора. */
   id = schema->priv->id_counter++;
-  hyscan_data_schema_builder_key_integer_create (builder, "/id", "id", "ID", TRUE, id, id, id, 0);
+  hyscan_data_schema_builder_key_integer_create (builder, "/id", "id", "ID", id);
+  hyscan_data_schema_builder_key_set_access (builder, "/id", HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
 }
 
 static void
 hyscan_sonar_schema_object_finalize (GObject *object)
 {
   HyScanSonarSchema *schema = HYSCAN_SONAR_SCHEMA (object);
+  HyScanSonarSchemaPrivate *priv = schema->priv;
 
-  g_hash_table_unref (schema->priv->sources);
-  g_hash_table_unref (schema->priv->generators);
-  g_hash_table_unref (schema->priv->tvgs);
-  g_hash_table_unref (schema->priv->channels);
-  g_hash_table_unref (schema->priv->acoustics);
+  g_hash_table_unref (priv->sources);
+  g_hash_table_unref (priv->generators);
+  g_hash_table_unref (priv->tvgs);
+  g_hash_table_unref (priv->channels);
+  g_hash_table_unref (priv->acoustics);
 
   G_OBJECT_CLASS (hyscan_sonar_schema_parent_class)->finalize (object);
 }
@@ -261,8 +252,10 @@ hyscan_sonar_schema_enum_add_ip_port_addresses (HyScanSonarSchema *schema)
 
   hyscan_data_schema_builder_enum_value_create (builder, "ip-address", 0, "Disabled", NULL);
 
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/ip-addresses", "ip-addresses", NULL,
-                                              TRUE, "ip-address", 0);
+  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/ip-addresses", "ip-addresses",
+                                              NULL, "ip-address", 0);
+  hyscan_data_schema_builder_key_set_access (builder, "/sensors/ip-addresses",
+                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
 }
 
 /* Функция создаёт enum значение uart-dev. */
@@ -275,8 +268,10 @@ hyscan_sonar_schema_enum_add_uart_devs (HyScanSonarSchema *schema)
 
   hyscan_data_schema_builder_enum_value_create (builder, "uart-device", 0, "Disabled", NULL);
 
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-devices", "uart-devices", NULL,
-                                              TRUE, "uart-device", 0);
+  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-devices", "uart-devices",
+                                              NULL, "uart-device", 0);
+  hyscan_data_schema_builder_key_set_access (builder, "/sensors/uart-devices",
+                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
 }
 
 /* Функция создаёт enum значение uart-mode. */
@@ -289,8 +284,10 @@ hyscan_sonar_schema_enum_add_uart_modes (HyScanSonarSchema *schema)
 
   hyscan_data_schema_builder_enum_value_create (builder, "uart-mode", 0, "Disabled", NULL);
 
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-modes", "uart-modes", NULL,
-                                              TRUE, "uart-mode", 0);
+  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-modes", "uart-modes",
+                                              NULL, "uart-mode", 0);
+  hyscan_data_schema_builder_key_set_access (builder, "/sensors/uart-modes",
+                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
 }
 
 /* Функция создаёт enum значение sync-type. */
@@ -411,8 +408,10 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Тип порта. */
   key_id = g_strdup_printf ("%s/type", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "type", NULL, TRUE,
-                                                       "port-type", type);
+  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "type",
+                                                       NULL, "port-type", type);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -420,9 +419,10 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Формат данных. */
   key_id = g_strdup_printf ("%s/protocol", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "protocol", NULL,
-                                                       type == HYSCAN_SENSOR_PORT_VIRTUAL ? TRUE : FALSE,
-                                                       "port-protocol", protocol);
+  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "protocol",
+                                                       NULL, "port-protocol", protocol);
+  if (status && (type == HYSCAN_SENSOR_PORT_VIRTUAL))
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -430,8 +430,9 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Номер канала. */
   key_id = g_strdup_printf ("%s/channel", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "channel", NULL, FALSE,
-                                                          1, 1, HYSCAN_SENSOR_CONTROL_MAX_CHANNELS, 1);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "channel", NULL, 1);
+  if (status)
+    status = hyscan_data_schema_builder_key_integer_range (builder, key_id, 1, HYSCAN_SENSOR_CONTROL_MAX_CHANNELS, 1);
   g_free (key_id);
 
   if (!status)
@@ -439,8 +440,9 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Коррекция времени приёма данных. */
   key_id = g_strdup_printf ("%s/time-offset", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "time-offset", NULL, FALSE,
-                                                          0, 0, G_MAXINT64, 1);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "time-offset", NULL, 0);
+  if (status)
+    status = hyscan_data_schema_builder_key_integer_range (builder, key_id, 0, 600 * G_USEC_PER_SEC, 1);
   g_free (key_id);
 
   if (!status)
@@ -448,7 +450,7 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Состояние порта */
   key_id = g_strdup_printf ("%s/status", prefix);
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "status", NULL, FALSE,
+  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "status", NULL,
                                                        "port-status", HYSCAN_SENSOR_PORT_STATUS_DISABLED);
   g_free (key_id);
 
@@ -457,7 +459,7 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Признак включения. */
   key_id = g_strdup_printf ("%s/enable", prefix);
-  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE, FALSE);
+  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE);
   g_free (key_id);
 
   if (!status)
@@ -465,48 +467,42 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
   /* Местоположение антенны. */
   key_id = g_strdup_printf ("%s/position/x", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "x", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "x", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/y", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "y", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "y", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/z", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "z", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "z", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/psi", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "psi", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "psi", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/gamma", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "gamma", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "gamma", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/theta", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "theta", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "theta", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
@@ -517,8 +513,7 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
     {
       /* IP адрес. */
       key_id = g_strdup_printf ("%s/ip-address", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "ip-address", NULL, FALSE,
-                                                           "ip-address", 0);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "ip-address", NULL, "ip-address", 0);
       g_free (key_id);
 
       if (!status)
@@ -526,8 +521,9 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
       /* UDP порт. */
       key_id = g_strdup_printf ("%s/udp-port", prefix);
-      status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "udp-port", NULL, FALSE,
-                                                              10000, 1024, 66535, 1);
+      status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "udp-port", NULL, 10000);
+      if (status)
+        status = hyscan_data_schema_builder_key_integer_range (builder, key_id, 1024, 65535, 1);
       g_free (key_id);
 
       if (!status)
@@ -539,8 +535,7 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
     {
       /* Физическое устройство. */
       key_id = g_strdup_printf ("%s/uart-device", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-device", NULL, FALSE,
-                                                           "uart-device", 0);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-device", NULL, "uart-device", 0);
       g_free (key_id);
 
       if (!status)
@@ -548,8 +543,7 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
       /* Режим работы. */
       key_id = g_strdup_printf ("%s/uart-mode", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-mode", NULL, FALSE,
-                                                           "uart-mode", 0);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-mode", NULL, "uart-mode", 0);
       g_free (key_id);
 
       if (!status)
@@ -559,8 +553,9 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
   /* Идентификатор порта. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -646,25 +641,21 @@ hyscan_sonar_schema_sync_add (HyScanSonarSchema   *schema,
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
   key_id = "/sync/capabilities";
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, TRUE,
-                                                          capabilities,
-                                                          capabilities,
-                                                          capabilities,
-                                                          0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, capabilities);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   if (!status)
     return FALSE;
 
   key_id = "/sync/type";
-  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "type", NULL, FALSE,
-                                                       "sync-type", 0);
+  status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "type", NULL, "sync-type", 0);
   if (!status)
     return FALSE;
 
   if (capabilities & HYSCAN_SONAR_SYNC_SOFTWARE)
     {
       key_id = "/sync/ping";
-      status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "ping", NULL, FALSE,
-                                                              FALSE);
+      status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "ping", NULL, FALSE);
       if (!status)
         return FALSE;
     }
@@ -702,11 +693,9 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
 
   /* Диаграмма направленности антенны в вертикальной плоскости. */
   key_id = g_strdup_printf ("%s/antenna/pattern/vertical", prefix);
-  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-pattern", NULL, TRUE,
-                                                          antenna_vpattern,
-                                                          antenna_vpattern,
-                                                          antenna_vpattern,
-                                                          0.0);
+  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-pattern", NULL, antenna_vpattern);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -714,11 +703,9 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
 
   /* Диаграмма направленности антенны в горизонтальной плоскости. */
   key_id = g_strdup_printf ("%s/antenna/pattern/horizontal", prefix);
-  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-pattern", NULL, TRUE,
-                                                          antenna_hpattern,
-                                                          antenna_hpattern,
-                                                          antenna_hpattern,
-                                                          0.0);
+  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-pattern", NULL,  antenna_hpattern);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -726,8 +713,9 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
 
   /* Время приёма эхосигнала источником данных. */
   key_id = g_strdup_printf ("%s/control/receive-time", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "receive-time", NULL, FALSE,
-                                                         0.0, 0.0, max_receive_time, 0.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "receive-time", NULL, 0.0);
+  if (status)
+    status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, max_receive_time, 0.0);
   g_free (key_id);
 
   if (!status)
@@ -735,48 +723,42 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
 
   /* Местоположение антенны. */
   key_id = g_strdup_printf ("%s/position/x", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "x", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "x", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/y", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "y", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "y", NULL,  0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/z", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "z", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "z", NULL,  0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/psi", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "psi", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "psi", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/gamma", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "gamma", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "gamma", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
     goto exit;
 
   key_id = g_strdup_printf ("%s/position/theta", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "theta", NULL, FALSE,
-                                                         0.0, -G_MAXDOUBLE, G_MAXDOUBLE, 1.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "theta", NULL, 0.0);
   g_free (key_id);
 
   if (!status)
@@ -785,8 +767,9 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
   /* Идентификатор источника данных. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (status)
@@ -837,8 +820,9 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   /* Режимы работы генератора. */
   key_id = g_strdup_printf ("%s/capabilities", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, TRUE,
-                                                          capabilities, capabilities, capabilities, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, capabilities);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -846,8 +830,9 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   /* Возможные сигналы. */
   key_id = g_strdup_printf ("%s/signals", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "signals", NULL, TRUE,
-                                                          signals, signals, signals, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "signals", NULL, signals);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -855,7 +840,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
 
   /* Признак включения. */
   key_id = g_strdup_printf ("%s/enable", prefix);
-  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE, FALSE);
+  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE);
   g_free (key_id);
 
   if (!status)
@@ -865,8 +850,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   if (capabilities & HYSCAN_GENERATOR_MODE_AUTO)
     {
       key_id = g_strdup_printf ("%s/auto/signal", prefix);
-      status =  hyscan_data_schema_builder_key_enum_create (builder, key_id, "signal", NULL, FALSE,
-                                                            "signal-type", 0);
+      status =  hyscan_data_schema_builder_key_enum_create (builder, key_id, "signal", NULL,  "signal-type", 0);
       g_free (key_id);
 
       if (!status)
@@ -887,8 +871,7 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
         goto exit;
 
       key_id = g_strdup_printf ("%s/preset/id", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "id", NULL, FALSE,
-                                                           preset, 0);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "id", NULL,  preset, 0);
       g_free (key_id);
 
       if (!status)
@@ -901,16 +884,16 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   if (capabilities & HYSCAN_GENERATOR_MODE_SIMPLE)
     {
       key_id = g_strdup_printf ("%s/simple/signal", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "signal", NULL, FALSE,
-                                                           "signal-type", 0);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "signal", NULL,  "signal-type", 0);
       g_free (key_id);
 
       if (!status)
         goto exit;
 
       key_id = g_strdup_printf ("%s/simple/power", prefix);
-      status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL, FALSE,
-                                                             100.0, 0.0, 100.0, 1.0);
+      status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL,  100.0);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 1.0);
       g_free (key_id);
 
       if (!status)
@@ -923,19 +906,18 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
       if (signals & HYSCAN_GENERATOR_SIGNAL_TONE)
         {
           key_id = g_strdup_printf ("%s/tone/duration", prefix);
-          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "duration", NULL, FALSE,
-                                                                 min_tone_duration,
-                                                                 min_tone_duration,
-                                                                 max_tone_duration,
-                                                                 0.00001);
+          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "duration", NULL,  min_tone_duration);
+          if (status)
+            status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_tone_duration, max_tone_duration, 0.00001);
           g_free (key_id);
 
           if (!status)
             goto exit;
 
           key_id = g_strdup_printf ("%s/tone/power", prefix);
-          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL, FALSE,
-                                                                 100.0, 0.0, 100.0, 1.0);
+          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL, 100.0);
+          if (status)
+            status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 1.0);
           g_free (key_id);
 
           if (!status)
@@ -945,26 +927,25 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
       if ((signals & HYSCAN_GENERATOR_SIGNAL_LFM) || (signals & HYSCAN_GENERATOR_SIGNAL_LFMD))
         {
           key_id = g_strdup_printf ("%s/lfm/decreasing", prefix);
-          status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "decreasing", NULL, FALSE, FALSE);
+          status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "decreasing", NULL, FALSE);
           g_free (key_id);
 
           if (!status)
             goto exit;
 
           key_id = g_strdup_printf ("%s/lfm/duration", prefix);
-          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "duration", NULL, FALSE,
-                                                                 min_lfm_duration,
-                                                                 min_lfm_duration,
-                                                                 max_lfm_duration,
-                                                                 0.0001);
+          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "duration", NULL,  min_lfm_duration);
+          if (status)
+            status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_lfm_duration, max_lfm_duration, 0.001);
           g_free (key_id);
 
           if (!status)
             goto exit;
 
           key_id = g_strdup_printf ("%s/lfm/power", prefix);
-          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL, FALSE,
-                                                                 100.0, 0.0, 100.0, 1.0);
+          status = hyscan_data_schema_builder_key_double_create (builder, key_id, "power", NULL, 100.0);
+          if (status)
+            status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 1.0);
           g_free (key_id);
 
           if (!status)
@@ -975,8 +956,9 @@ hyscan_sonar_schema_generator_add (HyScanSonarSchema         *schema,
   /* Идентификатор генератора. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (status)
@@ -1053,8 +1035,9 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
 
   /* Режимы работы ВАРУ. */
   key_id = g_strdup_printf ("%s/capabilities", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, TRUE,
-                                                          capabilities, capabilities, capabilities, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "capabilities", NULL, capabilities);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1062,7 +1045,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
 
   /* Признак включения. */
   key_id = g_strdup_printf ("%s/enable", prefix);
-  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE, FALSE);
+  status = hyscan_data_schema_builder_key_boolean_create (builder, key_id, "enable", NULL, FALSE);
   g_free (key_id);
 
   if (!status)
@@ -1072,16 +1055,18 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_AUTO)
     {
       key_id = g_strdup_printf ("%s/auto/level", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "level", NULL, FALSE,
-                                                              0.9, 0.0, 1.0, 0.1);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "level", NULL, 0.9);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.1);
       g_free (key_id);
 
       if (!status)
         goto exit;
 
       key_id = g_strdup_printf ("%s/auto/sensitivity", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "sensitivity", NULL, FALSE,
-                                                              0.6, 0.0, 1.0, 0.1);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "sensitivity", NULL, 0.6);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.1);
       g_free (key_id);
 
       if (!status)
@@ -1092,8 +1077,9 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_CONSTANT)
     {
       key_id = g_strdup_printf ("%s/constant/gain", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain", NULL, FALSE,
-                                                              min_gain, min_gain, max_gain, 1.0);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain", NULL, min_gain);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_gain, max_gain, 1.0);
       g_free (key_id);
 
       if (!status)
@@ -1104,16 +1090,18 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_LINEAR_DB)
     {
       key_id = g_strdup_printf ("%s/linear-db/gain0", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, FALSE,
-                                                              min_gain, min_gain, max_gain, 1.0);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, min_gain);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_gain, max_gain, 1.0);
       g_free (key_id);
 
       if (!status)
         goto exit;
 
       key_id = g_strdup_printf ("%s/linear-db/step", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "step", NULL, FALSE,
-                                                              20.0, 0.0, 100.0, 10.0);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "step", NULL, 20.0);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 10.0);
       g_free (key_id);
 
       if (!status)
@@ -1124,24 +1112,27 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_LOGARITHMIC)
     {
       key_id = g_strdup_printf ("%s/logarithmic/alpha", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "alpha", NULL, FALSE,
-                                                              0.02, 0.0, 1.0, 0.001);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "alpha", NULL, 0.02);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.001);
       g_free (key_id);
 
       if (!status)
         goto exit;
 
       key_id = g_strdup_printf ("%s/logarithmic/beta", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "beta", NULL, FALSE,
-                                                              10.0, 0.0, 100.0, 10.0);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "beta", NULL, 10.0);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 10.0);
       g_free (key_id);
 
       if (!status)
         goto exit;
 
       key_id = g_strdup_printf ("%s/logarithmic/gain0", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, FALSE,
-                                                              min_gain, min_gain, max_gain, 1.0);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, min_gain);
+      if (status)
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_gain, max_gain, 1.0);
       g_free (key_id);
 
       if (!status)
@@ -1151,8 +1142,9 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   /* Идентификатор ВАРУ. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (status)
@@ -1203,20 +1195,16 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
 
   /* Вертикальное смещение антенны в блоке. */
   key_id = g_strdup_printf ("%s/antenna/offset/vertical", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-offset", NULL, TRUE,
-                                                         antenna_voffset,
-                                                         antenna_voffset,
-                                                         antenna_voffset,
-                                                         0.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vertical-offset", NULL,  antenna_voffset);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   /* Горизонтальное смещение антенны в блоке. */
   key_id = g_strdup_printf ("%s/antenna/offset/horizontal", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-offset", NULL, TRUE,
-                                                         antenna_hoffset,
-                                                         antenna_hoffset,
-                                                         antenna_hoffset,
-                                                         0.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-offset", NULL, antenna_hoffset);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1224,11 +1212,9 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
 
   /* Смещение 0 АЦП. */
   key_id = g_strdup_printf ("%s/adc/offset", prefix);
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "offset", NULL, TRUE,
-                                                          adc_offset,
-                                                          adc_offset,
-                                                          adc_offset,
-                                                          0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "offset", NULL, adc_offset);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1236,11 +1222,9 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
 
   /* Опорное напряжение АЦП. */
   key_id = g_strdup_printf ("%s/adc/vref", prefix);
-  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vref", NULL, TRUE,
-                                                         adc_vref,
-                                                         adc_vref,
-                                                         adc_vref,
-                                                         0.0);
+  status = hyscan_data_schema_builder_key_double_create (builder, key_id, "vref", NULL, adc_vref);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1249,8 +1233,9 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
   /* Идентификатор "шумов". */
   key_id = g_strdup_printf ("%s/noise/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1259,8 +1244,9 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
   /* Идентификатор ВАРУ. */
   key_id = g_strdup_printf ("%s/tvg/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (!status)
@@ -1269,9 +1255,9 @@ hyscan_sonar_schema_channel_add (HyScanSonarSchema *schema,
   /* Идентификатор приёмного канала. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
-
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   if (status)
     g_hash_table_insert (schema->priv->channels, GINT_TO_POINTER (g_str_hash (prefix)), NULL);
   else
@@ -1316,8 +1302,9 @@ hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
   /* Идентификатор источника "акустических" данных. */
   key_id = g_strdup_printf ("%s/id", prefix);
   id = schema->priv->id_counter++;
-  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, TRUE,
-                                                          id, id, id, 0);
+  status = hyscan_data_schema_builder_key_integer_create (builder, key_id, "id", NULL, id);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);
 
   if (status)

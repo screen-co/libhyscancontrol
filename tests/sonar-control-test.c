@@ -1627,7 +1627,7 @@ main (int    argc,
       else
         schema = hyscan_sonar_get_schema (HYSCAN_SONAR (sonar));
 
-      schema_data = hyscan_data_schema_get_data (schema);
+      schema_data = hyscan_data_schema_get_data (schema, NULL);
       g_print ("%s", schema_data);
       g_free (schema_data);
 

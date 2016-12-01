@@ -169,6 +169,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
 
           gchar *param_name;
           GHashTable *presets;
+          const gchar *proxy_values_id;
           HyScanDataSchemaEnumValue **sonar_values;
           HyScanDataSchemaEnumValue **proxy_values;
 
@@ -190,8 +191,9 @@ hyscan_generator_proxy_object_constructed (GObject *object)
           g_hash_table_insert (priv->sources, GINT_TO_POINTER (source), presets);
 
           param_name = g_strdup_printf ("%s/generator/preset/id", sources->nodes[i]->path);
+          proxy_values_id = hyscan_data_schema_key_get_enum_id (schema, param_name);
+          proxy_values = hyscan_data_schema_key_get_enum_values (schema, proxy_values_id);
           sonar_values = hyscan_generator_control_list_presets (priv->control, source);
-          proxy_values = hyscan_data_schema_key_get_enum_values (schema, param_name);
 
           for (j = 0; proxy_values != NULL && proxy_values[j] != NULL; j++)
             {

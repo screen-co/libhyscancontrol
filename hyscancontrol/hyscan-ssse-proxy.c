@@ -94,11 +94,11 @@ hyscan_ssse_proxy_class_init (HyScanSSSEProxyClass *klass)
 
   g_object_class_install_property (object_class, PROP_SIDE_SCALE,
     g_param_spec_uint ("side-scale", "SideScale", "Side scale",
-                      1, 1024, 1, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                       1, 1024, 1, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_TRACK_SCALE,
     g_param_spec_uint ("track-scale", "TrackScale", "Track scale",
-                      1, 1024, 1, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                       1, 1024, 1, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -163,7 +163,7 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
   if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       HyScanDataSchema *schema = hyscan_sonar_get_schema (priv->sonar);
-      schema_data = hyscan_data_schema_get_data (schema);
+      schema_data = hyscan_data_schema_get_data (schema, NULL);
       g_object_unref (schema);
     }
   else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)

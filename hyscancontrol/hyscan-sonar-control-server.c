@@ -235,7 +235,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
-  if (hyscan_sonar_get_double (HYSCAN_SONAR (priv->sonar), "/info/alive-timeout", &priv->alive_timeout))
+  if (hyscan_sonar_get_double (HYSCAN_SONAR (priv->sonar), "/control/timeout", &priv->alive_timeout))
     {
       priv->alive_timer = g_timer_new ();
       priv->guard = g_thread_new ("sonar-control-server-alive", hyscan_sonar_control_server_quard, server);
