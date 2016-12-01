@@ -340,14 +340,14 @@ hyscan_sonar_schema_enum_add_track_type (HyScanSonarSchema *schema)
   hyscan_data_schema_builder_enum_create (builder, "track-type");
 
   hyscan_data_schema_builder_enum_value_create (builder, "track-type",
+                                                HYSCAN_TRACK_CALIBRATION,
+                                                "Calibration", NULL);
+  hyscan_data_schema_builder_enum_value_create (builder, "track-type",
                                                 HYSCAN_TRACK_SURVEY,
                                                 "Survey", NULL);
   hyscan_data_schema_builder_enum_value_create (builder, "track-type",
                                                 HYSCAN_TRACK_TACK,
                                                 "Tack", NULL);
-  hyscan_data_schema_builder_enum_value_create (builder, "track-type",
-                                                HYSCAN_TRACK_TRACK,
-                                                "Track", NULL);
 }
 
 /* Функция создаёт enum значение signal-type. */

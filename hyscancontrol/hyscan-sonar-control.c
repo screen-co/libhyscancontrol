@@ -129,6 +129,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   HyScanDataSchemaNode *params;
   HyScanDataSchemaNode *sources;
+  gchar *info;
 
   gint64 sync_types;
   gint64 version;
@@ -304,6 +305,15 @@ hyscan_sonar_control_object_constructed (GObject *object)
       /* Обработчик данных от приёмных каналов гидролокатора. */
       g_signal_connect_swapped (priv->sonar, "data",
                                 G_CALLBACK (hyscan_sonar_control_data_receiver), control);
+    }
+
+  /* Информация о гидролокаторе. */
+  info = hyscan_data_schema_get_data (priv->schema, "/info", "info");
+  if (info != NULL)
+    {
+      hyscan_data_writer_set_sonar_info (HYSCAN_DATA_WRITER (control), info);
+
+      g_free (info);
     }
 
   hyscan_data_schema_free_nodes (params);

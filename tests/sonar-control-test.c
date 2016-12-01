@@ -1243,7 +1243,7 @@ check_sonar_control (HyScanSonarControl       *control,
     {
       gchar *project_name = g_strdup_printf ("test-project-%d", i);
       gchar *track_name = g_strdup_printf ("test-track-%d", i);
-      HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 3);
+      HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 2);
 
       prev_counter = counter;
       if (!hyscan_sonar_control_start (control, project_name, track_name, track_type) ||
@@ -1627,7 +1627,7 @@ main (int    argc,
       else
         schema = hyscan_sonar_get_schema (HYSCAN_SONAR (sonar));
 
-      schema_data = hyscan_data_schema_get_data (schema, NULL);
+      schema_data = hyscan_data_schema_get_data (schema, NULL, NULL);
       g_print ("%s", schema_data);
       g_free (schema_data);
 

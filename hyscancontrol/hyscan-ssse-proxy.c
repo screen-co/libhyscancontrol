@@ -163,7 +163,7 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
   if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
       HyScanDataSchema *schema = hyscan_sonar_get_schema (priv->sonar);
-      schema_data = hyscan_data_schema_get_data (schema, NULL);
+      schema_data = hyscan_data_schema_get_data (schema, NULL, NULL);
       g_object_unref (schema);
     }
   else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
@@ -173,6 +173,8 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
 
       schema = hyscan_sonar_get_schema (priv->sonar);
       proxy_schema = hyscan_proxy_schema_new (schema, 10.0);
+      hyscan_data_schema_builder_schema_join (HYSCAN_DATA_SCHEMA_BUILDER (proxy_schema), "/info",
+                                              schema, "/info");
 
       hyscan_proxy_schema_sensor_virtual (proxy_schema);
       hyscan_proxy_schema_ssse_acoustic (proxy_schema, priv->sonar, priv->control);

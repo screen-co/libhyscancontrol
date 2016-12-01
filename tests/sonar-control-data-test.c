@@ -12,6 +12,9 @@
 #include <string.h>
 #include <math.h>
 
+#define SONAR_MODEL                    "Test"
+#define SONAR_SERIAL                   123456
+
 #define PROJECT_NAME                   "test"
 
 #define FLOAT_EPSILON                  1e-5
@@ -272,7 +275,7 @@ generate_data (HyScanSSSEControl        *control,
   for (i = 0; i < N_TESTS; i++)
     {
       gchar *track_name = g_strdup_printf ("test-track-%d", i);
-      HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 3);
+      HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 2);
 
       hyscan_sonar_control_start (HYSCAN_SONAR_CONTROL (control), project_name, track_name, track_type);
       hyscan_sonar_control_ping (HYSCAN_SONAR_CONTROL (control));
@@ -291,6 +294,8 @@ check_data (HyScanDB                 *db,
             HyScanSonarProxyModeType  proxy_mode)
 {
   gint32 track_id;
+  gint32 channel_id;
+  gint32 param_id;
 
   gfloat *values;
   HyScanComplexFloat *signal_points;
@@ -314,11 +319,53 @@ check_data (HyScanDB                 *db,
   /* Проверяем данные по галсам. */
   for (n_track = 0; n_track < N_TESTS; n_track++)
     {
-      gchar *track_name = g_strdup_printf ("test-track-%d", n_track);
+      gchar *track_name;
+      gchar *track_type;
+      gchar *sonar_info;
 
+      HyScanDataSchema *info_schema;
+      GVariant *value;
+
+      track_name = g_strdup_printf ("test-track-%d", n_track);
       track_id = hyscan_db_track_open (db, project_id, track_name);
       if (track_id < 0)
         g_error ("can't open %s", track_name);
+
+      /* Проверяем информацию о гидролокаторе. */
+      param_id = hyscan_db_track_param_open (db, track_id);
+      if (param_id < 0)
+        g_error ("can't open track %s parameters", track_name);
+
+      /* Информация о галсе. */
+      sonar_info = hyscan_db_param_get_string (db, param_id, NULL, "/info");
+      info_schema = hyscan_data_schema_new_from_string (sonar_info, "info");
+
+      /* Модель. */
+      value = hyscan_data_schema_key_get_default (info_schema, "/model");
+      if (value == NULL)
+        g_error ("%s: no sonar model info", track_name);
+      if (g_strcmp0 (g_variant_get_string (value, NULL), SONAR_MODEL) != 0)
+        g_error ("%s: sonar model error", track_name);
+      g_variant_unref (value);
+
+      /* Серийный номер. */
+      value = hyscan_data_schema_key_get_default (info_schema, "/serial");
+      if (value == NULL)
+        g_error ("%s: no sonar serial number info", track_name);
+      if (g_variant_get_int64 (value) != SONAR_SERIAL)
+        g_error ("%s: sonar serial number error", track_name);
+      g_variant_unref (value);
+
+      g_free (sonar_info);
+      g_object_unref (info_schema);
+
+      /* Тип галса. */
+      track_type = hyscan_db_param_get_string (db, param_id, NULL, "/type");
+      if (g_strcmp0 (track_type, hyscan_track_get_name_by_type (HYSCAN_TRACK_SURVEY + (n_track % 2))) != 0)
+        g_error ("%s: type error", track_name);
+      g_free (track_type);
+
+      hyscan_db_close (db, param_id);
 
       /* Проверяем данные от датчиков. */
       for (j = 0; j < sensor_n_ports; j++)
@@ -331,9 +378,6 @@ check_data (HyScanDB                 *db,
             {
               HyScanSourceType source;
               const gchar *channel_name;
-              gint32 channel_id;
-              gint32 param_id;
-
               gdouble double_value;
 
               if (n_source == 0)
@@ -462,9 +506,6 @@ check_data (HyScanDB                 *db,
         {
           HyScanSourceType source = select_source_by_index (j);
           SourceInfo *info = source_info_by_index (j);
-
-          gint32 channel_id;
-          gint32 param_id;
 
           gdouble double_value;
           gint64 integer_value;
@@ -828,6 +869,14 @@ main (int    argc,
 
   /* Схема гидролокатора. */
   schema = hyscan_sonar_schema_new (HYSCAN_SONAR_SCHEMA_DEFAULT_TIMEOUT);
+
+  /* Информация о гидролокаторе. */
+  hyscan_data_schema_builder_key_string_create  (HYSCAN_DATA_SCHEMA_BUILDER (schema),
+                                                 "/info/model", "Sonar model", NULL,
+                                                 SONAR_MODEL);
+  hyscan_data_schema_builder_key_integer_create (HYSCAN_DATA_SCHEMA_BUILDER (schema),
+                                                 "/info/serial", "Sonar serial number", NULL,
+                                                 SONAR_SERIAL);
 
   /* Порты для датчиков. */
   for (i = 0; i < SENSOR_N_PORTS; i++)
