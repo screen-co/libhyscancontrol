@@ -9,6 +9,7 @@
  */
 
 #include "hyscan-generator-control.h"
+#include "hyscan-sonar-messages.h"
 #include "hyscan-control-common.h"
 #include "hyscan-control-marshallers.h"
 
@@ -34,7 +35,7 @@ typedef struct
 
 struct _HyScanGeneratorControlPrivate
 {
-  HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
   HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   GHashTable                  *gens_by_id;                     /* Список генераторов гидролокатора. */
@@ -68,7 +69,7 @@ hyscan_generator_control_class_init (HyScanGeneratorControlClass *klass)
   object_class->finalize = hyscan_generator_control_object_finalize;
 
   g_object_class_install_property (object_class, PROP_SONAR,
-    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_PARAM,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_generator_control_signals[SIGNAL_SIGNAL_IMAGE] =
@@ -117,7 +118,7 @@ hyscan_generator_control_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i;
+  guint i;
 
   G_OBJECT_CLASS (hyscan_generator_control_parent_class)->constructed (object);
 
@@ -131,17 +132,17 @@ hyscan_generator_control_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Параметры гидролокатора. */
-  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  priv->schema = hyscan_param_schema (priv->sonar);
   params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
@@ -186,7 +187,7 @@ hyscan_generator_control_object_constructed (GObject *object)
           param_names[2] = g_strdup_printf ("%s/generator/signals", sources->nodes[i]->path);
           param_names[3] = NULL;
 
-          status = hyscan_sonar_get (priv->sonar, (const gchar **)param_names, param_values);
+          status = hyscan_param_get (priv->sonar, (const gchar **)param_names, param_values);
 
           if (status)
             {
@@ -415,7 +416,7 @@ hyscan_generator_control_set_preset (HyScanGeneratorControl *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/preset/id", generator->path);
-  status = hyscan_sonar_set_enum (control->priv->sonar, param_name, preset);
+  status = hyscan_param_set_enum (control->priv->sonar, param_name, preset);
   g_free (param_name);
 
   return status;
@@ -442,7 +443,7 @@ hyscan_generator_control_set_auto (HyScanGeneratorControl    *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/auto/signal", generator->path);
-  status = hyscan_sonar_set_enum (control->priv->sonar, param_name, signal);
+  status = hyscan_param_set_enum (control->priv->sonar, param_name, signal);
   g_free (param_name);
 
   return status;
@@ -478,7 +479,7 @@ hyscan_generator_control_set_simple (HyScanGeneratorControl    *control,
   param_values[1] = g_variant_new_double (power);
   param_values[2] = NULL;
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -548,7 +549,7 @@ hyscan_generator_control_set_extended (HyScanGeneratorControl    *control,
       return FALSE;
     }
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -585,7 +586,7 @@ hyscan_generator_control_set_enable (HyScanGeneratorControl *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/enable", generator->path);
-  status = hyscan_sonar_set_boolean (control->priv->sonar, param_name, enable);
+  status = hyscan_param_set_boolean (control->priv->sonar, param_name, enable);
   g_free (param_name);
 
   return status;

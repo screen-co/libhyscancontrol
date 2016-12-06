@@ -38,7 +38,7 @@ typedef struct
 
 struct _HyScanSSSEProxyPrivate
 {
-  HyScanSonar                 *sonar;                          /* Интерфейс управления проксируемым гидролокатором. */
+  HyScanParam                 *sonar;                          /* Интерфейс управления проксируемым гидролокатором. */
   HyScanSSSEControl           *control;                        /* Клиент управления проксируемым гидролокатором. */
   HyScanSSSEControlServer     *server;                         /* Сервер прокси гидролокатора. */
 
@@ -47,7 +47,7 @@ struct _HyScanSSSEProxyPrivate
   GHashTable                  *buffers;                        /* Буферы для данных от гидролокатора по каналам. */
 
   gfloat                      *input_data;                     /* Буфер для входных данных. */
-  gint32                       input_max_points;               /* Размер буфера для входных данных в точках. */
+  guint32                      input_max_points;               /* Размер буфера для входных данных в точках. */
 
   guint                        side_scale;                     /* Коэффициент масштабирования по наклонной дальности. */
   guint                        track_scale;                    /* Коэффициент масштабирования по оси движения. */
@@ -80,7 +80,7 @@ hyscan_ssse_proxy_class_init (HyScanSSSEProxyClass *klass)
   object_class->finalize = hyscan_ssse_proxy_object_finalize;
 
   g_object_class_install_property (object_class, PROP_SONAR,
-    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_PARAM,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_CONTROL,
@@ -162,7 +162,7 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
 
   if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
     {
-      HyScanDataSchema *schema = hyscan_sonar_get_schema (priv->sonar);
+      HyScanDataSchema *schema = hyscan_param_schema (priv->sonar);
       schema_data = hyscan_data_schema_get_data (schema, NULL, NULL);
       g_object_unref (schema);
     }
@@ -171,7 +171,7 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
       HyScanDataSchema *schema;
       HyScanSonarSchema *proxy_schema;
 
-      schema = hyscan_sonar_get_schema (priv->sonar);
+      schema = hyscan_param_schema (priv->sonar);
       proxy_schema = hyscan_proxy_schema_new (schema, 10.0);
       hyscan_data_schema_builder_schema_join (HYSCAN_DATA_SCHEMA_BUILDER (proxy_schema), "/info",
                                               schema, "/info");
@@ -196,11 +196,11 @@ hyscan_ssse_proxy_object_constructed (GObject *object)
                                          NULL, hyscan_ssse_proxy_free_data);
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (proxy), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (proxy), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -256,8 +256,8 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
   /* Масштабируем данные. */
   else if (priv->proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
     {
-      gint32 input_n_points;
-      gint32 output_n_points;
+      guint32 input_n_points;
+      guint32 output_n_points;
 
       gfloat accumulator = 0.0;
       guint side_scale = priv->side_scale;
@@ -265,7 +265,7 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
 
       HyScanSSSEProxyData *buffer;
 
-      gint32 i, j;
+      guint32 i, j;
 
       /* Масштабирование отключено. */
       if ((track_scale == 1) && (side_scale == 1))
@@ -357,7 +357,7 @@ hyscan_ssse_proxy_data_forwarder (HyScanSSSEProxyPrivate *priv,
 
 /* Функция создаёт новый объект HyScanSSSEProxy. */
 HyScanSSSEProxy *
-hyscan_ssse_proxy_new (HyScanSonar                *sonar,
+hyscan_ssse_proxy_new (HyScanParam                *sonar,
                        HyScanSonarProxyModeType    proxy_mode,
                        guint                       side_scale,
                        guint                       track_scale,

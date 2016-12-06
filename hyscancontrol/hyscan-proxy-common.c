@@ -64,7 +64,7 @@ hyscan_proxy_schema_sensor_virtual (HyScanSonarSchema *schema)
 /* Функция определяет акустические источники прокси гидролокатора. */
 gboolean
 hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
-                                   HyScanSonar       *sonar,
+                                   HyScanParam       *sonar,
                                    HyScanSSSEControl *control)
 {
   gboolean status = FALSE;
@@ -141,7 +141,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
       param_names[1] = g_strdup_printf ("/sources/%s/antenna/pattern/horizontal", source_name);
       param_names[2] = NULL;
 
-      status = hyscan_sonar_get (sonar, (const gchar **)param_names, param_values);
+      status = hyscan_param_get (sonar, (const gchar **)param_names, param_values);
 
       g_free (param_names[0]);
       g_free (param_names[1]);

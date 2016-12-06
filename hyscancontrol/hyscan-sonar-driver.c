@@ -190,7 +190,7 @@ hyscan_sonar_driver_discover_list (HyScanSonarDiscover *discover)
   return hyscan_sonar_discover_list (priv->driver);
 }
 
-static HyScanSonar *
+static HyScanParam *
 hyscan_sonar_driver_discover_connect (HyScanSonarDiscover *discover,
                                       const gchar         *uri,
                                       const gchar         *config)

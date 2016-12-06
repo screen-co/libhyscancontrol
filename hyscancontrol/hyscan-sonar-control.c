@@ -9,6 +9,7 @@
  */
 
 #include "hyscan-sonar-control.h"
+#include "hyscan-sonar-messages.h"
 #include "hyscan-control-common.h"
 #include "hyscan-control-marshallers.h"
 
@@ -34,7 +35,7 @@ typedef struct
 
 struct _HyScanSonarControlPrivate
 {
-  HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
   HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   HyScanSonarDataMode          data_mode;                      /* Предпочитаемый вид данных от гидролокатора. */
@@ -77,7 +78,7 @@ hyscan_sonar_control_class_init (HyScanSonarControlClass *klass)
   object_class->finalize = hyscan_sonar_control_object_finalize;
 
   g_object_class_install_property (object_class, PROP_SONAR,
-    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_PARAM,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_sonar_control_signals[SIGNAL_RAW_DATA] =
@@ -134,7 +135,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
   gint64 sync_types;
   gint64 version;
   gint64 id;
-  gint i, j;
+  guint i, j;
 
   G_OBJECT_CLASS (hyscan_sonar_control_parent_class)->constructed (object);
 
@@ -149,25 +150,25 @@ hyscan_sonar_control_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Доступные методы синхронизации излучения. */
-  if (hyscan_sonar_get_integer (priv->sonar, "/sync/capabilities", &sync_types))
+  if (hyscan_param_get_integer (priv->sonar, "/sync/capabilities", &sync_types))
     priv->sync_types = sync_types;
 
   /* Поток отправки сигнала alive. */
-  if (hyscan_sonar_get_double (priv->sonar, "/control/timeout", &priv->alive_timeout))
+  if (hyscan_param_get_double (priv->sonar, "/control/timeout", &priv->alive_timeout))
     priv->guard = g_thread_new ("sonar-control-alive", hyscan_sonar_control_quard, priv);
 
   /* Параметры гидролокатора. */
-  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  priv->schema = hyscan_param_schema (priv->sonar);
   params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
@@ -208,7 +209,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
           param_names[1] = g_strdup_printf ("%s/antenna/pattern/horizontal", sources->nodes[i]->path);
           param_names[2] = NULL;
 
-          status = hyscan_sonar_get (priv->sonar, (const gchar **)param_names, param_values);
+          status = hyscan_param_get (priv->sonar, (const gchar **)param_names, param_values);
 
           if (status)
             {
@@ -255,7 +256,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
               param_names[5] = g_strdup_printf ("%s/channels/%d/adc/vref", sources->nodes[i]->path, j);
               param_names[6] = NULL;
 
-              status = hyscan_sonar_get (priv->sonar, (const gchar **)param_names, param_values);
+              status = hyscan_param_get (priv->sonar, (const gchar **)param_names, param_values);
 
               if (status)
                 {
@@ -355,7 +356,7 @@ hyscan_sonar_control_quard (gpointer data)
     {
       if (g_timer_elapsed (timer, NULL) >= (priv->alive_timeout / 2.0))
         {
-          hyscan_sonar_set_boolean (priv->sonar, "/control/alive", TRUE);
+          hyscan_param_set_boolean (priv->sonar, "/control/alive", TRUE);
 
           g_timer_start (timer);
         }
@@ -457,7 +458,7 @@ hyscan_sonar_control_set_sync_type (HyScanSonarControl  *control,
 {
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
-  return hyscan_sonar_set_enum (control->priv->sonar, "/sync/type", sync_type);
+  return hyscan_param_set_enum (control->priv->sonar, "/sync/type", sync_type);
 }
 
 /* Функция задаёт предпочитаемый вид данных от гидролокатора. */
@@ -469,7 +470,7 @@ hyscan_sonar_control_set_data_mode (HyScanSonarControl  *control,
 
   control->priv->data_mode = data_mode;
 
-  return hyscan_sonar_set_enum (control->priv->sonar, "/control/data-mode", data_mode);
+  return hyscan_param_set_enum (control->priv->sonar, "/control/data-mode", data_mode);
 }
 
 /* Функция устанавливает информацию о местоположении приёмных антенн. */
@@ -505,7 +506,7 @@ hyscan_sonar_control_set_position (HyScanSonarControl    *control,
   param_values[5] = g_variant_new_double (position->theta);
   param_values[6] = NULL;
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -545,7 +546,7 @@ hyscan_sonar_control_set_receive_time (HyScanSonarControl *control,
 
   param_name = g_strdup_printf ("/sources/%s/control/receive-time",
                                 hyscan_control_get_source_name (source));
-  status = hyscan_sonar_set_double (control->priv->sonar, param_name, receive_time);
+  status = hyscan_param_set_double (control->priv->sonar, param_name, receive_time);
   g_free (param_name);
 
   return status;
@@ -580,7 +581,7 @@ hyscan_sonar_control_start (HyScanSonarControl *control,
       param_values[3] = g_variant_new_boolean (TRUE);
       param_values[4] = NULL;
 
-      status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+      status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
       if (!status)
         {
@@ -606,7 +607,7 @@ hyscan_sonar_control_stop (HyScanSonarControl *control)
 
   g_mutex_lock (&control->priv->lock);
 
-  status = hyscan_sonar_set_boolean (control->priv->sonar, "/control/enable", FALSE);
+  status = hyscan_param_set_boolean (control->priv->sonar, "/control/enable", FALSE);
   hyscan_data_writer_stop (HYSCAN_DATA_WRITER (control));
 
   g_mutex_unlock (&control->priv->lock);
@@ -620,5 +621,5 @@ hyscan_sonar_control_ping (HyScanSonarControl *control)
 {
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
-  return hyscan_sonar_set_boolean (control->priv->sonar, "/sync/ping", TRUE);
+  return hyscan_param_set_boolean (control->priv->sonar, "/sync/ping", TRUE);
 }

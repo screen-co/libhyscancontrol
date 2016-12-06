@@ -8,6 +8,7 @@
  */
 
 #include "hyscan-tvg-control.h"
+#include "hyscan-sonar-messages.h"
 #include "hyscan-control-common.h"
 #include "hyscan-control-marshallers.h"
 
@@ -38,7 +39,7 @@ typedef struct
 
 struct _HyScanTVGControlPrivate
 {
-  HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
   HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
   GHashTable                  *tvgs_by_id;                     /* Список систем ВАРУ. */
@@ -72,7 +73,7 @@ hyscan_tvg_control_class_init (HyScanTVGControlClass *klass)
   object_class->finalize = hyscan_tvg_control_object_finalize;
 
   g_object_class_install_property (object_class, PROP_SONAR,
-    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_PARAM,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_tvg_control_signals[SIGNAL_GAINS] =
@@ -121,12 +122,12 @@ hyscan_tvg_control_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i, j;
+  guint i, j;
 
   G_OBJECT_CLASS (hyscan_tvg_control_parent_class)->constructed (object);
 
   /* Список систем ВАРУ. */
-  priv->tvgs_by_id = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->tvgs_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->tvgs_by_source = g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                                 NULL, hyscan_tvg_control_free_tvg);
 
@@ -135,17 +136,17 @@ hyscan_tvg_control_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Параметры гидролокатора. */
-  priv->schema = hyscan_sonar_get_schema (priv->sonar);
+  priv->schema = hyscan_param_schema (priv->sonar);
   params = hyscan_data_schema_list_nodes (priv->schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */
@@ -188,7 +189,7 @@ hyscan_tvg_control_object_constructed (GObject *object)
           param_names[1] = g_strdup_printf ("%s/tvg/capabilities", sources->nodes[i]->path);
           param_names[2] = NULL;
 
-          status = hyscan_sonar_get (priv->sonar, (const gchar **)param_names, param_values);
+          status = hyscan_param_get (priv->sonar, (const gchar **)param_names, param_values);
 
           if (status)
             {
@@ -235,7 +236,7 @@ hyscan_tvg_control_object_constructed (GObject *object)
 
               /* Идентификатор ВАРУ канала. */
               key_id = g_strdup_printf ("%s/channels/%d/tvg/id", sources->nodes[i]->path, j);
-              if (hyscan_sonar_get_integer (priv->sonar, key_id, &tvg_id))
+              if (hyscan_param_get_integer (priv->sonar, key_id, &tvg_id))
                 {
                   channel_tvg = g_new0 (HyScanTVGControlChannelTVG, 1);
                   channel_tvg->source = source;
@@ -407,7 +408,7 @@ hyscan_tvg_control_set_auto (HyScanTVGControl *control,
 
   param_values[2] = NULL;
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -442,7 +443,7 @@ hyscan_tvg_control_set_constant (HyScanTVGControl *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/constant/gain", tvg->path);
-  status = hyscan_sonar_set_double (control->priv->sonar, param_name, gain);
+  status = hyscan_param_set_double (control->priv->sonar, param_name, gain);
   g_free (param_name);
 
   return status;
@@ -478,7 +479,7 @@ hyscan_tvg_control_set_linear_db (HyScanTVGControl *control,
   param_values[1] = g_variant_new_double (step);
   param_values[2] = NULL;
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -525,7 +526,7 @@ hyscan_tvg_control_set_logarithmic (HyScanTVGControl *control,
   param_values[2] = g_variant_new_double (alpha);
   param_values[3] = NULL;
 
-  status = hyscan_sonar_set (control->priv->sonar, (const gchar **)param_names, param_values);
+  status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
   if (!status)
     {
@@ -562,7 +563,7 @@ hyscan_tvg_control_set_enable (HyScanTVGControl *control,
     return FALSE;
 
   param_name = g_strdup_printf ("%s/enable", tvg->path);
-  status = hyscan_sonar_set_boolean (control->priv->sonar, param_name, enable);
+  status = hyscan_param_set_boolean (control->priv->sonar, param_name, enable);
   g_free (param_name);
 
   return status;

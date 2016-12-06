@@ -214,7 +214,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i, j;
+  guint i, j;
 
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -226,23 +226,23 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
-  if (hyscan_sonar_get_double (HYSCAN_SONAR (priv->sonar), "/control/timeout", &priv->alive_timeout))
+  if (hyscan_param_get_double (HYSCAN_PARAM (priv->sonar), "/control/timeout", &priv->alive_timeout))
     {
       priv->alive_timer = g_timer_new ();
       priv->guard = g_thread_new ("sonar-control-server-alive", hyscan_sonar_control_server_quard, server);
     }
 
   /* Параметры гидролокатора. */
-  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  schema = hyscan_param_schema (HYSCAN_PARAM (priv->sonar));
   params = hyscan_data_schema_list_nodes (schema);
   g_clear_object (&schema);
 
@@ -303,7 +303,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                   g_strfreev (pathv);
 
                   param_id = g_strdup_printf ("%s/noise/id", channels->nodes[j]->path);
-                  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_id, &id) &&
+                  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_id, &id) &&
                       (id > 0 || id <= G_MAXINT32))
                     {
                       noise_id = id;
@@ -316,7 +316,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
                   g_free (param_id);
 
                   param_id = g_strdup_printf ("%s/id", channels->nodes[j]->path);
-                  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_id, &id) &&
+                  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_id, &id) &&
                       (id > 0 || id <= G_MAXINT32))
                     {
                       channel_id = id;

@@ -118,8 +118,8 @@ sonar_ping_cb (ServerInfo *server)
   HyScanComplexFloat *signal_points = g_new (HyScanComplexFloat, SIGNAL_N_POINTS);
   gfloat *tvg_gains = g_new (gfloat, TVG_N_GAINS);
 
-  static gint n_track = 0;
-  gint i, j, k;
+  static guint n_track = 0;
+  guint i, j, k;
 
   /* Имитация данных. */
   for (i = 0; i < N_TESTS; i++)
@@ -310,8 +310,8 @@ check_data (HyScanDB                 *db,
   guint sonar_n_sub_types = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 3 : 1;
   guint side_scale = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 1 : SIDE_SCALE;
   guint track_scale = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? 1 : TRACK_SCALE;
-  gint n_track;
-  gint i, j, k;
+  guint n_track;
+  guint i, j, k;
 
   buffer_size = DATA_N_POINTS * sizeof(HyScanComplexFloat);
   buffer = g_malloc (buffer_size);
@@ -511,8 +511,8 @@ check_data (HyScanDB                 *db,
           gint64 integer_value;
           gchar *string_value;
 
-          gint sub_type;
-          gint n_signal;
+          guint sub_type;
+          guint n_signal;
 
           for (sub_type = 0; sub_type < sonar_n_sub_types; sub_type++)
             {
@@ -634,7 +634,7 @@ check_data (HyScanDB                 *db,
 
                   data_size = buffer_size;
                   if (!hyscan_db_channel_get_data (db, channel_id, i, buffer, &data_size, &time) ||
-                      data_size != (gint)((DATA_N_POINTS / side_scale)  * sizeof (gfloat)) ||
+                      data_size != ((DATA_N_POINTS / side_scale) * sizeof (gfloat)) ||
                       time != ref_time)
                     {
                       g_error ("%s.%s: can't get data", track_name, channel_name);
@@ -975,14 +975,14 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      proxy = hyscan_ssse_proxy_new (HYSCAN_SONAR (sonar), proxy_mode, SIDE_SCALE, TRACK_SCALE, NULL);
+      proxy = hyscan_ssse_proxy_new (HYSCAN_PARAM (sonar), proxy_mode, SIDE_SCALE, TRACK_SCALE, NULL);
       hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), select_port_by_index (0));
-      control = hyscan_ssse_control_new (HYSCAN_SONAR (proxy), db);
+      control = hyscan_ssse_control_new (HYSCAN_PARAM (proxy), db);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_ssse_control_new (HYSCAN_SONAR (sonar), db);
+      control = hyscan_ssse_control_new (HYSCAN_PARAM (sonar), db);
     }
 
   /* Тестовый проект. */

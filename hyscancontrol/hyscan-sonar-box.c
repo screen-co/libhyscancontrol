@@ -22,9 +22,11 @@ enum
 struct _HyScanSonarBoxPrivate
 {
   HyScanDataBox               *data;                   /* Параметры гидролокатора. */
+  HyScanParam                 *param;                  /* Параметры гидролокатора. */
+  HyScanDataSchema            *schema;                 /* Схема параметров. */
 };
 
-static void     hyscan_sonar_box_interface_init        (HyScanSonarInterface  *iface);
+static void     hyscan_sonar_box_interface_init        (HyScanParamInterface  *iface);
 static void     hyscan_sonar_box_object_finalize       (GObject               *object);
 
 static gboolean hyscan_sonar_box_set_cb                (HyScanSonarBox        *sonar,
@@ -40,7 +42,7 @@ static guint   hyscan_sonar_box_signals[SIGNAL_LAST] = { 0 };
 
 G_DEFINE_TYPE_WITH_CODE (HyScanSonarBox, hyscan_sonar_box, G_TYPE_OBJECT,
                          G_ADD_PRIVATE (HyScanSonarBox)
-                         G_IMPLEMENT_INTERFACE (HYSCAN_TYPE_SONAR, hyscan_sonar_box_interface_init))
+                         G_IMPLEMENT_INTERFACE (HYSCAN_TYPE_PARAM, hyscan_sonar_box_interface_init))
 
 static void
 hyscan_sonar_box_class_init (HyScanSonarBoxClass *klass)
@@ -73,6 +75,7 @@ hyscan_sonar_box_object_finalize (GObject *object)
   HyScanSonarBox *sonar = HYSCAN_SONAR_BOX (object);
   HyScanSonarBoxPrivate *priv = sonar->priv;
 
+  g_clear_object (&priv->schema);
   g_clear_object (&priv->data);
 
   G_OBJECT_CLASS (hyscan_sonar_box_parent_class)->finalize (object);
@@ -114,7 +117,7 @@ hyscan_sonar_box_signal_accumulator (GSignalInvocationHint *ihint,
 }
 
 static HyScanDataSchema *
-hyscan_sonar_box_schema (HyScanSonar *sonar)
+hyscan_sonar_box_schema (HyScanParam *sonar)
 {
   HyScanSonarBox *sonar_box = HYSCAN_SONAR_BOX (sonar);
   HyScanSonarBoxPrivate *priv = sonar_box->priv;
@@ -122,11 +125,11 @@ hyscan_sonar_box_schema (HyScanSonar *sonar)
   if (priv->data == NULL)
     return NULL;
 
-  return g_object_ref (priv->data);
+  return g_object_ref (priv->schema);
 }
 
 static gboolean
-hyscan_sonar_box_set (HyScanSonar         *sonar,
+hyscan_sonar_box_set (HyScanParam         *sonar,
                       const gchar *const  *names,
                       GVariant           **values)
 {
@@ -136,11 +139,11 @@ hyscan_sonar_box_set (HyScanSonar         *sonar,
   if (priv->data == NULL)
     return FALSE;
 
-  return hyscan_data_box_set (priv->data, names, values);
+  return hyscan_param_set (priv->param, names, values);
 }
 
 static gboolean
-hyscan_sonar_box_get (HyScanSonar         *sonar,
+hyscan_sonar_box_get (HyScanParam         *sonar,
                       const gchar *const  *names,
                       GVariant           **values)
 {
@@ -150,7 +153,7 @@ hyscan_sonar_box_get (HyScanSonar         *sonar,
   if (priv->data == NULL)
     return FALSE;
 
-  return hyscan_data_box_get (priv->data, names, values);
+  return hyscan_param_get (priv->param, names, values);
 }
 
 /* Функция создаёт новый объект HyScanSonarBox. */
@@ -166,12 +169,20 @@ hyscan_sonar_box_set_schema (HyScanSonarBox  *sonar,
                              const gchar     *schema_data,
                              const gchar     *schema_id)
 {
+  HyScanSonarBoxPrivate *priv;
+
   g_return_if_fail (HYSCAN_IS_SONAR_BOX (sonar));
 
-  g_clear_object (&sonar->priv->data);
+  priv = sonar->priv;
 
-  sonar->priv->data = hyscan_data_box_new_from_string (schema_data, schema_id);
-  g_signal_connect_swapped (sonar->priv->data, "set", G_CALLBACK (hyscan_sonar_box_set_cb), sonar);
+  g_clear_object (&priv->schema);
+  g_clear_object (&priv->data);
+
+  priv->data = hyscan_data_box_new_from_string (schema_data, schema_id);
+  priv->param = HYSCAN_PARAM (priv->data);
+  priv->schema = hyscan_param_schema (priv->param);
+
+  g_signal_connect_swapped (priv->data, "set", G_CALLBACK (hyscan_sonar_box_set_cb), sonar);
 }
 
 /* Функция передаёт данные. */
@@ -185,9 +196,9 @@ hyscan_sonar_box_send (HyScanSonarBox     *sonar,
 }
 
 static void
-hyscan_sonar_box_interface_init (HyScanSonarInterface *iface)
+hyscan_sonar_box_interface_init (HyScanParamInterface *iface)
 {
-  iface->get_schema = hyscan_sonar_box_schema;
+  iface->schema = hyscan_sonar_box_schema;
   iface->set = hyscan_sonar_box_set;
   iface->get = hyscan_sonar_box_get;
 }

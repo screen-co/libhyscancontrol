@@ -63,7 +63,7 @@ struct _HyScanSonarDiscoverInterface
 
   HyScanSonarDiscoverInfo    **(*list)                         (HyScanSonarDiscover           *discover);
 
-  HyScanSonar                 *(*connect)                      (HyScanSonarDiscover           *discover,
+  HyScanParam                 *(*connect)                      (HyScanSonarDiscover           *discover,
                                                                 const gchar                   *uri,
                                                                 const gchar                   *config);
 
@@ -132,11 +132,11 @@ HyScanSonarDiscoverInfo      **hyscan_sonar_discover_list      (HyScanSonarDisco
  * \param uri путь для подключения к гидролокатору;
  * \param config параметры драйвера или NULL.
  *
- * \return Указатель на интерфейс \link HyScanSonar \endlink или NULL.
+ * \return Указатель на интерфейс \link HyScanParam \endlink или NULL.
  *
  */
 HYSCAN_API
-HyScanSonar                   *hyscan_sonar_discover_connect   (HyScanSonarDiscover           *discover,
+HyScanParam                   *hyscan_sonar_discover_connect   (HyScanSonarDiscover           *discover,
                                                                 const gchar                   *uri,
                                                                 const gchar                   *config);
 

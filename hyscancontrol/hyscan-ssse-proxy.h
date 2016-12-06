@@ -8,7 +8,7 @@
  *
  * \defgroup HyScanSSSEProxy HyScanSSSEProxy - класс прокси сервера ГБОЭ
  *
- * Класс реализует интерфейс \link HyScanSonar \endlink и предназначен для трансляции
+ * Класс реализует интерфейс \link HyScanParam \endlink и предназначен для трансляции
  * команд управления в проксируемый гидролокатор бокового обзора и трансляции данных от
  * проксируемого гидролокатора. Класс HyScanSSSEProxy наследуется от класса
  * \link HyScanSonarProxy \endlink.
@@ -80,7 +80,7 @@ GType                  hyscan_ssse_proxy_get_type              (void);
  * Если при создании класса указан объект работы с базой данных - db, все
  * данные от гидролокатора до трансляции будут записаны в эту базу.
  *
- * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
+ * \param sonar указатель на интерфейс \link HyScanParam \endlink;
  * \param proxy_mode режим трансляции \link HyScanSonarProxyModeType \endlink;
  * \param side_scale коэффициент масштабирования данных по наклонной дальности;
  * \param track_scale коэффициент масштабирования данных вдоль оси движения;
@@ -90,7 +90,7 @@ GType                  hyscan_ssse_proxy_get_type              (void);
  *
  */
 HYSCAN_API
-HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanSonar                   *sonar,
+HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanParam                   *sonar,
                                                                 HyScanSonarProxyModeType       proxy_mode,
                                                                 guint                          side_scale,
                                                                 guint                          track_scale,
@@ -100,8 +100,8 @@ HyScanSSSEProxy       *hyscan_ssse_proxy_new                   (HyScanSonar     
  *
  * Функция возвращает указатель на объект управления проксируемым ГБОЭ - \link HyScanSSSEControl \endlink.
  * Объект управления принадлежит \link HyScanSSSEProxy \endlink и действителен только во время
- * его жизни. Функция может вернуть NULL, если интерфейс управления гидролокатором
- * \link HyScanSonar \endlink не совместим со схемой ГБОЭ.
+ * его жизни. Функция может вернуть NULL, если схема параметров гидролокатора \link HyScanParam \endlink
+ * не совместима со схемой ГБОЭ.
  *
  * \param proxy указатель на объект \link HyScanSSSEProxy \endlink.
  *

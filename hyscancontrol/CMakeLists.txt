@@ -43,6 +43,6 @@ add_library (hyscancontrol SHARED
              hyscan-sonar-driver.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
-target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${GMODULE2_LIBRARIES} ${ADDON_LIBRARIES})
+target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${GMODULE2_LIBRARIES} ${HYSCAN_LIBRARIES})
 
 set_target_properties (hyscancontrol PROPERTIES DEFINE_SYMBOL "HYSCAN_API_EXPORTS")

@@ -181,7 +181,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i;
+  guint i;
 
   G_OBJECT_CLASS (hyscan_sensor_control_server_parent_class)->constructed (object);
 
@@ -198,7 +198,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
     }
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/id", &id))
     {
       g_warning ("HyScanControlServer: unknown sonar schema id");
       return;
@@ -208,7 +208,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
       g_warning ("HyScanControlServer: sonar schema id mismatch");
       return;
     }
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/version", &version))
     {
       g_warning ("HyScanControlServer: unknown sonar schema version");
       return;
@@ -220,7 +220,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
     }
 
   /* Параметры гидролокатора. */
-  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  schema = hyscan_param_schema (HYSCAN_PARAM (priv->sonar));
   params = hyscan_data_schema_list_nodes (schema);
   g_clear_object (&schema);
 
@@ -257,7 +257,7 @@ hyscan_sensor_control_server_object_constructed (GObject *object)
           param_names[1] = g_strdup_printf ("%s/type", sensors->nodes[i]->path);
           param_names[2] = NULL;
 
-          status = hyscan_sonar_get (HYSCAN_SONAR (priv->sonar), (const gchar **)param_names, param_values);
+          status = hyscan_param_get (HYSCAN_PARAM (priv->sonar), (const gchar **)param_names, param_values);
 
           if (status)
             {

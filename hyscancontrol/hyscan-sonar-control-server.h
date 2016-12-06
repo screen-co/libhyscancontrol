@@ -9,7 +9,7 @@
  * \defgroup HyScanSonarControlServer HyScanSonarControlServer - класс сервера управления гидролокатором
  *
  * Класс предназначен для серверной реализации управления гидролокатором,
- * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * через интерфейс \link HyScanParam \endlink. Создание класса осуществляется функцией
  * #hyscan_sonar_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanSonarControl \endlink по управлению гидролокатором.
@@ -133,8 +133,7 @@ HyScanSonarControlServer      *hyscan_sonar_control_server_new                 (
 
 /**
  *
- * Функция передаёт "сырые" данные от гидролокатора, через отправку сигнала
- * "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт "сырые" данные от гидролокатора, через отправку сигнала "data".
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
  * \param source идентификатор источника данных;

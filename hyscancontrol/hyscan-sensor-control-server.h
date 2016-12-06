@@ -9,7 +9,7 @@
  * \defgroup HyScanSensorControlServer HyScanSensorControlServer - класс сервера управления датчиками местоположения и ориентации
  *
  * Класс предназначен для серверной реализации управления датчиками местоположения и ориентации,
- * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * через интерфейс \link HyScanParam \endlink. Создание класса осуществляется функцией
  * #hyscan_sensor_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanSensorControl \endlink по управлению портами,
@@ -126,7 +126,7 @@ HyScanSensorControlServer     *hyscan_sensor_control_server_new                (
 
 /**
  *
- * Функция передаёт данные датчиков, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт данные датчиков, через отправку сигнала "data".
  *
  * \param server указатель на интерфейс \link HyScanSensorControlServer \endlink;
  * \param name название порта;

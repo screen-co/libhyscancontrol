@@ -9,6 +9,7 @@
  */
 
 #include "hyscan-ssse-control.h"
+#include "hyscan-sonar-messages.h"
 #include "hyscan-control-common.h"
 #include "hyscan-control-marshallers.h"
 
@@ -33,7 +34,7 @@ typedef struct
 
 struct _HyScanSSSEControlPrivate
 {
-  HyScanSonar                 *sonar;                          /* Интерфейс управления гидролокатором. */
+  HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
 
   gboolean                     has_starboard;                  /* Признак наличия правого борта, стандартное разрешение. */
   gboolean                     has_port;                       /* Признак наличия левого борта, стандартное разрешение. */
@@ -59,7 +60,7 @@ static gboolean
                hyscan_ssse_control_is_source                   (HyScanDataSchema      *schema,
                                                                 HyScanSourceType       source);
 static HyScanSSSEControlAcoustic *
-               hyscan_ssse_control_get_acoustic_info           (HyScanSonar           *sonar,
+               hyscan_ssse_control_get_acoustic_info           (HyScanParam           *sonar,
                                                                 HyScanSourceType       source);
 
 
@@ -81,7 +82,7 @@ hyscan_ssse_control_class_init (HyScanSSSEControlClass *klass)
   object_class->finalize = hyscan_ssse_control_object_finalize;
 
   g_object_class_install_property (object_class, PROP_SONAR,
-    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_SONAR,
+    g_param_spec_object ("sonar", "Sonar", "Sonar interface", HYSCAN_TYPE_PARAM,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   hyscan_ssse_control_signals[SIGNAL_ACOUSTIC_DATA] =
@@ -136,17 +137,17 @@ hyscan_ssse_control_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/id", &id))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (priv->sonar, "/schema/version", &version))
+  if (!hyscan_param_get_integer (priv->sonar, "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Проверка наличия источников данных гидролокатора. */
-  schema = hyscan_sonar_get_schema (priv->sonar);
+  schema = hyscan_param_schema (priv->sonar);
 
   priv->has_starboard    = hyscan_ssse_control_is_source (schema, HYSCAN_SOURCE_SIDE_SCAN_STARBOARD);
   priv->has_port         = hyscan_ssse_control_is_source (schema, HYSCAN_SOURCE_SIDE_SCAN_PORT);
@@ -203,7 +204,7 @@ hyscan_ssse_control_is_source (HyScanDataSchema *schema,
 
 /* Функция считывает параметры источника акустических данных из схемы гидролокатора. */
 static HyScanSSSEControlAcoustic *
-hyscan_ssse_control_get_acoustic_info (HyScanSonar      *sonar,
+hyscan_ssse_control_get_acoustic_info (HyScanParam      *sonar,
                                        HyScanSourceType  source)
 {
   HyScanSSSEControlAcoustic *acoustic = NULL;
@@ -223,7 +224,7 @@ hyscan_ssse_control_get_acoustic_info (HyScanSonar      *sonar,
   param_names[2] = g_strdup_printf ("/sources/%s/antenna/pattern/horizontal", source_name);
   param_names[3] = NULL;
 
-  if (hyscan_sonar_get (sonar, (const gchar **)param_names, param_values))
+  if (hyscan_param_get (sonar, (const gchar **)param_names, param_values))
     {
       id = g_variant_get_int64 (param_values[0]);
       antenna_vpattern = g_variant_get_double (param_values[1]);
@@ -289,7 +290,7 @@ hyscan_ssse_control_data_receiver (HyScanSSSEControl  *control,
 
 /* Функция создаёт новый объект HyScanSSSEControl. */
 HyScanSSSEControl *
-hyscan_ssse_control_new (HyScanSonar *sonar,
+hyscan_ssse_control_new (HyScanParam *sonar,
                          HyScanDB    *db)
 {
   HyScanSonarType type = hyscan_control_sonar_probe (sonar);

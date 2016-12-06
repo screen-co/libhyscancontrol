@@ -9,7 +9,7 @@
  * \defgroup HyScanSSSEControlServer HyScanSSSEControlServer - класс сервера управления ГБОЭ
  *
  * Класс предназначен для серверной реализации управления ГБОЭ, через интерфейс
- * \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * \link HyScanParam \endlink. Создание класса осуществляется функцией
  * #hyscan_ssse_control_server_new.
  *
  * Класс содержит функцию отправки акустических данных от ГБОЭ -
@@ -67,8 +67,7 @@ HyScanSSSEControlServer       *hyscan_ssse_control_server_new                  (
 
 /**
  *
- * Функция передаёт акустические данные от гидролокатора, через отправку сигнала
- * "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт акустические данные от гидролокатора, через отправку сигнала "data".
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
  * \param source идентификатор источника данных;

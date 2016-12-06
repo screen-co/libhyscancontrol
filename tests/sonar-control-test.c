@@ -74,7 +74,7 @@ typedef struct
   {
     HyScanGeneratorModeType            capabilities;
     HyScanGeneratorSignalType          signals;
-    guint                              preset_ids[GENERATOR_N_PRESETS+1];
+    gint                               preset_ids[GENERATOR_N_PRESETS+1];
     gchar                             *preset_names[GENERATOR_N_PRESETS+1];
     gdouble                            min_tone_duration;
     gdouble                            max_tone_duration;
@@ -84,7 +84,7 @@ typedef struct
     gboolean                           enable;
     HyScanGeneratorModeType            cur_mode;
     HyScanGeneratorSignalType          cur_signal;
-    guint                              cur_preset;
+    gint                               cur_preset;
     gdouble                            cur_power;
     gdouble                            cur_duration;
   } generator;
@@ -1607,14 +1607,14 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      proxy = hyscan_ssse_proxy_new (HYSCAN_SONAR (sonar), proxy_mode, 1, 1, NULL);
+      proxy = hyscan_ssse_proxy_new (HYSCAN_PARAM (sonar), proxy_mode, 1, 1, NULL);
       hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME);
-      control = hyscan_ssse_control_new (HYSCAN_SONAR (proxy), NULL);
+      control = hyscan_ssse_control_new (HYSCAN_PARAM (proxy), NULL);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_ssse_control_new (HYSCAN_SONAR (sonar), NULL);
+      control = hyscan_ssse_control_new (HYSCAN_PARAM (sonar), NULL);
     }
 
   /* Только печать схемы на экране. */
@@ -1623,9 +1623,9 @@ main (int    argc,
       HyScanDataSchema *schema;
 
       if (proxy_mode_string != NULL)
-        schema = hyscan_sonar_get_schema (HYSCAN_SONAR (proxy));
+        schema = hyscan_param_schema (HYSCAN_PARAM (proxy));
       else
-        schema = hyscan_sonar_get_schema (HYSCAN_SONAR (sonar));
+        schema = hyscan_param_schema (HYSCAN_PARAM (sonar));
 
       schema_data = hyscan_data_schema_get_data (schema, NULL, NULL);
       g_print ("%s", schema_data);

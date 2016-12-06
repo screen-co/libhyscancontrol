@@ -73,7 +73,7 @@ hyscan_sonar_discover_list (HyScanSonarDiscover *discover)
   return NULL;
 }
 
-HyScanSonar *
+HyScanParam *
 hyscan_sonar_discover_connect (HyScanSonarDiscover *discover,
                                const gchar         *uri,
                                const gchar         *config)

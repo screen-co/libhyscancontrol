@@ -184,7 +184,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i;
+  guint i;
 
   priv->operations = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -195,17 +195,17 @@ hyscan_generator_control_server_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
 
   /* Параметры гидролокатора. */
-  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (priv->sonar));
+  schema = hyscan_param_schema (HYSCAN_PARAM (priv->sonar));
   params = hyscan_data_schema_list_nodes (schema);
   g_clear_object (&schema);
 
@@ -252,7 +252,7 @@ hyscan_generator_control_server_object_constructed (GObject *object)
           param_names[2] = g_strdup_printf ("%s/generator/signals", sources->nodes[i]->path);
           param_names[3] = NULL;
 
-          status = hyscan_sonar_get (HYSCAN_SONAR (priv->sonar), (const gchar **)param_names, param_values);
+          status = hyscan_param_get (HYSCAN_PARAM (priv->sonar), (const gchar **)param_names, param_values);
 
           if (status)
             {

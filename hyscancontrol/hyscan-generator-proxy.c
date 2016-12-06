@@ -122,7 +122,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
 
   gint64 version;
   gint64 id;
-  gint i, j, k;
+  guint i, j, k;
 
   G_OBJECT_CLASS (hyscan_generator_proxy_parent_class)->constructed (object);
 
@@ -131,11 +131,11 @@ hyscan_generator_proxy_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (proxy), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (proxy), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (proxy), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -145,7 +145,7 @@ hyscan_generator_proxy_object_constructed (GObject *object)
                                          NULL, (GDestroyNotify)g_hash_table_unref);
 
   /* Параметры гидролокатора. */
-  schema = hyscan_sonar_get_schema (HYSCAN_SONAR (proxy));
+  schema = hyscan_param_schema (HYSCAN_PARAM (proxy));
   params = hyscan_data_schema_list_nodes (schema);
 
   /* Ветка схемы с описанием источников данных - "/sources". */

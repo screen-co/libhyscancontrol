@@ -93,11 +93,11 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
     return;
 
   /* Проверяем идентификатор и версию схемы гидролокатора. */
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/id", &id))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/id", &id))
     return;
   if (id != HYSCAN_SONAR_SCHEMA_ID)
     return;
-  if (!hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), "/schema/version", &version))
+  if (!hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), "/schema/version", &version))
     return;
   if ((version / 100) != (HYSCAN_SONAR_SCHEMA_VERSION / 100))
     return;
@@ -105,35 +105,35 @@ hyscan_ssse_control_server_object_constructed (GObject *object)
   /* Идентификаторы источников акустических данных. */
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD));
-  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
+  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT));
-  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
+  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->port_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI));
-  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
+  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->starboard_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_SIDE_SCAN_PORT_HI));
-  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
+  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->port_hi_id = id;
   g_free (param_name);
 
   param_name = g_strdup_printf ("/sources/%s/acoustic/id",
                                 hyscan_control_get_source_name (HYSCAN_SOURCE_ECHOSOUNDER));
-  if (hyscan_sonar_get_integer (HYSCAN_SONAR (priv->sonar), param_name, &id))
+  if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_name, &id))
     if (id >= 1 && id <= G_MAXINT32)
       priv->echosounder_id = id;
   g_free (param_name);

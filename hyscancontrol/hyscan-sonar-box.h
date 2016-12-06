@@ -8,15 +8,14 @@
  *
  * \defgroup HyScanSonarBox HyScanSonarBox - базовый класс для реализации интерфейса HyScanSonar
  *
- * Класс предназначен для реализации интерфеса \link HyScanSonar \endlink классами,
+ * Класс предназначен для реализации интерфеса \link HyScanParam \endlink классами,
  * осуществляющими непосредственное взаимодействие гидролокаторами.
  *
  * Создание класса осуществляется функцией #hyscan_sonar_box_new. Изначально объект создаётся
  * с пустой схемой параметров гидролокатора. Для задания схемы используется функция
  * #hyscan_sonar_box_set_schema.
  *
- * Класс используется для отправки данных через сигнал "data",
- * интерфейса \link HyScanSonar \endlink. Для этого используется функция
+ * Класс используется для отправки данных через сигнал "data". Для этого используется функция
  * #hyscan_sonar_box_send.
  *
  * Перед изменением параметров гидролокатора объект посылает сигнал "set". В нём передаются
@@ -41,7 +40,7 @@
 #ifndef __HYSCAN_SONAR_BOX_H__
 #define __HYSCAN_SONAR_BOX_H__
 
-#include <hyscan-sonar.h>
+#include <hyscan-sonar-messages.h>
 
 G_BEGIN_DECLS
 
@@ -99,7 +98,7 @@ void                   hyscan_sonar_box_set_schema             (HyScanSonarBox  
 
 /**
  *
- * Функция передаёт данные, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт данные, через отправку сигнала "data".
  *
  * \param sonar указатель на объект \link HyScanSonarBox \endlink;
  * \param message данные для отправки \link HyScanSonarMessage \endlink.

@@ -13,7 +13,7 @@
 
 /* Функция возвращает тип гидролокатора. */
 HyScanSonarType
-hyscan_control_sonar_probe (HyScanSonar *sonar)
+hyscan_control_sonar_probe (HyScanParam *sonar)
 {
   HyScanDataSchema *schema;
 
@@ -32,7 +32,7 @@ hyscan_control_sonar_probe (HyScanSonar *sonar)
   if (sonar == NULL)
     return HYSCAN_SONAR_INVALID;
 
-  schema = hyscan_sonar_get_schema (sonar);
+  schema = hyscan_param_schema (sonar);
   if (schema == NULL)
     return HYSCAN_SONAR_INVALID;
 

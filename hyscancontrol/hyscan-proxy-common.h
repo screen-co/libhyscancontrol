@@ -25,7 +25,7 @@ gboolean               hyscan_proxy_schema_sensor_virtual      (HyScanSonarSchem
 
 /* Функция определяет акустические источники прокси гидролокатора. */
 gboolean               hyscan_proxy_schema_ssse_acoustic       (HyScanSonarSchema             *schema,
-                                                                HyScanSonar                   *sonar,
+                                                                HyScanParam                   *sonar,
                                                                 HyScanSSSEControl             *control);
 
 #endif /* __HYSCAN_PROXY_COMMON_H__ */

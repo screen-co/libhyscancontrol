@@ -81,14 +81,14 @@ GType                  hyscan_ssse_control_get_type            (void);
  * указатель на него. Если тип гидролокатора не совпадает с \link HYSCAN_SONAR_SSSE \endlink,
  * функция возвращает NULL.
  *
- * \param sonar указатель на интерфейс \link HyScanSonar \endlink;
+ * \param sonar указатель на интерфейс \link HyScanParam \endlink;
  * \param db указатель на интерфейс \link HyScanDB \endlink.
  *
  * \return Указатель на объект \link HyScanSSSEControl \endlink или NULL.
  *
  */
 HYSCAN_API
-HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanSonar           *sonar,
+HyScanSSSEControl     *hyscan_ssse_control_new                 (HyScanParam           *sonar,
                                                                 HyScanDB              *db);
 
 /**

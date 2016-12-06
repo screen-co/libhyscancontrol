@@ -1,12 +1,12 @@
 /**
  * \file hyscan-control.h
  *
- * \brief Заголовочный файл библиотеки высокоуровневого управления гидролокаторами
+ * \brief Заголовочный файл библиотеки управления гидролокаторами
  * \author Andrei Fadeev (andrei@webcontrol.ru)
  * \date 2016
  * \license Проприетарная лицензия ООО "Экран"
  *
- * \defgroup HyScanControl HyScanControl - библиотека высокоуровневого управления гидролокаторами
+ * \defgroup HyScanControl HyScanControl - библиотека управления гидролокаторами
  *
  * Для определения типа гидролокатора предназначена функция #hyscan_control_sonar_probe.
  *
@@ -15,7 +15,7 @@
 #ifndef __HYSCAN_CONTROL_H__
 #define __HYSCAN_CONTROL_H__
 
-#include <hyscan-sonar.h>
+#include <hyscan-param.h>
 
 /** \brief Типы гидролокаторов */
 typedef enum
@@ -33,12 +33,12 @@ typedef enum
  *
  * Функция возвращает тип гидролокатора.
  *
- * \param sonar указатель на интерфейс \link HyScanSonar \endlink.
+ * \param sonar указатель на интерфейс \link HyScanParam \endlink.
  *
  * \return Тип гидролокатора - \link HyScanSonarType \endlink.
  *
  */
 HYSCAN_API
-HyScanSonarType                hyscan_control_sonar_probe      (HyScanSonar           *sonar);
+HyScanSonarType                hyscan_control_sonar_probe      (HyScanParam           *sonar);
 
 #endif /* __HYSCAN_CONTROL_H__ */

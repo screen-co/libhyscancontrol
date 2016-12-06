@@ -9,7 +9,7 @@
  * \defgroup HyScanGeneratorControlServer HyScanGeneratorControlServer - класс сервера управления генераторами сигналов
  *
  * Класс предназначен для серверной реализации управления генераторами сигналов,
- * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * через интерфейс \link HyScanParam \endlink. Создание класса осуществляется функцией
  * #hyscan_generator_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanGeneratorControl \endlink по управлению генераторами сигналов.
@@ -121,7 +121,7 @@ HyScanGeneratorControlServer  *hyscan_generator_control_server_new             (
 
 /**
  *
- * Функция передаёт образы излучаемых сигналов, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт образы излучаемых сигналов, через отправку сигнала "data".
  *
  * \param server указатель на интерфейс \link HyScanGeneratorControlServer \endlink;
  * \param source идентификатор источника данных;

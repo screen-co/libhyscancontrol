@@ -90,7 +90,7 @@
 
 #include <hyscan-data-writer.h>
 #include <hyscan-data-schema.h>
-#include <hyscan-sonar.h>
+#include <hyscan-param.h>
 
 G_BEGIN_DECLS
 

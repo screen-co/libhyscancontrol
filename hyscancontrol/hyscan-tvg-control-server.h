@@ -9,7 +9,7 @@
  * \defgroup HyScanTVGControlServer HyScanTVGControlServer - класс сервера управления системой ВАРУ
  *
  * Класс предназначен для серверной реализации управления системой ВАРУ,
- * через интерфейс \link HyScanSonar \endlink. Создание класса осуществляется функцией
+ * через интерфейс \link HyScanParam \endlink. Создание класса осуществляется функцией
  * #hyscan_tvg_control_server_new.
  *
  * Класс обрабатывает запросы от \link HyScanTVGControl \endlink по управлению системой ВАРУ.
@@ -121,7 +121,7 @@ HyScanTVGControlServer        *hyscan_tvg_control_server_new                   (
 
 /**
  *
- * Функция передаёт параметры ВАРУ, через отправку сигнала "data" интерфейса \link HyScanSonar \endlink.
+ * Функция передаёт параметры ВАРУ, через отправку сигнала "data".
  *
  * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
  * \param source идентификатор источника данных;
