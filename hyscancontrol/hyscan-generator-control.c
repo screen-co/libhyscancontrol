@@ -375,7 +375,7 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
   HyScanGeneratorControlGen *generator;
 
   const gchar *param_values_id;
-  HyScanDataSchemaEnumValue **param_values;
+  HyScanDataSchemaEnumValue **param_values = NULL;
   gchar *params_name;
 
   g_return_val_if_fail (HYSCAN_IS_GENERATOR_CONTROL (control), NULL);
@@ -389,7 +389,8 @@ hyscan_generator_control_list_presets (HyScanGeneratorControl *control,
 
   params_name = g_strdup_printf ("%s/preset/id", generator->path);
   param_values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, params_name);
-  param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, param_values_id);
+  if (param_values_id != NULL)
+    param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, param_values_id);
   g_free (params_name);
 
   return param_values;
