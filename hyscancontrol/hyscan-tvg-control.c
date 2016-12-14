@@ -131,7 +131,7 @@ hyscan_tvg_control_object_constructed (GObject *object)
   priv->tvgs_by_source = g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                                 NULL, hyscan_tvg_control_free_tvg);
 
-  /* Обязательно должен быть передан указатель на HyScanSonar. */
+  /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
     return;
 

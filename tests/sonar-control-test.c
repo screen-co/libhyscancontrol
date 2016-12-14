@@ -1255,6 +1255,8 @@ main (int    argc,
   HyScanSonarProxyModeType proxy_mode = 0;
   gboolean print_schema = FALSE;
 
+  gint *sources;
+
   guint pow2;
   guint i, j;
 
@@ -1505,7 +1507,7 @@ main (int    argc,
   schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (schema));
   g_object_unref (schema);
 
-  /* Параметры гидролокатора - интерфейс HyScanSonar + HyScanDataBox. */
+  /* Параметры гидролокатора - интерфейс. */
   sonar = hyscan_sonar_box_new ();
   hyscan_sonar_box_set_schema (sonar, schema_data, "sonar");
   g_free (schema_data);
@@ -1595,6 +1597,29 @@ main (int    argc,
 
       goto exit;
     }
+
+  /* Проверяем список источников гидролокационных данных. */
+  sources = hyscan_sonar_control_source_list (HYSCAN_SONAR_CONTROL (control));
+  if (sources == NULL)
+    g_error ("sonar: can't list sources");
+
+  for (i = 0; sources[i] != HYSCAN_SOURCE_INVALID; i++)
+    {
+      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
+        continue;
+      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT)
+        continue;
+      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI)
+        continue;
+      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT_HI)
+        continue;
+      if (sources[i] == HYSCAN_SOURCE_ECHOSOUNDER)
+        continue;
+
+      g_error ("unsupported source: %s", hyscan_channel_get_name_by_types (sources[i], FALSE, 1));
+    }
+
+  g_free (sources);
 
   /* Проверяем наличие правого борта. */
   if (!hyscan_ssse_control_has_starboard (control))

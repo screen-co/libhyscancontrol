@@ -13,6 +13,9 @@
  * Класс HyScanSonarControl наследуется от класса \link HyScanTVGControl \endlink и используется
  * как базовый для классов управления локаторами.
  *
+ * Список источников гидролокационных данных можно получить с помощью функции
+ * #hyscan_sonar_control_source_list.
+ *
  * Излучение зондирующего импульса гидролокатором управляется системой синхронизации излучения.
  * Узнать её характеристики можно при помощи функции #hyscan_sonar_control_get_sync_capabilities.
  *
@@ -96,6 +99,22 @@ struct _HyScanSonarControlClass
 
 HYSCAN_API
 GType                  hyscan_sonar_control_get_type                   (void);
+
+/**
+ *
+ * Функция возвращает список доступных источников гидролокационных данных. Список
+ * возвращается в виде массива элементов типа gint. Конец списка обозначен как
+ * значение #HYSCAN_SOURCE_INVALID.
+ *
+ * После использование необходимо освободить память функцией g_free.
+ *
+ * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
+ *
+ * \return Список источников данных или NULL.
+ *
+ */
+HYSCAN_API
+gint                  *hyscan_sonar_control_source_list                (HyScanSonarControl    *control);
 
 /**
  *

@@ -139,7 +139,7 @@ hyscan_sensor_control_object_constructed (GObject *object)
                                        NULL, hyscan_sensor_control_free_port);
   priv->ports_by_name = g_hash_table_new (g_str_hash, g_str_equal);
 
-  /* Обязательно должен быть передан указатель на HyScanSonar. */
+  /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
     {
       g_warning ("HyScanControl: empty sonar");

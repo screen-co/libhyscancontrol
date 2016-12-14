@@ -127,7 +127,7 @@ hyscan_generator_control_object_constructed (GObject *object)
                                             NULL, hyscan_generator_control_free_gen);
   priv->gens_by_source = g_hash_table_new (g_direct_hash, g_direct_equal);
 
-  /* Обязательно должен быть передан указатель на HyScanSonar. */
+  /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
     return;
 

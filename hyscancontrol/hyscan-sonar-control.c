@@ -38,6 +38,7 @@ struct _HyScanSonarControlPrivate
   HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
   HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
+  GArray                      *sources;                        /* Список источников гидролокационных данных. */
   GHashTable                  *channels;                       /* Список приёмных каналов гидролокатора. */
   GHashTable                  *noises;                         /* Список источников шумов приёмных каналов гидролокатора. */
   HyScanSonarSyncType          sync_types;                     /* Доступные методы синхронизации излучения. */
@@ -139,11 +140,14 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   g_mutex_init (&priv->lock);
 
+  /* Список источников данных. */
+  priv->sources = g_array_new (TRUE, TRUE, sizeof (gint));
+
   /* Список приёмных каналов. */
   priv->channels = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->noises = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
 
-  /* Обязательно должен быть передан указатель на HyScanSonar. */
+  /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
     return;
 
@@ -181,6 +185,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
   if (sources != NULL)
     {
+      HyScanSourceType source;
+
       /* Считываем описания источников "сырых" данных. */
       for (i = 0; i < sources->n_nodes; i++)
         {
@@ -188,7 +194,6 @@ hyscan_sonar_control_object_constructed (GObject *object)
           GVariant *param_values[7];
 
           gchar **pathv;
-          HyScanSourceType source;
 
           gdouble antenna_vpattern;
           gdouble antenna_hpattern;
@@ -223,6 +228,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
           if (!status)
             continue;
+
+          g_array_append_val (priv->sources, source);
 
           /* Приёмные каналы. */
           for (j = 1; TRUE; j++)
@@ -301,6 +308,9 @@ hyscan_sonar_control_object_constructed (GObject *object)
             }
         }
 
+      source = HYSCAN_SOURCE_INVALID;
+      g_array_append_val (priv->sources, source);
+
       /* Обработчик данных от приёмных каналов гидролокатора. */
       g_signal_connect_swapped (priv->sonar, "data",
                                 G_CALLBACK (hyscan_sonar_control_data_receiver), control);
@@ -337,6 +347,7 @@ hyscan_sonar_control_object_finalize (GObject *object)
 
   g_hash_table_unref (priv->channels);
   g_hash_table_unref (priv->noises);
+  g_array_free (priv->sources, TRUE);
 
   g_mutex_clear (&priv->lock);
 
@@ -413,6 +424,18 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
       g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_NOISE_DATA], 0,
                      channel->source, channel->channel, &info, &data);
     }
+}
+
+/* Функция возвращает список доступных источников гидролокационных данных. */
+gint *
+hyscan_sonar_control_source_list (HyScanSonarControl *control)
+{
+  g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), NULL);
+
+  if (control->priv->sources->len <= 1)
+    return NULL;
+
+  return g_memdup (control->priv->sources->data, control->priv->sources->len * sizeof (gint));
 }
 
 /* Функция возвращает маску доступных типов синхронизации излучения. */

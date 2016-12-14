@@ -132,7 +132,7 @@ hyscan_ssse_control_object_constructed (GObject *object)
 
   G_OBJECT_CLASS (hyscan_ssse_control_parent_class)->constructed (object);
 
-  /* Обязательно должен быть передан указатель на HyScanSonar. */
+  /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
     return;
 
