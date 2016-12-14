@@ -112,7 +112,6 @@ typedef struct
   gboolean                             enable;
   gint64                               sync_capabilities;
   gint64                               sync_type;
-  HyScanSonarDataMode                  data_mode;
   gchar                               *project_name;
   gchar                               *track_name;
   HyScanTrackType                      track_type;
@@ -524,17 +523,6 @@ sonar_set_sync_type_cb (ServerInfo          *server,
                         HyScanSonarSyncType  sync_type)
 {
   sonar_info.sync_type = sync_type;
-  *server->counter += 1;
-
-  return TRUE;
-}
-
-/* Функция задаёт предпочитаемый вид данных от гидролокатора. */
-gboolean
-sonar_set_data_mode_cb (ServerInfo          *server,
-                        HyScanSonarDataMode  data_mode)
-{
-  sonar_info.data_mode = data_mode;
   *server->counter += 1;
 
   return TRUE;
@@ -1161,32 +1149,6 @@ check_sonar_control (HyScanSonarControl       *control,
         }
     }
 
-  /* Предпочитаемый вид данных от гидролокатора. */
-  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
-    {
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_RAW) ||
-          (sonar_info.data_mode != HYSCAN_SONAR_DATA_RAW) ||
-          (prev_counter + 1 != counter))
-        {
-          g_error ("sonar.data.mode: can't set raw");
-        }
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_COMPUTED) ||
-          (sonar_info.data_mode != HYSCAN_SONAR_DATA_COMPUTED) ||
-          (prev_counter + 1 != counter))
-        {
-          g_error ("sonar.data.mode: can't set computed");
-        }
-      prev_counter = counter;
-      if (!hyscan_sonar_control_set_data_mode (control, HYSCAN_SONAR_DATA_BOTH) ||
-          (sonar_info.data_mode != HYSCAN_SONAR_DATA_BOTH) ||
-          (prev_counter + 1 != counter))
-        {
-          g_error ("sonar.data.mode: can't set both");
-        }
-    }
-
   /* Время приёма эхосигналов. */
   for (i = 0; i < N_TESTS; i++)
     {
@@ -1591,8 +1553,6 @@ main (int    argc,
 
   g_signal_connect_swapped (server.sonar, "sonar-set-sync-type",
                             G_CALLBACK (sonar_set_sync_type_cb), &server);
-  g_signal_connect_swapped (server.sonar, "sonar-set-data-mode",
-                            G_CALLBACK (sonar_set_data_mode_cb), &server);
   g_signal_connect_swapped (server.sonar, "sonar-set-position",
                             G_CALLBACK (sonar_set_position_cb), &server);
   g_signal_connect_swapped (server.sonar, "sonar-set-receive-time",

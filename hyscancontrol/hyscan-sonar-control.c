@@ -38,8 +38,6 @@ struct _HyScanSonarControlPrivate
   HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
   HyScanDataSchema            *schema;                         /* Схема параметров гидролокатора. */
 
-  HyScanSonarDataMode          data_mode;                      /* Предпочитаемый вид данных от гидролокатора. */
-
   GHashTable                  *channels;                       /* Список приёмных каналов гидролокатора. */
   GHashTable                  *noises;                         /* Список источников шумов приёмных каналов гидролокатора. */
   HyScanSonarSyncType          sync_types;                     /* Доступные методы синхронизации излучения. */
@@ -459,18 +457,6 @@ hyscan_sonar_control_set_sync_type (HyScanSonarControl  *control,
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
   return hyscan_param_set_enum (control->priv->sonar, "/sync/type", sync_type);
-}
-
-/* Функция задаёт предпочитаемый вид данных от гидролокатора. */
-gboolean
-hyscan_sonar_control_set_data_mode (HyScanSonarControl  *control,
-                                    HyScanSonarDataMode  data_mode)
-{
-  g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
-
-  control->priv->data_mode = data_mode;
-
-  return hyscan_param_set_enum (control->priv->sonar, "/control/data-mode", data_mode);
 }
 
 /* Функция устанавливает информацию о местоположении приёмных антенн. */

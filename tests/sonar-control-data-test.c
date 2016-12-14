@@ -269,9 +269,6 @@ generate_data (HyScanSSSEControl        *control,
       hyscan_sonar_control_set_position (HYSCAN_SONAR_CONTROL (control), source, &info->position);
     }
 
-  /* Включаем гидролокатор в работу. */
-  hyscan_sonar_control_set_data_mode (HYSCAN_SONAR_CONTROL (control), HYSCAN_SONAR_DATA_BOTH);
-
   for (i = 0; i < N_TESTS; i++)
     {
       gchar *track_name = g_strdup_printf ("test-track-%d", i);

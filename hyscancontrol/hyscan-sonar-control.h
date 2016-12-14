@@ -18,9 +18,6 @@
  *
  * Установить тип синхронизации излучения можно функцией # hyscan_sonar_control_set_sync_type.
  *
- * Некоторые модели гидролокаторов могут выдавать данные в обработанном и "сыром", т.е. не
- * обработанном виде. Выбрать предпочитаемый вид данных можно функцией #hyscan_sonar_control_set_data_mode.
- *
  * Время приёма эхосигналов гидролокатором управляется функцией #hyscan_sonar_control_set_receive_time.
  * Максимально возможное время приёма эхосигналов можно узнать с помощью функции
  * #hyscan_sonar_control_get_max_receive_time.
@@ -73,14 +70,6 @@ typedef enum
   HYSCAN_SONAR_SYNC_EXTERNAL                   = (1 << 1),     /**< Внешняя синхронизация. */
   HYSCAN_SONAR_SYNC_SOFTWARE                   = (1 << 2)      /**< Программная синхронизация. */
 } HyScanSonarSyncType;
-
-/** \brief Виды данных от гидролокатора. */
-typedef enum
-{
-  HYSCAN_SONAR_DATA_RAW                        = 101,          /**< Предпочтительно "сырые" данные. */
-  HYSCAN_SONAR_DATA_COMPUTED                   = 102,          /**< Предпочтительно обработанные данные. */
-  HYSCAN_SONAR_DATA_BOTH                       = 103           /**< Данные обоих видов.  */
-} HyScanSonarDataMode;
 
 #define HYSCAN_TYPE_SONAR_CONTROL             (hyscan_sonar_control_get_type ())
 #define HYSCAN_SONAR_CONTROL(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), HYSCAN_TYPE_SONAR_CONTROL, HyScanSonarControl))
@@ -147,21 +136,6 @@ gdouble                hyscan_sonar_control_get_max_receive_time       (HyScanSo
 HYSCAN_API
 gboolean               hyscan_sonar_control_set_sync_type              (HyScanSonarControl    *control,
                                                                         HyScanSonarSyncType    sync_type);
-
-/**
- *
- * Функция задаёт предпочитаемый вид данных от гидролокатора. Если указанный вид
- * данных не может передаваться гидролокатором используется альтернативный вид.
- *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param data_mode вид данных \link HyScanSonarDataMode \endlink.
- *
- * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
- *
- */
-HYSCAN_API
-gboolean               hyscan_sonar_control_set_data_mode              (HyScanSonarControl    *control,
-                                                                        HyScanSonarDataMode    data_mode);
 
 /**
  *

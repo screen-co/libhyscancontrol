@@ -84,10 +84,6 @@ static gboolean    hyscan_sonar_control_server_set_sync_type           (HyScanSo
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
                                                                         GVariant                   **values);
-static gboolean    hyscan_sonar_control_server_set_data_mode           (HyScanSonarControlServer    *server,
-                                                                        HyScanSonarControlServerCtl *ctl,
-                                                                        const gchar *const          *names,
-                                                                        GVariant                   **values);
 static gboolean    hyscan_sonar_control_server_set_position            (HyScanSonarControlServer    *server,
                                                                         HyScanSonarControlServerCtl *ctl,
                                                                         const gchar *const          *names,
@@ -376,16 +372,6 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       operation_path = g_strdup ("/sync/type");
       g_hash_table_insert (priv->paths, operation_path, operation);
 
-      /* Команда - hyscan_sonar_control_set_data_mode. */
-      operation = g_new0 (HyScanSonarControlServerCtl, 1);
-      operation->source = 0;
-      operation->name = NULL;
-      operation->func = hyscan_sonar_control_server_set_data_mode;
-      g_hash_table_insert (priv->operations, operation, operation);
-
-      operation_path = g_strdup ("/control/data-mode");
-      g_hash_table_insert (priv->paths, operation_path, operation);
-
       /* Команды - hyscan_sonar_control_start / hyscan_sonar_control_stop. */
       operation = g_new0 (HyScanSonarControlServerCtl, 1);
       operation->source = 0;
@@ -538,30 +524,6 @@ hyscan_sonar_control_server_set_sync_type (HyScanSonarControlServer     *server,
 
   g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_SYNC_TYPE], 0,
                  sync_type, &cancel);
-  if (cancel)
-    return FALSE;
-
-  return TRUE;
-}
-
-/* Команда - hyscan_sonar_control_set_data_mode. */
-static gboolean
-hyscan_sonar_control_server_set_data_mode (HyScanSonarControlServer     *server,
-                                           HyScanSonarControlServerCtl  *ctl,
-                                           const gchar *const           *names,
-                                           GVariant                    **values)
-{
-  gboolean cancel;
-
-  gint64 value;
-  HyScanSonarDataMode data_mode = 0;
-
-  if (!hyscan_control_find_integer_param ("/control/data-mode", names, values, &value))
-    return FALSE;
-
-  data_mode = value;
-  g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_DATA_MODE], 0,
-                 data_mode, &cancel);
   if (cancel)
     return FALSE;
 

@@ -19,7 +19,6 @@
  * Класс посылает следующие сигналы:
  *
  * - "sonar-set-sync-type" - при изменении типа синхронизации излучения;
- * - "sonar-set-data-mode" - при изменении предпочитаемого вида данных от гидролокатора;
  * - "sonar-set-position" - при установке информации о местоположении приёмных антенн;
  * - "sonar-set-receive-time" - при установке времни приёма эхосигнала гидролокатором;
  * - "sonar-start" - при включении гидролокатора в рабочий режим;
@@ -33,10 +32,6 @@
  *
  * gboolean sonar_set_sync_type_cb    (HyScanSonarControlServer   *server,
  *                                     HyScanSonarSyncType         sync_type,
- *                                     gpointer                    user_data);
- *
- * gboolean sonar_set_data_mode_cb    (HyScanSonarControlServer   *server,
- *                                     HyScanSonarDataMode         data_mode,
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_set_position_cb     (HyScanSonarControlServer   *server,
