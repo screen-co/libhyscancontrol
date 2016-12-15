@@ -30,7 +30,6 @@
 #ifndef __HYSCAN_SONAR_DISCOVER_H__
 #define __HYSCAN_SONAR_DISCOVER_H__
 
-#include <hyscan-control.h>
 #include <hyscan-data-box.h>
 
 G_BEGIN_DECLS
@@ -38,7 +37,6 @@ G_BEGIN_DECLS
 /** \brief Общая информация о гидролокаторе. */
 typedef struct
 {
-  HyScanSonarType              type;          /**< Тип гидролокатора. */
   gchar                       *model;         /**< Модель гидролокатора. */
   gchar                       *uri;           /**< Путь для подключения к гидролокатору. */
 } HyScanSonarDiscoverInfo;

@@ -17,7 +17,7 @@ enum
 {
   PROP_O,
   PROP_CONTROL,
-  PROP_PROXY_MODE
+  PROP_SONAR_PROXY_MODE
 };
 
 struct _HyScanTVGProxyPrivate
@@ -71,8 +71,8 @@ hyscan_tvg_proxy_class_init (HyScanTVGProxyClass *klass)
     g_param_spec_object ("control", "Control", "TVG control", HYSCAN_TYPE_TVG_CONTROL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
-  g_object_class_install_property (object_class, PROP_PROXY_MODE,
-    g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
+  g_object_class_install_property (object_class, PROP_SONAR_PROXY_MODE,
+    g_param_spec_int ("sonar-proxy-mode", "SonarProxyMode", "Sonar proxy mode",
                       HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
                       HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
@@ -99,7 +99,7 @@ hyscan_tvg_proxy_set_property (GObject      *object,
       priv->control = g_value_dup_object (value);
       break;
 
-    case PROP_PROXY_MODE:
+    case PROP_SONAR_PROXY_MODE:
       G_OBJECT_CLASS (hyscan_tvg_proxy_parent_class)->set_property (object, prop_id, value, pspec);
       priv->proxy_mode = g_value_get_int (value);
       break;

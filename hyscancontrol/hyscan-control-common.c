@@ -10,92 +10,22 @@
 
 #include "hyscan-control-common.h"
 
-/* Типы бортов гидролокаторов и их названия. */
-typedef struct
-{
-  GQuark                       quark;
-  const gchar                 *name;
-
-  HyScanSourceType             source;
-} HyScanBoardTypeInfo;
-
-/* Типы источников данных и их названия. */
-typedef struct
-{
-  GQuark                       quark;
-  const gchar                 *name;
-
-  HyScanSourceType             source;
-} HyScanSourceTypeInfo;
-
-static HyScanBoardTypeInfo hyscan_board_type_info[] =
-{
-  { 0, "side-scan-starboard",    HYSCAN_SOURCE_SIDE_SCAN_STARBOARD },
-  { 0, "side-scan-port",         HYSCAN_SOURCE_SIDE_SCAN_PORT },
-  { 0, "side-scan-starboard-hi", HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI },
-  { 0, "side-scan-port-hi",      HYSCAN_SOURCE_SIDE_SCAN_PORT_HI },
-  { 0, "echosounder",            HYSCAN_SOURCE_ECHOSOUNDER },
-  { 0, "profiler",               HYSCAN_SOURCE_PROFILER },
-  { 0, "look-around-starboard",  HYSCAN_SOURCE_LOOK_AROUND_STARBOARD },
-  { 0, "look-around-port",       HYSCAN_SOURCE_LOOK_AROUND_PORT },
-  { 0, "forward-look",           HYSCAN_SOURCE_FORWARD_LOOK },
-
-  { 0, NULL,                     HYSCAN_SOURCE_INVALID }
-};
-
-/* Функция инициализации статических данных. */
-static void
-hyscan_control_types_initialize (void)
-{
-  static gboolean hyscan_control_types_initialized = FALSE;
-  gint i;
-
-  if (hyscan_control_types_initialized)
-    return;
-
-  for (i = 0; hyscan_board_type_info[i].name != NULL; i++)
-    hyscan_board_type_info[i].quark = g_quark_from_static_string (hyscan_board_type_info[i].name);
-
-  hyscan_control_types_initialized = TRUE;
-}
-
 /* Функция возвращает название борта гидролокатора по его идентификатору. */
 const gchar *
 hyscan_control_get_source_name (HyScanSourceType source)
 {
-  gint i;
-
-  /* Инициализация статических данных. */
-  hyscan_control_types_initialize ();
-
-  /* Ищем название типа. */
-  for (i = 0; hyscan_board_type_info[i].quark != 0; i++)
-    {
-      if (hyscan_board_type_info[i].source != source)
-        continue;
-      return hyscan_board_type_info[i].name;
-    }
-
-  return NULL;
+  return hyscan_channel_get_name_by_types (source, FALSE, 1);
 }
 
 /* Функция возвращает идентификатор борта гидролокатора по его названию. */
 HyScanSourceType
 hyscan_control_get_source_type (const gchar *name)
 {
-  GQuark quark;
-  gint i;
+  HyScanSourceType source = HYSCAN_SOURCE_INVALID;
 
-  /* Инициализация статических данных. */
-  hyscan_control_types_initialize ();
+  hyscan_channel_get_types_by_name (name, &source, NULL, NULL);
 
-  /* Ищем тип по названию. */
-  quark = g_quark_try_string (name);
-  for (i = 0; hyscan_board_type_info[i].quark != 0; i++)
-    if (hyscan_board_type_info[i].quark == quark)
-      return hyscan_board_type_info[i].source;
-
-  return HYSCAN_SOURCE_INVALID;
+  return source;
 }
 
 /* Функция аккумулирует boolean ответы всех callback'ов .

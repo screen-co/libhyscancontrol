@@ -8,8 +8,8 @@
  *
  */
 
-#include "hyscan-control-common.h"
 #include "hyscan-proxy-common.h"
+#include "hyscan-control-common.h"
 
 /* Функция создаёт новый объект для определения схемы прокси гидролокатора. */
 HyScanSonarSchema *
@@ -63,20 +63,18 @@ hyscan_proxy_schema_sensor_virtual (HyScanSonarSchema *schema)
 
 /* Функция определяет акустические источники прокси гидролокатора. */
 gboolean
-hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
-                                   HyScanParam       *sonar,
-                                   HyScanSSSEControl *control)
+hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
+                                   HyScanSonarControl *control)
 {
+  HyScanParam *sonar;
   gboolean status = FALSE;
-
-  HyScanSourceType sources[] = { HYSCAN_SOURCE_SIDE_SCAN_STARBOARD,
-                                 HYSCAN_SOURCE_SIDE_SCAN_PORT,
-                                 HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI,
-                                 HYSCAN_SOURCE_SIDE_SCAN_PORT_HI,
-                                 HYSCAN_SOURCE_ECHOSOUNDER,
-                                 HYSCAN_SOURCE_INVALID};
-
+  gint *sources;
   gint i, j;
+
+  sonar = HYSCAN_PARAM (control);
+  sources = hyscan_sonar_control_source_list (control);
+  if (sources == NULL)
+    goto exit;
 
   /* Проброс источников акустических данных. */
   for (i = 0; sources[i] != HYSCAN_SOURCE_INVALID; i++)
@@ -103,36 +101,9 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
 
       gboolean status;
 
-      /* Проверка наличия источника данных. */
-      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD)
-        {
-          if (!hyscan_ssse_control_has_starboard (control))
-            continue;
-        }
-      else if(sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT)
-        {
-          if (!hyscan_ssse_control_has_port (control))
-            continue;
-        }
-      else if(sources[i] == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI)
-        {
-          if (!hyscan_ssse_control_has_starboard_hi (control))
-            continue;
-        }
-      else if(sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT_HI)
-        {
-          if (!hyscan_ssse_control_has_port_hi (control))
-            continue;
-        }
-      else if(sources[i] == HYSCAN_SOURCE_ECHOSOUNDER)
-        {
-          if (!hyscan_ssse_control_has_echosounder (control))
-            continue;
-        }
-      else
-        {
-          continue;
-        }
+      /* Обрабатываем только источники акустических данных. */
+      if (!hyscan_source_is_acoustic (sources[i]))
+        continue;
 
       source_name = hyscan_control_get_source_name (sources[i]);
 
@@ -148,7 +119,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
 
       if (!status)
         {
-          g_warning ("HyScanSSSEProxy: can't get '%s' source info", source_name);
+          g_warning ("HyScanSonarProxy: can't get '%s' source info", source_name);
           goto exit;
         }
 
@@ -164,7 +135,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
       if ((hyscan_sonar_schema_source_add (schema, sources[i], antenna_vpattern, antenna_hpattern, max_receive_time) < 0) ||
           (hyscan_sonar_schema_source_add_acuostic (schema, sources[i]) < 0))
         {
-          g_warning ("HyScanSSSEProxy: can't forward '%s' source", source_name);
+          g_warning ("HyScanSonarProxy: can't forward '%s' source", source_name);
           goto exit;
         }
 
@@ -184,7 +155,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
                                                                 &max_tone_duration);
           if (!status)
             {
-              g_warning ("HyScanSSSEProxy: can't get tone signal parameters for '%s' source", source_name);
+              g_warning ("HyScanSonarProxy: can't get tone signal parameters for '%s' source", source_name);
               goto exit;
             }
         }
@@ -200,7 +171,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
                                                                 &max_lfm_duration);
           if (!status)
             {
-              g_warning ("HyScanSSSEProxy: can't get lfm signal parameters for '%s' source", source_name);
+              g_warning ("HyScanSonarProxy: can't get lfm signal parameters for '%s' source", source_name);
               goto exit;
             }
         }
@@ -211,7 +182,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
                                              min_tone_duration, max_tone_duration,
                                              min_lfm_duration, max_lfm_duration) < 0)
         {
-          g_warning ("HyScanSSSEProxy: can't setup generator parameters for '%s' source", source_name);
+          g_warning ("HyScanSonarProxy: can't setup generator parameters for '%s' source", source_name);
           goto exit;
         }
 
@@ -228,7 +199,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
 
               if (hyscan_sonar_schema_generator_add_preset (schema, sources[i], presets[j]->name) < 0)
                 {
-                  g_warning ("HyScanSSSEProxy: can't setup '%s' generator '%s' preset", source_name, presets[j]->name);
+                  g_warning ("HyScanSonarProxy: can't setup '%s' generator '%s' preset", source_name, presets[j]->name);
                   goto exit;
                 }
             }
@@ -243,17 +214,19 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema *schema,
           status = hyscan_tvg_control_get_gain_range (HYSCAN_TVG_CONTROL (control), sources[i], &min_gain, &max_gain);
           if (!status)
             {
-              g_warning ("HyScanSSSEProxy: can't get tvg parameters for '%s' source", source_name);
+              g_warning ("HyScanSonarProxy: can't get tvg parameters for '%s' source", source_name);
               goto exit;
             }
 
           if (hyscan_sonar_schema_tvg_add (schema, sources[i], tvg_capabilities, min_gain, max_gain) < 0)
             {
-              g_warning ("HyScanSSSEProxy: can't setup tvg parameters for '%s' source", source_name);
+              g_warning ("HyScanSonarProxy: can't setup tvg parameters for '%s' source", source_name);
               goto exit;
             }
         }
     }
+
+  g_free (sources);
 
   status = TRUE;
 

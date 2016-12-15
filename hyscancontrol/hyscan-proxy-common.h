@@ -12,7 +12,7 @@
 #define __HYSCAN_PROXY_COMMON_H__
 
 #include <hyscan-sonar-schema.h>
-#include <hyscan-ssse-control.h>
+#include <hyscan-sonar-control.h>
 
 #define HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME  "nmea"
 
@@ -25,7 +25,6 @@ gboolean               hyscan_proxy_schema_sensor_virtual      (HyScanSonarSchem
 
 /* Функция определяет акустические источники прокси гидролокатора. */
 gboolean               hyscan_proxy_schema_ssse_acoustic       (HyScanSonarSchema             *schema,
-                                                                HyScanParam                   *sonar,
-                                                                HyScanSSSEControl             *control);
+                                                                HyScanSonarControl            *control);
 
 #endif /* __HYSCAN_PROXY_COMMON_H__ */

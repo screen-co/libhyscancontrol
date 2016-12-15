@@ -1,11 +1,10 @@
 
-#include "hyscan-ssse-control.h"
-#include "hyscan-ssse-proxy.h"
+#include "hyscan-sonar-control.h"
+#include "hyscan-sonar-proxy.h"
 #include "hyscan-sensor-control-server.h"
 #include "hyscan-generator-control-server.h"
 #include "hyscan-tvg-control-server.h"
 #include "hyscan-sonar-control-server.h"
-#include "hyscan-ssse-control-server.h"
 #include "hyscan-control-common.h"
 #include "hyscan-proxy-common.h"
 
@@ -123,7 +122,6 @@ typedef struct
   HyScanGeneratorControlServer        *generator;
   HyScanTVGControlServer              *tvg;
   HyScanSonarControlServer            *sonar;
-  HyScanSSSEControlServer             *ssse;
   gint64                              *counter;
 } ServerInfo;
 
@@ -1248,8 +1246,8 @@ main (int    argc,
 
   ServerInfo server;
   HyScanSonarBox *sonar;
-  HyScanSSSEProxy *proxy;
-  HyScanSSSEControl *control;
+  HyScanSonarProxy *proxy;
+  HyScanSonarControl *control;
 
   gchar *proxy_mode_string = NULL;
   HyScanSonarProxyModeType proxy_mode = 0;
@@ -1517,7 +1515,6 @@ main (int    argc,
   server.generator = hyscan_generator_control_server_new (sonar);
   server.tvg = hyscan_tvg_control_server_new (sonar);
   server.sonar = hyscan_sonar_control_server_new (sonar);
-  server.ssse = hyscan_ssse_control_server_new (sonar);
   server.counter = &counter;
 
   g_signal_connect_swapped (server.sensor, "sensor-virtual-port-param",
@@ -1569,14 +1566,19 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      proxy = hyscan_ssse_proxy_new (HYSCAN_PARAM (sonar), proxy_mode, 1, 1, NULL);
-      hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME);
-      control = hyscan_ssse_control_new (HYSCAN_PARAM (proxy), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
+      proxy = hyscan_sonar_proxy_new (control, proxy_mode, proxy_mode);
+      g_object_unref (control);
+
+      if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
+        hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME);
+
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), NULL);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_ssse_control_new (HYSCAN_PARAM (sonar), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
     }
 
   /* Только печать схемы на экране. */
@@ -1584,11 +1586,7 @@ main (int    argc,
     {
       HyScanDataSchema *schema;
 
-      if (proxy_mode_string != NULL)
-        schema = hyscan_param_schema (HYSCAN_PARAM (proxy));
-      else
-        schema = hyscan_param_schema (HYSCAN_PARAM (sonar));
-
+      schema = hyscan_param_schema (HYSCAN_PARAM (control));
       schema_data = hyscan_data_schema_get_data (schema, NULL, NULL);
       g_print ("%s", schema_data);
       g_free (schema_data);
@@ -1609,10 +1607,6 @@ main (int    argc,
         continue;
       if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT)
         continue;
-      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_STARBOARD_HI)
-        continue;
-      if (sources[i] == HYSCAN_SOURCE_SIDE_SCAN_PORT_HI)
-        continue;
       if (sources[i] == HYSCAN_SOURCE_ECHOSOUNDER)
         continue;
 
@@ -1620,26 +1614,6 @@ main (int    argc,
     }
 
   g_free (sources);
-
-  /* Проверяем наличие правого борта. */
-  if (!hyscan_ssse_control_has_starboard (control))
-    g_error ("ssse: no starboard");
-
-  /* Проверяем наличие левого борта. */
-  if (!hyscan_ssse_control_has_port (control))
-    g_error ("ssse: no port");
-
-  /* Проверяем отсутствие правого борта с повышенным разрешением. */
-  if (hyscan_ssse_control_has_starboard_hi (control))
-    g_error ("ssse: has starboard-hi");
-
-  /* Проверяем отсутствие левого борта с повышенным разрешением. */
-  if (hyscan_ssse_control_has_port_hi (control))
-    g_error ("ssse: has port-hi");
-
-  /* Проверяем наличие эхолота. */
-  if (!hyscan_ssse_control_has_echosounder (control))
-    g_error ("ssse: no echosounder");
 
   /* Проверка управления датчиками. */
   g_message ("Checking sensor control");
@@ -1691,7 +1665,6 @@ exit:
   g_object_unref (server.generator);
   g_object_unref (server.tvg);
   g_object_unref (server.sonar);
-  g_object_unref (server.ssse);
   g_object_unref (sonar);
 
   xmlCleanupParser ();

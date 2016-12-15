@@ -23,6 +23,7 @@ enum
 {
   SIGNAL_RAW_DATA,
   SIGNAL_NOISE_DATA,
+  SIGNAL_ACOUSTIC_DATA,
   SIGNAL_LAST
 };
 
@@ -33,6 +34,12 @@ typedef struct
   HyScanRawDataInfo            info;                           /* Параметры "сырых" гидролокационных данных. */
 } HyScanSonarControlChannel;
 
+typedef struct
+{
+  HyScanSourceType             source;                         /* Тип источника данных. */
+  HyScanAcousticDataInfo       info;                           /* Параметры акустических данных. */
+} HyScanSonarControlAcoustic;
+
 struct _HyScanSonarControlPrivate
 {
   HyScanParam                 *sonar;                          /* Интерфейс управления гидролокатором. */
@@ -41,6 +48,7 @@ struct _HyScanSonarControlPrivate
   GArray                      *sources;                        /* Список источников гидролокационных данных. */
   GHashTable                  *channels;                       /* Список приёмных каналов гидролокатора. */
   GHashTable                  *noises;                         /* Список источников шумов приёмных каналов гидролокатора. */
+  GHashTable                  *acoustics;                      /* Список источников акустических данных гидролокатора. */
   HyScanSonarSyncType          sync_types;                     /* Доступные методы синхронизации излучения. */
 
   gdouble                      alive_timeout;                  /* Интервал отправки сигнала alive. */
@@ -50,6 +58,7 @@ struct _HyScanSonarControlPrivate
   GMutex                       lock;                           /* Блокировка. */
 };
 
+static void            hyscan_sonar_control_interface_init     (HyScanParamInterface  *iface);
 static void            hyscan_sonar_control_set_property       (GObject               *object,
                                                                 guint                  prop_id,
                                                                 const GValue          *value,
@@ -59,12 +68,17 @@ static void            hyscan_sonar_control_object_finalize    (GObject         
 
 static gpointer        hyscan_sonar_control_quard              (gpointer               data);
 
-static void            hyscan_sonar_control_data_receiver      (HyScanSonarControl    *control,
+static void            hyscan_sonar_control_raw_data_receiver  (HyScanSonarControl    *control,
+                                                                HyScanSonarMessage    *message);
+
+static void        hyscan_sonar_control_acoustic_data_receiver (HyScanSonarControl    *control,
                                                                 HyScanSonarMessage    *message);
 
 static guint           hyscan_sonar_control_signals[SIGNAL_LAST] = { 0 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (HyScanSonarControl, hyscan_sonar_control, HYSCAN_TYPE_TVG_CONTROL)
+G_DEFINE_TYPE_WITH_CODE (HyScanSonarControl, hyscan_sonar_control, HYSCAN_TYPE_TVG_CONTROL,
+                         G_ADD_PRIVATE (HyScanSonarControl)
+                         G_IMPLEMENT_INTERFACE (HYSCAN_TYPE_PARAM, hyscan_sonar_control_interface_init))
 
 static void
 hyscan_sonar_control_class_init (HyScanSonarControlClass *klass)
@@ -91,6 +105,12 @@ hyscan_sonar_control_class_init (HyScanSonarControlClass *klass)
                   g_cclosure_user_marshal_VOID__INT_UINT_POINTER_POINTER,
                   G_TYPE_NONE,
                   4, G_TYPE_INT, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
+
+  hyscan_sonar_control_signals[SIGNAL_ACOUSTIC_DATA] =
+    g_signal_new ("acoustic-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+                  g_cclosure_user_marshal_VOID__INT_POINTER_POINTER,
+                  G_TYPE_NONE,
+                  3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_POINTER);
 }
 
 static void
@@ -146,6 +166,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
   /* Список приёмных каналов. */
   priv->channels = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
   priv->noises = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
+  priv->acoustics = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
 
   /* Обязательно должен быть передан указатель на интерфейс управления локатором. */
   if (priv->sonar == NULL)
@@ -194,9 +215,11 @@ hyscan_sonar_control_object_constructed (GObject *object)
           GVariant *param_values[7];
 
           gchar **pathv;
+          gchar *param_id;
 
           gdouble antenna_vpattern;
           gdouble antenna_hpattern;
+          gint64 acoustic_id;
 
           gboolean status;
 
@@ -236,9 +259,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
             {
               HyScanSonarControlChannel *channel;
 
-              gchar *key_id;
               gboolean has_channel;
-
               gint64 data_id;
               gint64 noise_id;
               gdouble antenna_voffset;
@@ -246,9 +267,9 @@ hyscan_sonar_control_object_constructed (GObject *object)
               gint adc_offset;
               gdouble adc_vref;
 
-              key_id = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
-              has_channel = hyscan_data_schema_has_key (priv->schema, key_id);
-              g_free (key_id);
+              param_id = g_strdup_printf ("%s/channels/%d/id", sources->nodes[i]->path, j);
+              has_channel = hyscan_data_schema_has_key (priv->schema, param_id);
+              g_free (param_id);
 
               if (!has_channel)
                 break;
@@ -293,6 +314,9 @@ hyscan_sonar_control_object_constructed (GObject *object)
               if (data_id <= 0 || data_id > G_MAXINT32)
                 continue;
 
+              if (noise_id <= 0 || noise_id > G_MAXINT32)
+                continue;
+
               channel = g_new0 (HyScanSonarControlChannel, 1);
               channel->source = source;
               channel->channel = j;
@@ -306,14 +330,32 @@ hyscan_sonar_control_object_constructed (GObject *object)
               g_hash_table_insert (priv->channels, GINT_TO_POINTER (data_id), channel);
               g_hash_table_insert (priv->noises, GINT_TO_POINTER (noise_id), channel);
             }
+
+          /* Акустические данные. */
+          param_id = g_strdup_printf ("%s/acoustic/id", sources->nodes[i]->path);
+          if (hyscan_param_get_integer (priv->sonar, param_id, &acoustic_id) &&
+              (acoustic_id > 0) && (acoustic_id <= G_MAXINT32))
+            {
+              HyScanSonarControlAcoustic *acoustic;
+
+              acoustic = g_new0 (HyScanSonarControlAcoustic, 1);
+              acoustic->source = source;
+              acoustic->info.antenna.pattern.vertical = antenna_vpattern;
+              acoustic->info.antenna.pattern.horizontal = antenna_hpattern;
+
+              g_hash_table_insert (priv->acoustics, GINT_TO_POINTER (acoustic_id), acoustic);
+            }
+          g_free (param_id);
         }
 
       source = HYSCAN_SOURCE_INVALID;
       g_array_append_val (priv->sources, source);
 
-      /* Обработчик данных от приёмных каналов гидролокатора. */
+      /* Обработчик данных от гидролокатора. */
       g_signal_connect_swapped (priv->sonar, "data",
-                                G_CALLBACK (hyscan_sonar_control_data_receiver), control);
+                                G_CALLBACK (hyscan_sonar_control_raw_data_receiver), control);
+      g_signal_connect_swapped (priv->sonar, "data",
+                                G_CALLBACK (hyscan_sonar_control_acoustic_data_receiver), control);
     }
 
   /* Информация о гидролокаторе. */
@@ -347,6 +389,7 @@ hyscan_sonar_control_object_finalize (GObject *object)
 
   g_hash_table_unref (priv->channels);
   g_hash_table_unref (priv->noises);
+  g_hash_table_unref (priv->acoustics);
   g_array_free (priv->sources, TRUE);
 
   g_mutex_clear (&priv->lock);
@@ -380,8 +423,8 @@ hyscan_sonar_control_quard (gpointer data)
 
 /* Функция обрабатывает сообщения с "сырыми" данными от приёмных каналов гидролокатора. */
 static void
-hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
-                                    HyScanSonarMessage *message)
+hyscan_sonar_control_raw_data_receiver (HyScanSonarControl *control,
+                                        HyScanSonarMessage *message)
 {
   HyScanSonarControlChannel *channel;
   HyScanRawDataInfo info;
@@ -424,6 +467,91 @@ hyscan_sonar_control_data_receiver (HyScanSonarControl *control,
       g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_NOISE_DATA], 0,
                      channel->source, channel->channel, &info, &data);
     }
+}
+
+/* Функция обрабатывает сообщения с обработанными акустическимим данными от гидролокатора. */
+static void
+hyscan_sonar_control_acoustic_data_receiver (HyScanSonarControl *control,
+                                             HyScanSonarMessage *message)
+{
+  HyScanSonarControlAcoustic *acoustic;
+  HyScanAcousticDataInfo info;
+  HyScanDataWriterData data;
+
+  /* Ищем источник акустических данных. */
+  acoustic = g_hash_table_lookup (control->priv->acoustics, GINT_TO_POINTER (message->id));
+  if (acoustic == NULL)
+    return;
+
+  /* Данные. */
+  info = acoustic->info;
+  info.data.type = message->type;
+  info.data.rate = message->rate;
+  data.time = message->time;
+  data.size = message->size;
+  data.data = message->data;
+  hyscan_data_writer_acoustic_add_data (HYSCAN_DATA_WRITER (control), acoustic->source, &info, &data);
+
+  g_signal_emit (control, hyscan_sonar_control_signals[SIGNAL_ACOUSTIC_DATA], 0,
+                 acoustic->source, &info, &data);
+}
+
+/* Функция возвращает схему гидролокатора. */
+static HyScanDataSchema *
+hyscan_sonar_control_schema (HyScanParam *sonar)
+{
+  HyScanSonarControl *control = HYSCAN_SONAR_CONTROL (sonar);
+
+  if (control->priv->sonar == NULL)
+    return NULL;
+
+  return g_object_ref (control->priv->schema);
+}
+
+/* Функция устанавливает параметры гидролокатора. */
+static gboolean
+hyscan_sonar_control_set (HyScanParam         *sonar,
+                          const gchar *const  *names,
+                          GVariant           **values)
+{
+  HyScanSonarControl *control = HYSCAN_SONAR_CONTROL (sonar);
+
+  if (control->priv->sonar == NULL)
+    return FALSE;
+
+  return hyscan_param_set (control->priv->sonar, names, values);
+}
+
+/* Функция устанавливает параметры гидролокатора. */
+static gboolean
+hyscan_sonar_control_get (HyScanParam         *sonar,
+                          const gchar *const  *names,
+                          GVariant           **values)
+{
+  HyScanSonarControl *control = HYSCAN_SONAR_CONTROL (sonar);
+
+  if (control->priv->sonar == NULL)
+    return FALSE;
+
+  return hyscan_param_get (control->priv->sonar, names, values);
+}
+
+/* Функция создаёт новый объект HyScanSonarControl. */
+HyScanSonarControl *
+hyscan_sonar_control_new (HyScanParam *sonar,
+                          HyScanDB    *db)
+{
+  HyScanSonarControl *control;
+
+  control = g_object_new (HYSCAN_TYPE_SONAR_CONTROL,
+                          "sonar", sonar,
+                          "db", db,
+                          NULL);
+
+  if (control->priv->sources->len <= 1)
+    g_clear_object (&control);
+
+  return control;
 }
 
 /* Функция возвращает список доступных источников гидролокационных данных. */
@@ -631,4 +759,12 @@ hyscan_sonar_control_ping (HyScanSonarControl *control)
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
   return hyscan_param_set_boolean (control->priv->sonar, "/sync/ping", TRUE);
+}
+
+static void
+hyscan_sonar_control_interface_init (HyScanParamInterface *iface)
+{
+  iface->schema = hyscan_sonar_control_schema;
+  iface->set = hyscan_sonar_control_set;
+  iface->get = hyscan_sonar_control_get;
 }

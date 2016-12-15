@@ -25,18 +25,14 @@ add_library (hyscancontrol SHARED
              hyscan-generator-control.c
              hyscan-tvg-control.c
              hyscan-sonar-control.c
-             hyscan-ssse-control.c
              hyscan-sensor-control-server.c
              hyscan-generator-control-server.c
              hyscan-tvg-control-server.c
              hyscan-sonar-control-server.c
-             hyscan-ssse-control-server.c
              hyscan-sensor-proxy.c
              hyscan-generator-proxy.c
              hyscan-tvg-proxy.c
              hyscan-sonar-proxy.c
-             hyscan-ssse-proxy.c
-             hyscan-control.c
              hyscan-control-common.c
              hyscan-proxy-common.c
              hyscan-sonar-discover.c

@@ -1,12 +1,11 @@
 
 #include "hyscan-sonar-schema.h"
-#include "hyscan-ssse-control.h"
+#include "hyscan-sonar-control.h"
 #include "hyscan-sensor-control-server.h"
 #include "hyscan-generator-control-server.h"
 #include "hyscan-tvg-control-server.h"
 #include "hyscan-sonar-control-server.h"
-#include "hyscan-ssse-control-server.h"
-#include "hyscan-ssse-proxy.h"
+#include "hyscan-sonar-proxy.h"
 
 #include <libxml/parser.h>
 #include <string.h>
@@ -50,7 +49,6 @@ typedef struct
   HyScanGeneratorControlServer        *generator;
   HyScanTVGControlServer              *tvg;
   HyScanSonarControlServer            *sonar;
-  HyScanSSSEControlServer             *ssse;
 } ServerInfo;
 
 PortInfo                               ports[SENSOR_N_PORTS];
@@ -114,9 +112,9 @@ port_info_by_index (guint index)
 gboolean
 sonar_ping_cb (ServerInfo *server)
 {
-  gfloat *values = g_new (gfloat, DATA_N_POINTS);
-  HyScanComplexFloat *signal_points = g_new (HyScanComplexFloat, SIGNAL_N_POINTS);
-  gfloat *tvg_gains = g_new (gfloat, TVG_N_GAINS);
+  gfloat *values = g_new0 (gfloat, DATA_N_POINTS);
+  HyScanComplexFloat *signal_points = g_new0 (HyScanComplexFloat, SIGNAL_N_POINTS);
+  gfloat *tvg_gains = g_new0 (gfloat, TVG_N_GAINS);
 
   static guint n_track = 0;
   guint i, j, k;
@@ -157,8 +155,7 @@ sonar_ping_cb (ServerInfo *server)
           hyscan_sonar_control_server_send_noise_data (server->sonar, source, 1, HYSCAN_DATA_FLOAT,
                                                        info->raw_info.data.rate, &data);
 
-          hyscan_ssse_control_server_send_acoustic_data (HYSCAN_SSSE_CONTROL_SERVER (server->ssse),
-                                                         source, HYSCAN_DATA_FLOAT,
+          hyscan_sonar_control_server_send_acoustic_data (server->sonar, source, HYSCAN_DATA_FLOAT,
                                                          info->acoustic_info.data.rate, &data);
 
           /* Сигналы и ВАРУ. */
@@ -242,7 +239,7 @@ sonar_ping_cb (ServerInfo *server)
 
 /* Функция проверяет управление гидролокатором. */
 void
-generate_data (HyScanSSSEControl        *control,
+generate_data (HyScanSonarControl       *control,
                const gchar              *project_name,
                HyScanSonarProxyModeType  proxy_mode)
 {
@@ -266,7 +263,7 @@ generate_data (HyScanSSSEControl        *control,
       HyScanSourceType source = select_source_by_index (i);
       SourceInfo *info = source_info_by_index (i);
 
-      hyscan_sonar_control_set_position (HYSCAN_SONAR_CONTROL (control), source, &info->position);
+      hyscan_sonar_control_set_position (control, source, &info->position);
     }
 
   for (i = 0; i < N_TESTS; i++)
@@ -274,14 +271,14 @@ generate_data (HyScanSSSEControl        *control,
       gchar *track_name = g_strdup_printf ("test-track-%d", i);
       HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 2);
 
-      hyscan_sonar_control_start (HYSCAN_SONAR_CONTROL (control), project_name, track_name, track_type);
-      hyscan_sonar_control_ping (HYSCAN_SONAR_CONTROL (control));
+      hyscan_sonar_control_start (control, project_name, track_name, track_type);
+      hyscan_sonar_control_ping (control);
 
       g_free (track_name);
     }
 
   /* Выключаем гидролокатор. */
-  hyscan_sonar_control_stop (HYSCAN_SONAR_CONTROL (control));
+  hyscan_sonar_control_stop (control);
 }
 
 /* Функция проверяет записанные данные. */
@@ -793,8 +790,8 @@ main (int    argc,
 
   ServerInfo server;
   HyScanSonarBox *sonar;
-  HyScanSSSEControl *control;
-  HyScanSSSEProxy *proxy;
+  HyScanSonarControl *control;
+  HyScanSonarProxy *proxy;
 
   gchar *db_uri = NULL;
   HyScanDB *db;
@@ -961,7 +958,6 @@ main (int    argc,
   server.generator = hyscan_generator_control_server_new (sonar);
   server.tvg = hyscan_tvg_control_server_new (sonar);
   server.sonar = hyscan_sonar_control_server_new (sonar);
-  server.ssse = hyscan_ssse_control_server_new (sonar);
   g_signal_connect_swapped (server.sonar, "sonar-ping", G_CALLBACK (sonar_ping_cb), &server);
 
   /* База данных. */
@@ -972,14 +968,22 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      proxy = hyscan_ssse_proxy_new (HYSCAN_PARAM (sonar), proxy_mode, SIDE_SCALE, TRACK_SCALE, NULL);
-      hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), select_port_by_index (0));
-      control = hyscan_ssse_control_new (HYSCAN_PARAM (proxy), db);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
+      proxy = hyscan_sonar_proxy_new (control, proxy_mode, proxy_mode);
+      g_object_unref (control);
+
+      if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
+        {
+          hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), select_port_by_index (0));
+          hyscan_sonar_proxy_set_scale (proxy, SIDE_SCALE, TRACK_SCALE);
+        }
+
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), db);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_ssse_control_new (HYSCAN_PARAM (sonar), db);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), db);
     }
 
   /* Тестовый проект. */
@@ -1007,7 +1011,6 @@ main (int    argc,
   g_object_unref (server.generator);
   g_object_unref (server.tvg);
   g_object_unref (server.sonar);
-  g_object_unref (server.ssse);
   g_object_unref (sonar);
   g_object_unref (db);
 

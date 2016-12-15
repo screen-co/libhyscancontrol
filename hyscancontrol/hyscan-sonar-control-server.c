@@ -57,6 +57,7 @@ struct _HyScanSonarControlServerPrivate
   GHashTable                              *paths;                      /* Таблица названий параметров запросов. */
   GHashTable                              *channels;                   /* Идентификаторы приёмных каналов. */
   GHashTable                              *noises;                     /* Идентификаторы "шумовых" каналов. */
+  GHashTable                              *acoustics;                  /* Идентификаторы акустических источников. */
 
   gdouble                                  alive_timeout;              /* Интервал отправки сигнала alive. */
   GTimer                                  *alive_timer;                /* Таймер проверки таймаута сигнала alive. */
@@ -216,6 +217,7 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
   priv->paths = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   priv->channels = g_hash_table_new (g_direct_hash, g_direct_equal);
   priv->noises = g_hash_table_new (g_direct_hash, g_direct_equal);
+  priv->acoustics = g_hash_table_new (g_direct_hash, g_direct_equal);
 
   /* Обязательно должен быть передан указатель на базовый класс гидролокатора. */
   if (priv->sonar == NULL)
@@ -261,6 +263,8 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
       for (i = 0; i < sources->n_nodes; i++)
         {
           gchar **pathv;
+          gchar *param_id;
+
           HyScanSourceType source;
           HyScanDataSchemaNode *channels;
 
@@ -285,9 +289,6 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
           if (channels != NULL)
             {
               gpointer uniq;
-              gchar *param_id;
-              guint channel_id;
-              guint noise_id;
               guint channel;
 
               /* Считываем индентификаторы каналов. */
@@ -300,31 +301,29 @@ hyscan_sonar_control_server_object_constructed (GObject *object)
 
                   param_id = g_strdup_printf ("%s/noise/id", channels->nodes[j]->path);
                   if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_id, &id) &&
-                      (id > 0 || id <= G_MAXINT32))
+                      (id > 0) && (id <= G_MAXINT32))
                     {
-                      noise_id = id;
-                      g_hash_table_insert (priv->noises, uniq, GINT_TO_POINTER (noise_id));
-                    }
-                  else
-                    {
-                      g_warning ("HyScanSonarControlServer: can't get channel %d noise id", channel);
+                      g_hash_table_insert (priv->noises, uniq, GINT_TO_POINTER (id));
                     }
                   g_free (param_id);
 
                   param_id = g_strdup_printf ("%s/id", channels->nodes[j]->path);
                   if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_id, &id) &&
-                      (id > 0 || id <= G_MAXINT32))
+                      (id > 0) &&( id <= G_MAXINT32))
                     {
-                      channel_id = id;
-                      g_hash_table_insert (priv->channels, uniq, GINT_TO_POINTER (channel_id));
-                    }
-                  else
-                    {
-                      g_warning ("HyScanSonarControlServer: can't get channel %d id", channel);
+                      g_hash_table_insert (priv->channels, uniq, GINT_TO_POINTER (id));
                     }
                   g_free (param_id);
                 }
             }
+
+          param_id = g_strdup_printf ("/sources/%s/acoustic/id", hyscan_control_get_source_name (source));
+          if (hyscan_param_get_integer (HYSCAN_PARAM (priv->sonar), param_id, &id) &&
+              (id > 0) && (id < G_MAXUINT32))
+            {
+              g_hash_table_insert (priv->acoustics, GINT_TO_POINTER (source), GINT_TO_POINTER (id));
+            }
+          g_free (param_id);
 
           /* Команда - hyscan_sonar_control_set_position. */
           operation = g_new0 (HyScanSonarControlServerCtl, 1);
@@ -429,6 +428,7 @@ hyscan_sonar_control_server_object_finalize (GObject *object)
   g_hash_table_unref (priv->operations);
   g_hash_table_unref (priv->channels);
   g_hash_table_unref (priv->noises);
+  g_hash_table_unref (priv->acoustics);
 
   G_OBJECT_CLASS (hyscan_sonar_control_server_parent_class)->finalize (object);
 }
@@ -746,6 +746,36 @@ hyscan_sonar_control_server_send_noise_data (HyScanSonarControlServer *server,
 
   uniq = hyscan_sonar_control_server_uniq_channel (source, channel);
   id = g_hash_table_lookup (server->priv->noises, uniq);
+  if (id == NULL)
+    return;
+
+  message.time = data->time;
+  message.id   = GPOINTER_TO_INT (id);
+  message.type = type;
+  message.rate = rate;
+  message.size = data->size;
+  message.data = data->data;
+
+  hyscan_sonar_box_send (HYSCAN_SONAR_BOX (server->priv->sonar), &message);
+}
+
+/* Функция передаёт акустические данные от гидролокатора */
+void
+hyscan_sonar_control_server_send_acoustic_data (HyScanSonarControlServer *server,
+                                                HyScanSourceType          source,
+                                                HyScanDataType            type,
+                                                gdouble                   rate,
+                                                HyScanDataWriterData     *data)
+{
+  HyScanSonarMessage message;
+  gpointer id;
+
+  g_return_if_fail (HYSCAN_IS_SONAR_CONTROL_SERVER (server));
+
+  if (server->priv->sonar == NULL)
+    return;
+
+  id = g_hash_table_lookup (server->priv->acoustics, GINT_TO_POINTER (source));
   if (id == NULL)
     return;
 

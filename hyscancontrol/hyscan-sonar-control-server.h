@@ -76,6 +76,9 @@
  * Функция #hyscan_sonar_control_server_send_noise_data предназаначена для отправки "сырых"
  * данных от гидролокатора принятых при отключенном излучении.
  *
+ * Функция #hyscan_sonar_control_server_send_acoustic_data предназаначена для отправки
+ * акустических данных от гидролокатора.
+ *
  */
 
 #ifndef __HYSCAN_SONAR_CONTROL_SERVER_H__
@@ -166,6 +169,26 @@ HYSCAN_API
 void                           hyscan_sonar_control_server_send_noise_data     (HyScanSonarControlServer    *server,
                                                                                 HyScanSourceType             source,
                                                                                 guint                        channel,
+                                                                                HyScanDataType               type,
+                                                                                gdouble                      rate,
+                                                                                HyScanDataWriterData        *data);
+
+/**
+ *
+ * Функция передаёт акустические данные от гидролокатора, через отправку сигнала "data".
+ *
+ * \param server указатель на интерфейс \link HyScanTVGControlServer \endlink;
+ * \param source идентификатор источника данных;
+ * \param type тип данных, \link HyScanDataType \endlink;
+ * \param rate частота дискретизации данных, Гц;
+ * \param data данные от гидролокатора.
+ *
+ * \return Нет.
+ *
+ */
+HYSCAN_API
+void                           hyscan_sonar_control_server_send_acoustic_data  (HyScanSonarControlServer    *server,
+                                                                                HyScanSourceType             source,
                                                                                 HyScanDataType               type,
                                                                                 gdouble                      rate,
                                                                                 HyScanDataWriterData        *data);

@@ -11,7 +11,6 @@
 #ifndef __HYSCAN_CONTROL_COMMON_H__
 #define __HYSCAN_CONTROL_COMMON_H__
 
-#include <hyscan-control.h>
 #include <hyscan-sonar-schema.h>
 #include <hyscan-core-types.h>
 

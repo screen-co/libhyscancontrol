@@ -10,8 +10,10 @@
  *
  * Класс реализует основные команды управления гидролокатором.
  *
- * Класс HyScanSonarControl наследуется от класса \link HyScanTVGControl \endlink и используется
- * как базовый для классов управления локаторами.
+ * Класс HyScanSonarControl наследуется от класса \link HyScanTVGControl \endlink и
+ * реализует управление и приём данных гидролокаторами.
+ *
+ * Создание объекта HyScanSonarControl производится функцией #hyscan_sonar_control_new.
  *
  * Список источников гидролокационных данных можно получить с помощью функции
  * #hyscan_sonar_control_source_list.
@@ -53,7 +55,29 @@
  * - info - параметры "сырых" гидролокационных данных;
  * - data - "сырые" гидролокационные данные.
  *
+ * При получении обработанных акустических данных от гидролокатора, класс посылает сигнал
+ * "acoustic-data", в котором передаёт их пользователю. Прототип обработчика сигнала:
+ *
+ * \code
+ *
+ * void    data_cb    (HyScanSonarControl     *control,
+ *                     HyScanSourceType        source,
+ *                     HyScanAcousticDataInfo *info,
+ *                     HyScanDataWriterData   *data,
+ *                     gpointer                user_data);
+ *
+ * \endcode
+ *
+ * Где:
+ *
+ * - source - идентификатор источника данных;
+ * - info - параметры акустических данных;
+ * - data - акустические данные.
+ *
  * Класс HyScanSonarControl поддерживает работу в многопоточном режиме.
+ *
+ * Класс HyScanSonarControl реализует интерфейс \link HyScanParam \endlink для доступа к
+ * параметрам гидролокатора.
  *
  */
 
@@ -102,11 +126,26 @@ GType                  hyscan_sonar_control_get_type                   (void);
 
 /**
  *
+ * Функция создаёт новый объект \link HyScanSonarControl \endlink и возвращает
+ * указатель на него. Если тип гидролокатора не поддерживается функция возвращает NULL.
+ *
+ * \param sonar указатель на интерфейс \link HyScanParam \endlink;
+ * \param db указатель на интерфейс \link HyScanDB \endlink.
+ *
+ * \return Указатель на объект \link HyScanSonarControl \endlink или NULL.
+ *
+ */
+HYSCAN_API
+HyScanSonarControl    *hyscan_sonar_control_new                        (HyScanParam           *sonar,
+                                                                        HyScanDB              *db);
+
+/**
+ *
  * Функция возвращает список доступных источников гидролокационных данных. Список
  * возвращается в виде массива элементов типа gint. Конец списка обозначен как
- * значение #HYSCAN_SOURCE_INVALID.
+ * значение \link HYSCAN_SOURCE_INVALID \endlink.
  *
- * После использование необходимо освободить память функцией g_free.
+ * После использования, необходимо освободить память функцией g_free.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
  *
