@@ -169,13 +169,15 @@ gchar                        **hyscan_sensor_control_list_ports                (
  * Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink.
+ * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param name название  порта.
  *
  * \return Список физических устройств UART или NULL.
  *
  */
 HYSCAN_API
-HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (HyScanSensorControl       *control);
+HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (HyScanSensorControl       *control,
+                                                                                const gchar               *name);
 
 /**
  *
@@ -183,13 +185,15 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (
  * Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink.
+ * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param name название  порта.
  *
  * \return Список режимов обмена данными или NULL.
  *
  */
 HYSCAN_API
-HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (HyScanSensorControl       *control);
+HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (HyScanSensorControl       *control,
+                                                                                const gchar               *name);
 
 /**
  *
@@ -197,13 +201,15 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (
  * от датчиков. Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink.
+ * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param name название  порта.
  *
  * \return Список IP адресов или NULL.
  *
  */
 HYSCAN_API
-HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (HyScanSensorControl       *control);
+HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (HyScanSensorControl       *control,
+                                                                                const gchar               *name);
 
 /**
  *

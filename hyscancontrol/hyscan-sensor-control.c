@@ -441,50 +441,86 @@ hyscan_sensor_control_list_ports (HyScanSensorControl *control)
 
 /* Функция возвращает список физических устройств UART. */
 HyScanDataSchemaEnumValue **
-hyscan_sensor_control_list_uart_devices (HyScanSensorControl *control)
+hyscan_sensor_control_list_uart_devices (HyScanSensorControl *control,
+                                         const gchar         *name)
 {
+  HyScanDataSchemaEnumValue **param_values = NULL;
+  HyScanSensorControlPort *port;
   const gchar *values_id;
+  gchar *param_name;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), NULL);
 
   if (control->priv->sonar == NULL)
     return NULL;
 
-  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, "/sensors/uart-devices");
+  port = g_hash_table_lookup (control->priv->ports_by_name, name);
+  if ((port == NULL) || (port->type != HYSCAN_SENSOR_PORT_UART))
+    return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  param_name = g_strdup_printf ("%s/uart-device", port->path);
+  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, param_name);
+  if (values_id != NULL)
+    param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  g_free (param_name);
+
+  return param_values;
 }
 
 /* Функция возвращает список допустимых режимов обмена данными через UART устройство. */
 HyScanDataSchemaEnumValue **
-hyscan_sensor_control_list_uart_modes (HyScanSensorControl *control)
+hyscan_sensor_control_list_uart_modes (HyScanSensorControl *control,
+                                       const gchar         *name)
 {
+  HyScanDataSchemaEnumValue **param_values = NULL;
+  HyScanSensorControlPort *port;
   const gchar *values_id;
+  gchar *param_name;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), NULL);
 
   if (control->priv->sonar == NULL)
     return NULL;
 
-  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, "/sensors/uart-modes");
+  port = g_hash_table_lookup (control->priv->ports_by_name, name);
+  if ((port == NULL) || (port->type != HYSCAN_SENSOR_PORT_UART))
+    return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  param_name = g_strdup_printf ("%s/uart-mode", port->path);
+  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, param_name);
+  if (values_id != NULL)
+    param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  g_free (param_name);
+
+  return param_values;
 }
 
 /* Функция возвращает список допустимых IP адресов для портов типа IP. */
 HyScanDataSchemaEnumValue **
-hyscan_sensor_control_list_ip_addresses (HyScanSensorControl *control)
+hyscan_sensor_control_list_ip_addresses (HyScanSensorControl *control,
+                                         const gchar         *name)
 {
+  HyScanDataSchemaEnumValue **param_values = NULL;
+  HyScanSensorControlPort *port;
   const gchar *values_id;
+  gchar *param_name;
 
   g_return_val_if_fail (HYSCAN_IS_SENSOR_CONTROL (control), NULL);
 
   if (control->priv->sonar == NULL)
     return NULL;
 
-  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, "/sensors/ip-addresses");
+  port = g_hash_table_lookup (control->priv->ports_by_name, name);
+  if ((port == NULL) || (port->type != HYSCAN_SENSOR_PORT_UDP_IP))
+    return NULL;
 
-  return hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  param_name = g_strdup_printf ("%s/ip-address", port->path);
+  values_id = hyscan_data_schema_key_get_enum_id (control->priv->schema, param_name);
+  if (values_id != NULL)
+    param_values = hyscan_data_schema_key_get_enum_values (control->priv->schema, values_id);
+  g_free (param_name);
+
+  return param_values;
 }
 
 /* Функция возвращает тип порта. */

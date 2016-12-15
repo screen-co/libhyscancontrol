@@ -173,11 +173,15 @@ hyscan_sonar_proxy_object_constructed (GObject *object)
         {
           HyScanDataSchema *schema;
           HyScanSonarSchema *proxy_schema;
+          HyScanSonarSyncType sync_capabilities;
+
+          sync_capabilities = hyscan_sonar_control_get_sync_capabilities (priv->control);
+          proxy_schema = hyscan_proxy_schema_new (sync_capabilities, 10.0);
 
           schema = hyscan_param_schema (HYSCAN_PARAM (priv->control));
-          proxy_schema = hyscan_proxy_schema_new (schema, 10.0);
           hyscan_data_schema_builder_schema_join (HYSCAN_DATA_SCHEMA_BUILDER (proxy_schema), "/info",
                                                   schema, "/info");
+          g_object_unref (schema);
 
           hyscan_proxy_schema_sensor_virtual (proxy_schema);
           hyscan_proxy_schema_ssse_acoustic (proxy_schema, priv->control);
@@ -185,7 +189,6 @@ hyscan_sonar_proxy_object_constructed (GObject *object)
           schema_data = hyscan_data_schema_builder_get_data (HYSCAN_DATA_SCHEMA_BUILDER (proxy_schema));
 
           g_object_unref (proxy_schema);
-          g_object_unref (schema);
         }
 
       /* Устанавливаем схему параметров гидролокатора. */

@@ -106,42 +106,48 @@ gint                   hyscan_sonar_schema_sensor_add                  (HyScanSo
  * Функция добавляет в схему вариант значения поля устройства для порта типа UART.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param name название варианта значения.
+ * \param port_name название порта;
+ * \param device_name название варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_uart_device      (HyScanSonarSchema             *schema,
-                                                                        const gchar                   *name);
+                                                                        const gchar                   *port_name,
+                                                                        const gchar                   *device_name);
 
 /**
  *
  * Функция добавляет в схему вариант значения поля режима обмена данными с UART устройством.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param name название варианта значения.
+ * \param port_name название порта;
+ * \param mode_name название варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_uart_mode        (HyScanSonarSchema             *schema,
-                                                                        const gchar                   *name);
+                                                                        const gchar                   *port_name,
+                                                                        const gchar                   *mode_name);
 
 /**
  *
  * Функция добавляет в схему вариант значения поля IP адреса для порта типа IP.
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
- * \param name название варианта значения.
+ * \param port_name название порта;
+ * \param ip_name название варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
  */
 HYSCAN_API
 gint                   hyscan_sonar_schema_sensor_add_ip_address       (HyScanSonarSchema             *schema,
-                                                                        const gchar                   *name);
+                                                                        const gchar                   *port_name,
+                                                                        const gchar                   *ip_name);
 
 /**
  *

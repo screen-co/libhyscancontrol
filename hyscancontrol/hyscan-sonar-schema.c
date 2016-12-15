@@ -40,9 +40,12 @@ static void    hyscan_sonar_schema_object_finalize             (GObject         
 static void    hyscan_sonar_schema_enum_add_port_type          (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_port_protocol      (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_port_status        (HyScanSonarSchema             *schema);
-static void    hyscan_sonar_schema_enum_add_ip_port_addresses  (HyScanSonarSchema             *schema);
-static void    hyscan_sonar_schema_enum_add_uart_devs          (HyScanSonarSchema             *schema);
-static void    hyscan_sonar_schema_enum_add_uart_modes         (HyScanSonarSchema             *schema);
+static void    hyscan_sonar_schema_enum_add_ip_port_addresses  (HyScanSonarSchema             *schema,
+                                                                const gchar                   *port_name);
+static void    hyscan_sonar_schema_enum_add_uart_devs          (HyScanSonarSchema             *schema,
+                                                                const gchar                   *port_name);
+static void    hyscan_sonar_schema_enum_add_uart_modes         (HyScanSonarSchema             *schema,
+                                                                const gchar                   *port_name);
 
 static void    hyscan_sonar_schema_enum_add_sync_type          (HyScanSonarSchema             *schema);
 static void    hyscan_sonar_schema_enum_add_track_type         (HyScanSonarSchema             *schema);
@@ -118,9 +121,6 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_sonar_schema_enum_add_port_type (schema);
   hyscan_sonar_schema_enum_add_port_protocol (schema);
   hyscan_sonar_schema_enum_add_port_status (schema);
-  hyscan_sonar_schema_enum_add_ip_port_addresses (schema);
-  hyscan_sonar_schema_enum_add_uart_devs (schema);
-  hyscan_sonar_schema_enum_add_uart_modes (schema);
   hyscan_sonar_schema_enum_add_sync_type (schema);
   hyscan_sonar_schema_enum_add_track_type (schema);
   hyscan_sonar_schema_enum_add_signal_type (schema);
@@ -239,50 +239,44 @@ hyscan_sonar_schema_enum_add_port_status (HyScanSonarSchema *schema)
 
 /* Функция создаёт enum значение ip-address. */
 static void
-hyscan_sonar_schema_enum_add_ip_port_addresses (HyScanSonarSchema *schema)
+hyscan_sonar_schema_enum_add_ip_port_addresses (HyScanSonarSchema *schema,
+                                                const gchar       *port_name)
 {
   HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+  gchar *enum_id;
 
-  hyscan_data_schema_builder_enum_create (builder, "ip-address");
-
-  hyscan_data_schema_builder_enum_value_create (builder, "ip-address", 0, "Disabled", NULL);
-
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/ip-addresses", "ip-addresses",
-                                              NULL, "ip-address", 0);
-  hyscan_data_schema_builder_key_set_access (builder, "/sensors/ip-addresses",
-                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+  enum_id = g_strdup_printf ("%s-ip-address", port_name);
+  hyscan_data_schema_builder_enum_create (builder, enum_id);
+  hyscan_data_schema_builder_enum_value_create (builder, enum_id, 0, "Disabled", NULL);
+  g_free (enum_id);
 }
 
 /* Функция создаёт enum значение uart-dev. */
 static void
-hyscan_sonar_schema_enum_add_uart_devs (HyScanSonarSchema *schema)
+hyscan_sonar_schema_enum_add_uart_devs (HyScanSonarSchema *schema,
+                                        const gchar       *port_name)
 {
   HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+  gchar *enum_id;
 
-  hyscan_data_schema_builder_enum_create (builder, "uart-device");
-
-  hyscan_data_schema_builder_enum_value_create (builder, "uart-device", 0, "Disabled", NULL);
-
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-devices", "uart-devices",
-                                              NULL, "uart-device", 0);
-  hyscan_data_schema_builder_key_set_access (builder, "/sensors/uart-devices",
-                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+  enum_id = g_strdup_printf ("%s-uart-device", port_name);
+  hyscan_data_schema_builder_enum_create (builder, enum_id);
+  hyscan_data_schema_builder_enum_value_create (builder, enum_id, 0, "Disabled", NULL);
+  g_free (enum_id);
 }
 
 /* Функция создаёт enum значение uart-mode. */
 static void
-hyscan_sonar_schema_enum_add_uart_modes (HyScanSonarSchema *schema)
+hyscan_sonar_schema_enum_add_uart_modes (HyScanSonarSchema *schema,
+                                         const gchar       *port_name)
 {
   HyScanDataSchemaBuilder *builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
+  gchar *enum_id;
 
-  hyscan_data_schema_builder_enum_create (builder, "uart-mode");
-
-  hyscan_data_schema_builder_enum_value_create (builder, "uart-mode", 0, "Disabled", NULL);
-
-  hyscan_data_schema_builder_key_enum_create (builder, "/sensors/uart-modes", "uart-modes",
-                                              NULL, "uart-mode", 0);
-  hyscan_data_schema_builder_key_set_access (builder, "/sensors/uart-modes",
-                                             HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+  enum_id = g_strdup_printf ("%s-uart-mode", port_name);
+  hyscan_data_schema_builder_enum_create (builder, enum_id);
+  hyscan_data_schema_builder_enum_value_create (builder, enum_id, 0, "Disabled", NULL);
+  g_free (enum_id);
 }
 
 /* Функция создаёт enum значение sync-type. */
@@ -487,9 +481,16 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
   /* Дополнительные параметры UDP/IP порта. */
   if (type == HYSCAN_SENSOR_PORT_UDP_IP)
     {
+      gchar *enum_id;
+
+      /* Список IP адресов. */
+      hyscan_sonar_schema_enum_add_ip_port_addresses (schema, name);
+
       /* IP адрес. */
       key_id = g_strdup_printf ("%s/ip-address", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "ip-address", NULL, "ip-address", 0);
+      enum_id = g_strdup_printf ("%s-ip-address", name);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "ip-address", NULL, enum_id, 0);
+      g_free (enum_id);
       g_free (key_id);
 
       if (!status)
@@ -509,9 +510,17 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
   /* Дополнительные параметры UART порта. */
   if (type == HYSCAN_SENSOR_PORT_UART)
     {
+      gchar *enum_id;
+
+      /* Список UART портов и режимов работы. */
+      hyscan_sonar_schema_enum_add_uart_devs (schema, name);
+      hyscan_sonar_schema_enum_add_uart_modes (schema, name);
+
       /* Физическое устройство. */
       key_id = g_strdup_printf ("%s/uart-device", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-device", NULL, "uart-device", 0);
+      enum_id = g_strdup_printf ("%s-uart-device", name);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-device", NULL, enum_id, 0);
+      g_free (enum_id);
       g_free (key_id);
 
       if (!status)
@@ -519,7 +528,9 @@ hyscan_sonar_schema_sensor_add (HyScanSonarSchema        *schema,
 
       /* Режим работы. */
       key_id = g_strdup_printf ("%s/uart-mode", prefix);
-      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-mode", NULL, "uart-mode", 0);
+      enum_id = g_strdup_printf ("%s-uart-mode", name);
+      status = hyscan_data_schema_builder_key_enum_create (builder, key_id, "uart-mode", NULL, enum_id, 0);
+      g_free (enum_id);
       g_free (key_id);
 
       if (!status)
@@ -546,19 +557,24 @@ exit:
 /* Функция добавляет UART устройство в список допустимых для UART датчика. */
 gint
 hyscan_sonar_schema_sensor_add_uart_device (HyScanSonarSchema *schema,
-                                            const gchar       *name)
+                                            const gchar       *port_name,
+                                            const gchar       *device_name)
 {
   HyScanDataSchemaBuilder *builder;
+  gchar *enum_id;
   gint id;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), -1);
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
+  enum_id = g_strdup_printf ("%s-uart-device", port_name);
   id = schema->priv->id_counter++;
 
-  if (!hyscan_data_schema_builder_enum_value_create (builder, "uart-device", id, name, NULL))
+  if (!hyscan_data_schema_builder_enum_value_create (builder, enum_id, id, device_name, NULL))
     id = -1;
+
+  g_free (enum_id);
 
   return id;
 }
@@ -566,19 +582,24 @@ hyscan_sonar_schema_sensor_add_uart_device (HyScanSonarSchema *schema,
 /* Функция добавляет режим работы UART устройства в список допустимых для UART датчика. */
 gint
 hyscan_sonar_schema_sensor_add_uart_mode (HyScanSonarSchema *schema,
-                                            const gchar     *name)
+                                          const gchar       *port_name,
+                                          const gchar     *mode_name)
 {
   HyScanDataSchemaBuilder *builder;
+  gchar *enum_id;
   gint id;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), -1);
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
+  enum_id = g_strdup_printf ("%s-uart-mode", port_name);
   id = schema->priv->id_counter++;
 
-  if (!hyscan_data_schema_builder_enum_value_create (builder, "uart-mode", id, name, NULL))
+  if (!hyscan_data_schema_builder_enum_value_create (builder, enum_id, id, mode_name, NULL))
     id= -1;
+
+  g_free (enum_id);
 
   return id;
 }
@@ -586,19 +607,24 @@ hyscan_sonar_schema_sensor_add_uart_mode (HyScanSonarSchema *schema,
 /* Функция добавляет IP адрес в список допустимых для IP датчика. */
 gint
 hyscan_sonar_schema_sensor_add_ip_address (HyScanSonarSchema *schema,
-                                           const gchar       *name)
+                                           const gchar       *port_name,
+                                           const gchar       *ip_name)
 {
   HyScanDataSchemaBuilder *builder;
+  gchar *enum_id;
   gint id;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), -1);
 
   builder = HYSCAN_DATA_SCHEMA_BUILDER (schema);
 
+  enum_id = g_strdup_printf ("%s-ip-address", port_name);
   id = schema->priv->id_counter++;
 
-  if (!hyscan_data_schema_builder_enum_value_create (builder, "ip-address", id, name, NULL))
+  if (!hyscan_data_schema_builder_enum_value_create (builder, enum_id, id, ip_name, NULL))
     id = -1;
+
+  g_free (enum_id);
 
   return id;
 }

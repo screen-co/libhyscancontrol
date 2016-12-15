@@ -13,25 +13,10 @@
 
 /* Функция создаёт новый объект для определения схемы прокси гидролокатора. */
 HyScanSonarSchema *
-hyscan_proxy_schema_new (HyScanDataSchema *schema,
-                         gdouble           timeout)
+hyscan_proxy_schema_new (HyScanSonarSyncType sync_capabilities,
+                         gdouble             timeout)
 {
   HyScanSonarSchema *proxy_schema;
-
-  GVariant *value;
-  HyScanSonarSyncType sync_capabilities = 0;
-
-  value = hyscan_data_schema_key_get_default (schema, "/sync/capabilities");
-  if (value != NULL)
-    {
-      sync_capabilities = g_variant_get_int64 (value);
-      g_variant_unref (value);
-    }
-  else
-    {
-      g_warning ("HyScanSonarProxy: can't get sync capabilities");
-      return NULL;
-    }
 
   /* Схема прокси гидролокатора. */
   proxy_schema = hyscan_sonar_schema_new (timeout);

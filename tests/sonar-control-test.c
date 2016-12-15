@@ -44,6 +44,10 @@ typedef struct
   HyScanAntennaPosition                position;
   guint                                uart_device;
   guint                                uart_mode;
+  guint                                uart_device_ids[SENSOR_N_UART_DEVICES+1];
+  gchar                               *uart_device_names[SENSOR_N_UART_DEVICES+1];
+  guint                                uart_mode_ids[SENSOR_N_UART_MODES+1];
+  gchar                               *uart_mode_names[SENSOR_N_UART_MODES+1];
 } UARTPortInfo;
 
 typedef struct
@@ -56,6 +60,8 @@ typedef struct
   HyScanAntennaPosition                position;
   guint                                ip_address;
   guint                                udp_port;
+  guint                                ip_address_ids[SENSOR_N_IP_ADDRESSES+1];
+  gchar                               *ip_address_names[SENSOR_N_IP_ADDRESSES+1];
 } UDPIPPortInfo;
 
 typedef struct
@@ -126,13 +132,6 @@ typedef struct
 } ServerInfo;
 
 gint64                                 counter = 0;
-
-guint                                  uart_device_ids[SENSOR_N_UART_DEVICES+1];
-gchar                                 *uart_device_names[SENSOR_N_UART_DEVICES+1];
-guint                                  uart_mode_ids[SENSOR_N_UART_MODES+1];
-gchar                                 *uart_mode_names[SENSOR_N_UART_MODES+1];
-guint                                  ip_address_ids[SENSOR_N_IP_ADDRESSES+1];
-gchar                                 *ip_address_names[SENSOR_N_IP_ADDRESSES+1];
 
 GHashTable                            *ports;
 
@@ -212,14 +211,14 @@ sensor_uart_port_param_cb (ServerInfo                *server,
 
   /* Проверяем индентификатор UART устройства. */
   for (i = 0; i <= SENSOR_N_UART_DEVICES; i++)
-    if (uart_device == uart_device_ids[i])
+    if (uart_device == port->uart_device_ids[i])
       break;
   if (i > SENSOR_N_UART_DEVICES)
     return FALSE;
 
   /* Проверяем индентификатор режима работы UART устройства. */
   for (i = 0; i <= SENSOR_N_UART_MODES; i++)
-    if (uart_mode == uart_mode_ids[i])
+    if (uart_mode == port->uart_mode_ids[i])
       break;
   if (i > SENSOR_N_UART_MODES)
     return FALSE;
@@ -253,7 +252,7 @@ sensor_udp_ip_port_param_cb (ServerInfo                *server,
 
   /* Проверяем индентификатор IP адреса. */
   for (i = 0; i <= SENSOR_N_IP_ADDRESSES; i++)
-    if ((ip_address == 0) || (ip_address == ip_address_ids[i]))
+    if ((ip_address == 0) || (ip_address == port->ip_address_ids[i]))
       break;
   if (i > SENSOR_N_IP_ADDRESSES)
     return FALSE;
@@ -632,66 +631,6 @@ check_sensor_control (HyScanSensorControl      *control,
         g_error ("wrong number of sensor ports");
     }
 
-  /* Список UART устройств. */
-  uart_devices = hyscan_sensor_control_list_uart_devices (control);
-  if (uart_devices == NULL)
-    g_error ("sensor.uart-devices: can't get");
-
-  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
-    {
-      for (i = 0; i <= SENSOR_N_UART_DEVICES; i++)
-        {
-          gboolean has_uart_device = FALSE;
-
-          for (j = 0; uart_devices[j] != NULL; j++)
-            if (g_strcmp0 (uart_device_names[i], uart_devices[j]->name) == 0)
-              has_uart_device = TRUE;
-
-          if (!has_uart_device)
-            g_error ("sensor.uart-devices: can't find device %s", uart_device_names[i]);
-        }
-    }
-
-  /* Список UART режимов. */
-  uart_modes = hyscan_sensor_control_list_uart_modes (control);
-  if (uart_modes == NULL)
-    g_error ("sensor.uart-modes: can't get");
-
-  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
-    {
-      for (i = 0; i <= SENSOR_N_UART_MODES; i++)
-        {
-          gboolean has_uart_mode = FALSE;
-
-          for (j = 0; uart_modes[j] != NULL; j++)
-            if (g_strcmp0 (uart_mode_names[i], uart_modes[j]->name) == 0)
-              has_uart_mode = TRUE;
-
-          if (!has_uart_mode)
-            g_error ("sensor.uart-modes: can't find mode %s", uart_mode_names[i]);
-      }
-    }
-
-  /* Список IP адресов. */
-  ip_addresses = hyscan_sensor_control_list_ip_addresses (control);
-  if (ip_addresses == NULL)
-    g_error ("sensor.ip-addresses: can't get");
-
-  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
-    {
-      for (i = 0; i < SENSOR_N_IP_ADDRESSES; i++)
-        {
-          gboolean has_ip_address = FALSE;
-
-          for (j = 0; ip_addresses[j] != NULL; j++)
-            if (g_strcmp0 (ip_address_names[i], ip_addresses[j]->name) == 0)
-              has_ip_address = TRUE;
-
-          if (!has_ip_address)
-            g_error ("sensor.ip-addresses: can't find ip address %s", ip_address_names[i]);
-        }
-    }
-
   for (i = 0; names[i] != NULL; i++)
     {
       VirtualPortInfo *port;
@@ -755,7 +694,7 @@ check_sensor_control (HyScanSensorControl      *control,
                       (port->channel != j) ||
                       (port->time_offset != time_offset))
                     {
-                      g_error ("sensor.%s: can't set param", names[i]);
+                      g_error ("sensorv.%s: can't set param", names[i]);
                     }
                 }
               else
@@ -770,6 +709,47 @@ check_sensor_control (HyScanSensorControl      *control,
       uart_port = g_hash_table_lookup (ports, names[i]);
       if (uart_port->type == HYSCAN_SENSOR_PORT_UART)
         {
+          /* Список UART устройств. */
+          uart_devices = hyscan_sensor_control_list_uart_devices (control, names[i]);
+          if (uart_devices == NULL)
+            g_error ("sensor.uart-devices: can't get");
+
+          if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
+            {
+              for (j = 0; j <= SENSOR_N_UART_DEVICES; j++)
+                {
+                  gboolean has_uart_device = FALSE;
+
+                  for (k = 0; uart_devices[k] != NULL; k++)
+                    if (g_strcmp0 (uart_port->uart_device_names[j], uart_devices[k]->name) == 0)
+                      has_uart_device = TRUE;
+
+                  if (!has_uart_device)
+                    g_error ("sensor.uart-devices: can't find device %s", uart_port->uart_device_names[j]);
+                }
+            }
+
+          /* Список UART режимов. */
+          uart_modes = hyscan_sensor_control_list_uart_modes (control, names[i]);
+          if (uart_modes == NULL)
+            g_error ("sensor.uart-modes: can't get");
+
+          if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
+            {
+              for (j = 0; j <= SENSOR_N_UART_MODES; j++)
+                {
+                  gboolean has_uart_mode = FALSE;
+
+                  for (k = 0; uart_modes[k] != NULL; k++)
+                    if (g_strcmp0 (uart_port->uart_mode_names[j], uart_modes[k]->name) == 0)
+                      has_uart_mode = TRUE;
+
+                  if (!has_uart_mode)
+                    g_error ("sensor.uart-modes: can't find mode %s", uart_port->uart_mode_names[j]);
+              }
+            }
+
+
           for (j = 0; j <= SENSOR_N_UART_DEVICES; j++)
             for (k = 0; k <= SENSOR_N_UART_MODES; k++)
               for (n = SENSOR_N_CHANNELS; n >= 2; n--)
@@ -789,18 +769,41 @@ check_sensor_control (HyScanSensorControl      *control,
                       (uart_port->channel != n) ||
                       (uart_port->time_offset != time_offset) ||
                       (uart_port->protocol != protocol) ||
-                      (uart_port->uart_device != uart_device_ids[j]) ||
-                      (uart_port->uart_mode != uart_mode_ids[k]))
+                      (uart_port->uart_device != uart_port->uart_device_ids[j]) ||
+                      (uart_port->uart_mode != uart_port->uart_mode_ids[k]))
                     {
                       g_error ("sensor.%s: can't set param", names[i]);
                     }
                 }
+
+          hyscan_data_schema_free_enum_values (uart_devices);
+          hyscan_data_schema_free_enum_values (uart_modes);
         }
 
       /* Проверка порта типа HYSCAN_SENSOR_PORT_UDP_IP. */
       udp_port = g_hash_table_lookup (ports, names[i]);
       if (udp_port->type == HYSCAN_SENSOR_PORT_UDP_IP)
         {
+          /* Список IP адресов. */
+          ip_addresses = hyscan_sensor_control_list_ip_addresses (control, names[i]);
+          if (ip_addresses == NULL)
+            g_error ("sensor.ip-addresses: can't get");
+
+          if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
+            {
+              for (j = 0; j < SENSOR_N_IP_ADDRESSES; j++)
+                {
+                  gboolean has_ip_address = FALSE;
+
+                  for (k = 0; ip_addresses[k] != NULL; k++)
+                    if (g_strcmp0 (udp_port->ip_address_names[j], ip_addresses[k]->name) == 0)
+                      has_ip_address = TRUE;
+
+                  if (!has_ip_address)
+                    g_error ("sensor.ip-addresses: can't find ip address %s", udp_port->ip_address_names[j]);
+                }
+            }
+
           for (j = 0; j < SENSOR_N_IP_ADDRESSES; j++)
             for (k = SENSOR_N_CHANNELS; k >= 3; k--)
                 {
@@ -819,12 +822,14 @@ check_sensor_control (HyScanSensorControl      *control,
                       (udp_port->channel != k) ||
                       (udp_port->time_offset != time_offset) ||
                       (udp_port->protocol != protocol) ||
-                      (udp_port->ip_address != ip_address_ids[j]) ||
+                      (udp_port->ip_address != udp_port->ip_address_ids[j]) ||
                       (udp_port->udp_port != udp_port_n))
                     {
                       g_error ("sensor.%s: can't set param", names[i]);
                     }
                 }
+
+          hyscan_data_schema_free_enum_values (ip_addresses);
         }
 
       if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
@@ -839,10 +844,6 @@ check_sensor_control (HyScanSensorControl      *control,
             }
         }
     }
-
-  hyscan_data_schema_free_enum_values (uart_devices);
-  hyscan_data_schema_free_enum_values (uart_modes);
-  hyscan_data_schema_free_enum_values (ip_addresses);
 
   g_strfreev (names);
 }
@@ -1371,33 +1372,6 @@ main (int    argc,
   /* Схема гидролокатора. */
   schema = hyscan_sonar_schema_new (HYSCAN_SONAR_SCHEMA_DEFAULT_TIMEOUT);
 
-  /* UART устройства. */
-  uart_device_names[0] = g_strdup ("Disabled");
-  uart_device_ids[0] = 0;
-  for (i = 1; i <= SENSOR_N_UART_DEVICES; i++)
-    {
-      uart_device_names[i] = g_strdup_printf ("ttyS%d", i);
-      uart_device_ids[i] = hyscan_sonar_schema_sensor_add_uart_device (schema, uart_device_names[i]);
-    }
-
-  /* Режимы UART устройств. */
-  uart_mode_names[0] = g_strdup  ("Disabled");
-  uart_mode_ids[0] = 0;
-  for (i = 1, pow2 = 1; i <= SENSOR_N_UART_MODES; i += 1, pow2 *= 2)
-    {
-      uart_mode_names[i] = g_strdup_printf ("%d baud", 150 * pow2);
-      uart_mode_ids[i] = hyscan_sonar_schema_sensor_add_uart_mode (schema, uart_mode_names[i]);
-    }
-
-  /* IP адреса. */
-  ip_address_names[0] = g_strdup  ("Disabled");
-  ip_address_ids[0] = 0;
-  for (i = 1; i <= SENSOR_N_IP_ADDRESSES; i++)
-    {
-      ip_address_names[i] = g_strdup_printf ("10.10.10.%d", i + 1);
-      ip_address_ids[i] = hyscan_sonar_schema_sensor_add_ip_address (schema, ip_address_names[i]);
-    }
-
   /* Порты для датчиков. */
   ports = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
@@ -1411,9 +1385,7 @@ main (int    argc,
           port->type = HYSCAN_SENSOR_PORT_VIRTUAL;
           g_hash_table_insert (ports, name, port);
 
-          hyscan_sonar_schema_sensor_add (schema, name,
-                                                  HYSCAN_SENSOR_PORT_VIRTUAL,
-                                                  HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+          hyscan_sonar_schema_sensor_add (schema, name, HYSCAN_SENSOR_PORT_VIRTUAL, HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
         }
 
       for (i = 0; i < SENSOR_N_PORTS; i++)
@@ -1424,9 +1396,25 @@ main (int    argc,
           port->type = HYSCAN_SENSOR_PORT_UART;
           g_hash_table_insert (ports, name, port);
 
-          hyscan_sonar_schema_sensor_add (schema, name,
-                                                  HYSCAN_SENSOR_PORT_UART,
-                                                  HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+          hyscan_sonar_schema_sensor_add (schema, name, HYSCAN_SENSOR_PORT_UART, HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+
+          /* UART устройства. */
+          port->uart_device_names[0] = g_strdup ("Disabled");
+          port->uart_device_ids[0] = 0;
+          for (j = 1; j <= SENSOR_N_UART_DEVICES; j++)
+            {
+              port->uart_device_names[j] = g_strdup_printf ("ttyS%d", j);
+              port->uart_device_ids[j] = hyscan_sonar_schema_sensor_add_uart_device (schema, name, port->uart_device_names[j]);
+            }
+
+          /* Режимы UART устройств. */
+          port->uart_mode_names[0] = g_strdup  ("Disabled");
+          port->uart_mode_ids[0] = 0;
+          for (j = 1, pow2 = 1; j <= SENSOR_N_UART_MODES; j += 1, pow2 *= 2)
+            {
+              port->uart_mode_names[j] = g_strdup_printf ("%d baud", 150 * pow2);
+              port->uart_mode_ids[j] = hyscan_sonar_schema_sensor_add_uart_mode (schema, name, port->uart_mode_names[j]);
+            }
         }
 
       for (i = 0; i < SENSOR_N_PORTS; i++)
@@ -1437,9 +1425,16 @@ main (int    argc,
           port->type = HYSCAN_SENSOR_PORT_UDP_IP;
           g_hash_table_insert (ports, name, port);
 
-          hyscan_sonar_schema_sensor_add (schema, name,
-                                                  HYSCAN_SENSOR_PORT_UDP_IP,
-                                                  HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+          hyscan_sonar_schema_sensor_add (schema, name, HYSCAN_SENSOR_PORT_UDP_IP, HYSCAN_SENSOR_PROTOCOL_NMEA_0183);
+
+          /* IP адреса. */
+          port->ip_address_names[0] = g_strdup  ("Disabled");
+          port->ip_address_ids[0] = 0;
+          for (j = 1; j <= SENSOR_N_IP_ADDRESSES; j++)
+            {
+              port->ip_address_names[j] = g_strdup_printf ("10.10.10.%d", j + 1);
+              port->ip_address_ids[j] = hyscan_sonar_schema_sensor_add_ip_address (schema, name, port->ip_address_names[j]);
+            }
         }
     }
   else
@@ -1638,14 +1633,32 @@ main (int    argc,
   g_message ("All done");
 
 exit:
-  g_hash_table_unref (ports);
+  if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL)
+    {
+      for (i = 0; i < SENSOR_N_PORTS; i++)
+        {
+          gchar *name = g_strdup_printf ("uart.%d", i + 1);
+          UARTPortInfo *port = g_hash_table_lookup (ports, name);
 
-  for (i = 0; i <= SENSOR_N_UART_DEVICES; i++)
-    g_free (uart_device_names[i]);
-  for (i = 0; i <= SENSOR_N_UART_MODES; i++)
-    g_free (uart_mode_names[i]);
-  for (i = 0; i <= SENSOR_N_IP_ADDRESSES; i++)
-    g_free (ip_address_names[i]);
+          for (j = 0; j <= SENSOR_N_UART_DEVICES; j++)
+            g_free (port->uart_device_names[j]);
+          for (j = 0; j <= SENSOR_N_UART_MODES; j++)
+            g_free (port->uart_mode_names[j]);
+
+          g_free (name);
+        }
+
+      for (i = 0; i < SENSOR_N_PORTS; i++)
+        {
+          gchar *name = g_strdup_printf ("udp.%d", i + 1);
+          UDPIPPortInfo *port = g_hash_table_lookup (ports, name);
+
+          for (j = 0; j <= SENSOR_N_IP_ADDRESSES; j++)
+            g_free (port->ip_address_names[j]);
+
+          g_free (name);
+        }
+    }
 
   for (i = 0; i < SONAR_N_SOURCES; i++)
     {
@@ -1655,6 +1668,8 @@ exit:
       for (j = 0; j <= GENERATOR_N_PRESETS; j++)
         g_free (info->generator.preset_names[j]);
     }
+
+  g_hash_table_unref (ports);
 
   g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
