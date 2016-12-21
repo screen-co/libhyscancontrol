@@ -478,7 +478,7 @@ check_data (HyScanDB                 *db,
 
                   data_size = buffer_size;
                   if (!hyscan_db_channel_get_data (db, channel_id, i, buffer, &data_size, &time) ||
-                      (time - port->time_offset != (i + 1) * 1000) ||
+                      (time + port->time_offset != (i + 1) * 1000) ||
                       (strncmp (buffer, cur_nmea, strlen (cur_nmea)) != 0))
                     {
                       g_error ("%s.%s: can't get data or data error", track_name, channel_name);
@@ -968,7 +968,7 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), 0, 0, NULL);
       proxy = hyscan_sonar_proxy_new (control, proxy_mode, proxy_mode);
       g_object_unref (control);
 
@@ -978,12 +978,12 @@ main (int    argc,
           hyscan_sonar_proxy_set_scale (proxy, SIDE_SCALE, TRACK_SCALE);
         }
 
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), db);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), 0, 0, db);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), db);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), 0, 0, db);
     }
 
   /* Тестовый проект. */

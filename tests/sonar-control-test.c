@@ -1561,19 +1561,19 @@ main (int    argc,
   /* Управление ГБОЭ. */
   if (proxy_mode_string != NULL)
     {
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), 0, 0, NULL);
       proxy = hyscan_sonar_proxy_new (control, proxy_mode, proxy_mode);
       g_object_unref (control);
 
       if (proxy_mode == HYSCAN_SONAR_PROXY_MODE_COMPUTED)
         hyscan_sensor_proxy_set_source (HYSCAN_SENSOR_PROXY (proxy), HYSCAN_SENSOR_PROXY_VIRTUAL_PORT_NAME);
 
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (proxy), 0, 0, NULL);
     }
   else
     {
       proxy = NULL;
-      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), NULL);
+      control = hyscan_sonar_control_new (HYSCAN_PARAM (sonar), 0, 0, NULL);
     }
 
   /* Только печать схемы на экране. */

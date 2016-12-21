@@ -539,12 +539,16 @@ hyscan_sonar_control_get (HyScanParam         *sonar,
 /* Функция создаёт новый объект HyScanSonarControl. */
 HyScanSonarControl *
 hyscan_sonar_control_new (HyScanParam *sonar,
+                          guint        n_uart_ports,
+                          guint        n_udp_ports,
                           HyScanDB    *db)
 {
   HyScanSonarControl *control;
 
   control = g_object_new (HYSCAN_TYPE_SONAR_CONTROL,
                           "sonar", sonar,
+                          "n-uart-ports", n_uart_ports,
+                          "n-udp-ports", n_udp_ports,
                           "db", db,
                           NULL);
 

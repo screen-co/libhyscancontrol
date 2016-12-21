@@ -19,6 +19,8 @@ add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marsha
                     VERBATIM)
 
 add_library (hyscancontrol SHARED
+             hyscan-nmea-uart.c
+             hyscan-nmea-udp.c
              hyscan-sonar-box.c
              hyscan-sonar-schema.c
              hyscan-sensor-control.c
@@ -39,6 +41,10 @@ add_library (hyscancontrol SHARED
              hyscan-sonar-driver.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
 
-target_link_libraries (hyscancontrol ${GLIB2_LIBRARIES} ${GMODULE2_LIBRARIES} ${HYSCAN_LIBRARIES})
+target_link_libraries (hyscancontrol
+                       ${WIN32_LIBRARIES}
+                       ${GLIB2_LIBRARIES}
+                       ${GMODULE2_LIBRARIES}
+                       ${HYSCAN_LIBRARIES})
 
 set_target_properties (hyscancontrol PROPERTIES DEFINE_SYMBOL "HYSCAN_API_EXPORTS")

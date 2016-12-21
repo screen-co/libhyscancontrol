@@ -130,6 +130,8 @@ GType                  hyscan_sonar_control_get_type                   (void);
  * указатель на него. Если тип гидролокатора не поддерживается функция возвращает NULL.
  *
  * \param sonar указатель на интерфейс \link HyScanParam \endlink;
+ * \param n_uart_ports число локальных UART портов;
+ * \param n_udp_ports число локальных UDP/IP портов;
  * \param db указатель на интерфейс \link HyScanDB \endlink.
  *
  * \return Указатель на объект \link HyScanSonarControl \endlink или NULL.
@@ -137,6 +139,8 @@ GType                  hyscan_sonar_control_get_type                   (void);
  */
 HYSCAN_API
 HyScanSonarControl    *hyscan_sonar_control_new                        (HyScanParam           *sonar,
+                                                                        guint                  n_uart_ports,
+                                                                        guint                  n_udp_ports,
                                                                         HyScanDB              *db);
 
 /**

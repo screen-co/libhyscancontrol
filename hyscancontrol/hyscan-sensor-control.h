@@ -24,6 +24,9 @@
  * Для идентификации порта используется его название из этого списка. Тип порта можно узнать
  * с помощью функции #hyscan_sensor_control_get_port_type.
  *
+ * Класс имеет возможность принимать данные от датчиков, подключенных к локальному компьютеру.
+ * Является порт локальным или нет можно узнать с помощью функции #hyscan_sensor_control_is_port_local.
+ *
  * Узнать текущее состояние порта можно функцией #hyscan_sensor_control_get_port_status.
  *
  * Данные, принимаемые портом, дополнительно маркируются номером приёмного канала. Это позволяет
@@ -223,6 +226,20 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (
  */
 HYSCAN_API
 HyScanSensorPortType           hyscan_sensor_control_get_port_type             (HyScanSensorControl       *control,
+                                                                                const gchar               *name);
+
+/**
+ *
+ * Функция возвращает признак локального порта.
+ *
+ * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param name название  порта.
+ *
+ * \return TRUE - если порт локальный, иначе - FALSE.
+ *
+ */
+HYSCAN_API
+gboolean                       hyscan_sensor_control_is_port_local             (HyScanSensorControl       *control,
                                                                                 const gchar               *name);
 
 /**
