@@ -926,7 +926,8 @@ main (int    argc,
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,
                                       info->raw_info.antenna.pattern.horizontal,
-                                      0.0);
+                                      0.0,
+                                      FALSE);
 
       hyscan_sonar_schema_generator_add (schema, source,
                                          HYSCAN_GENERATOR_MODE_AUTO,

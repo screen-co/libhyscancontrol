@@ -671,13 +671,15 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
                                 HyScanSourceType   source,
                                 gdouble            antenna_vpattern,
                                 gdouble            antenna_hpattern,
-                                gdouble            max_receive_time)
+                                gdouble            max_receive_time,
+                                gboolean           auto_receive_time)
 {
   HyScanDataSchemaBuilder *builder;
   const gchar *source_name;
   gchar *prefix;
   gboolean status;
   gchar *key_id;
+  gdouble min_receive_time;
   gint32 id = -1;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_SCHEMA (schema), -1);
@@ -714,10 +716,15 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
     goto exit;
 
   /* Время приёма эхосигнала источником данных. */
+  if (auto_receive_time)
+    min_receive_time = -G_MAXDOUBLE;
+  else
+    min_receive_time = 0.0;
+
   key_id = g_strdup_printf ("%s/control/receive-time", prefix);
   status = hyscan_data_schema_builder_key_double_create (builder, key_id, "receive-time", NULL, 0.0);
   if (status)
-    status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, max_receive_time, 0.0);
+    status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_receive_time, max_receive_time, 0.0);
   g_free (key_id);
 
   if (!status)

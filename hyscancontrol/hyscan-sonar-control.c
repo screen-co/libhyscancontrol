@@ -604,6 +604,34 @@ hyscan_sonar_control_get_max_receive_time (HyScanSonarControl *control,
   return max_receive_time;
 }
 
+/* Функция возвращает возможность автоматического управления временем приёма. */
+gboolean
+hyscan_sonar_control_get_auto_receive_time (HyScanSonarControl *control,
+                                            HyScanSourceType    source)
+{
+  gchar *param_name;
+  gdouble min_receive_time;
+  GVariant *value;
+
+  g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
+
+  param_name = g_strdup_printf ("/sources/%s/control/receive-time",
+                                hyscan_control_get_source_name (source));
+  value = hyscan_data_schema_key_get_minimum (control->priv->schema, param_name);
+  g_free (param_name);
+
+  if (value == NULL)
+    return FALSE;
+
+  min_receive_time = g_variant_get_double (value);
+  g_variant_unref (value);
+
+  if (min_receive_time < -1.0)
+    return TRUE;
+
+  return FALSE;
+}
+
 /* Функция устанавливает тип синхронизации излучения. */
 gboolean
 hyscan_sonar_control_set_sync_type (HyScanSonarControl  *control,

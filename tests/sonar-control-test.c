@@ -71,6 +71,7 @@ typedef struct
 
   gdouble                              max_receive_time;
   gdouble                              cur_receive_time;
+  gboolean                             auto_receive_time;
 
   gdouble                              signal_rate;
   gdouble                              tvg_rate;
@@ -1155,9 +1156,14 @@ check_sonar_control (HyScanSonarControl       *control,
         {
           HyScanSourceType source = select_source_by_index (j);
           SourceInfo *info = source_info (source);
+          gboolean auto_receive_time;
           gdouble receive_time;
 
-          receive_time = g_random_double_range (0.001, info->max_receive_time);
+          auto_receive_time = hyscan_sonar_control_get_auto_receive_time (control, source);
+          if (info->auto_receive_time != auto_receive_time)
+            g_error ("sonar.%s.auto_receive_time: failed", hyscan_channel_get_name_by_types (source, FALSE, 1));
+
+          receive_time = g_random_double_range (auto_receive_time ? -10.0 : 0.001, info->max_receive_time);
           prev_counter = counter;
           if (!hyscan_sonar_control_set_receive_time (control, source, receive_time) ||
               (info->cur_receive_time != receive_time) ||
@@ -1317,15 +1323,7 @@ main (int    argc,
     {
       SourceInfo *info;
 
-      if (i == 0)
-        info = &starboard;
-      else if (i == 1)
-        info = &port;
-      else if (i == 2)
-        info = &echosounder;
-      else
-        break;
-
+      info = source_info (select_source_by_index (i));
       memset (info, 0, sizeof (SourceInfo));
 
       info->raw_info.antenna.pattern.vertical = g_random_double ();
@@ -1336,6 +1334,7 @@ main (int    argc,
       info->raw_info.adc.offset = 100 * g_random_double ();
 
       info->max_receive_time = g_random_double () + 0.1;
+      info->auto_receive_time = (i == 0) ? TRUE : FALSE;
 
       info->signal_rate = g_random_double ();
       info->tvg_rate = g_random_double ();
@@ -1462,7 +1461,8 @@ main (int    argc,
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,
                                       info->raw_info.antenna.pattern.horizontal,
-                                      info->max_receive_time);
+                                      info->max_receive_time,
+                                      info->auto_receive_time);
 
       hyscan_sonar_schema_generator_add (schema, source,
                                          info->generator.capabilities,

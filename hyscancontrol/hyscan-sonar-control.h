@@ -25,7 +25,8 @@
  *
  * Время приёма эхосигналов гидролокатором управляется функцией #hyscan_sonar_control_set_receive_time.
  * Максимально возможное время приёма эхосигналов можно узнать с помощью функции
- * #hyscan_sonar_control_get_max_receive_time.
+ * #hyscan_sonar_control_get_max_receive_time. Возможность автоматического управления временем
+ * приёма можно определить с помощью функции #hyscan_sonar_control_get_auto_receive_time.
  *
  * Включить гидролокатор в рабочий режим, в соответствии с установленными параметрами, можно
  * при помощи функции #hyscan_sonar_control_start, остановить #hyscan_sonar_control_stop.
@@ -187,6 +188,20 @@ gdouble                hyscan_sonar_control_get_max_receive_time       (HyScanSo
 
 /**
  *
+ * Функция возвращает возможность автоматического управления временем приёма.
+ *
+ * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param source идентификатор источника данных.
+ *
+ * \return TRUE - если имеется возможность автоматического управления, FALSE - если нет.
+ *
+ */
+HYSCAN_API
+gboolean               hyscan_sonar_control_get_auto_receive_time      (HyScanSonarControl    *control,
+                                                                        HyScanSourceType       source);
+
+/**
+ *
  * Функция устанавливает тип синхронизации излучения.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
@@ -218,7 +233,9 @@ gboolean               hyscan_sonar_control_set_position               (HyScanSo
 
 /**
  *
- * Функция задаёт время приёма эхосигнала источником данных.
+ * Функция задаёт время приёма эхосигнала источником данных. Если время
+ * установленно нулевым, приём данных этим источником отключается. Если время
+ * приёма отрицательное (<= -1.0), будет использоваться автоматическое управление.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных;

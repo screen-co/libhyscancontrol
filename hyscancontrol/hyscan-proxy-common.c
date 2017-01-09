@@ -72,6 +72,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
       gdouble antenna_vpattern;
       gdouble antenna_hpattern;
       gdouble max_receive_time;
+      gboolean auto_receive_time;
 
       HyScanGeneratorModeType generator_capabilities;
       HyScanGeneratorSignalType generator_signals;
@@ -115,9 +116,10 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
       g_variant_unref (param_values[1]);
 
       max_receive_time = hyscan_sonar_control_get_max_receive_time (HYSCAN_SONAR_CONTROL (control), sources[i]);
+      auto_receive_time = hyscan_sonar_control_get_auto_receive_time (HYSCAN_SONAR_CONTROL (control), sources[i]);
 
       /* Проброс источника акустических данных. */
-      if ((hyscan_sonar_schema_source_add (schema, sources[i], antenna_vpattern, antenna_hpattern, max_receive_time) < 0) ||
+      if ((hyscan_sonar_schema_source_add (schema, sources[i], antenna_vpattern, antenna_hpattern, max_receive_time, auto_receive_time) < 0) ||
           (hyscan_sonar_schema_source_add_acuostic (schema, sources[i]) < 0))
         {
           g_warning ("HyScanSonarProxy: can't forward '%s' source", source_name);

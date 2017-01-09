@@ -171,7 +171,8 @@ gboolean               hyscan_sonar_schema_sync_add                    (HyScanSo
  * \param source тип источника данных;
  * \param antenna_vpattern диаграмма направленности антенны в вертикальной плоскости;
  * \param antenna_hpattern диаграмма направленности антенны в горизонтальной плоскости;
- * \param max_receive_time максимальное время приёма эхосигнала источником данных, с.
+ * \param max_receive_time максимальное время приёма эхосигнала источником данных, с;
+ * \param auto_receive_time возможность автоматического управления временем приёма.
  *
  * \return Уникальный идентификатор источника данных в схеме или отрицательное число в случае ошибки.
  *
@@ -181,7 +182,8 @@ gint                   hyscan_sonar_schema_source_add                  (HyScanSo
                                                                         HyScanSourceType               source,
                                                                         gdouble                        antenna_vpattern,
                                                                         gdouble                        antenna_hpattern,
-                                                                        gdouble                        max_receive_time);
+                                                                        gdouble                        max_receive_time,
+                                                                        gboolean                       auto_receive_time);
 
 /**
  *
