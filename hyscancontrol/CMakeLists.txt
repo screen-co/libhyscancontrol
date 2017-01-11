@@ -23,6 +23,9 @@ add_library (hyscancontrol SHARED
              hyscan-nmea-udp.c
              hyscan-sonar-box.c
              hyscan-sonar-schema.c
+             hyscan-sonar-server.c
+             hyscan-sonar-client.c
+             hyscan-sonar-rpc.c
              hyscan-sensor-control.c
              hyscan-generator-control.c
              hyscan-tvg-control.c
@@ -45,6 +48,7 @@ target_link_libraries (hyscancontrol
                        ${WIN32_LIBRARIES}
                        ${GLIB2_LIBRARIES}
                        ${GMODULE2_LIBRARIES}
+                       ${ZLIB_LIBRARIES}
                        ${HYSCAN_LIBRARIES})
 
 set_target_properties (hyscancontrol PROPERTIES DEFINE_SYMBOL "HYSCAN_API_EXPORTS")

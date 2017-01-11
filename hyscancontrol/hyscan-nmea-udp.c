@@ -142,11 +142,7 @@ hyscan_nmea_udp_object_constructed (GObject *object)
 
   /* Буферы приёма данных. */
   for (i = 0; i < N_BUFFERS; i++)
-    {
-      gpointer buffer = g_malloc (sizeof (HyScanNmeaUDPMessage));
-
-      hyscan_slice_pool_push (&priv->buffers, buffer);
-    }
+    hyscan_slice_pool_push (&priv->buffers, g_new (HyScanNmeaUDPMessage, 1));
 
   priv->started = 1;
 

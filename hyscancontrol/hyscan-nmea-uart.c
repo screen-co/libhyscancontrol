@@ -161,11 +161,7 @@ hyscan_nmea_uart_object_constructed (GObject *object)
 
   /* Буферы приёма данных. */
   for (i = 0; i < N_BUFFERS; i++)
-    {
-      gpointer buffer = g_malloc (sizeof (HyScanNmeaUARTMessage));
-
-      hyscan_slice_pool_push (&priv->buffers, buffer);
-    }
+    hyscan_slice_pool_push (&priv->buffers, g_new (HyScanNmeaUARTMessage, 1));
 
   priv->started = 1;
   priv->fd = INVALID_HANDLE_VALUE;
