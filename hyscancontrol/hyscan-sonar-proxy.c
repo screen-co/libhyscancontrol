@@ -20,7 +20,7 @@ enum
 {
   PROP_O,
   PROP_CONTROL,
-  PROP_SONAR_PROXY_MODE,
+  PROP_PROXY_MODE
 };
 
 typedef struct
@@ -103,8 +103,8 @@ hyscan_sonar_proxy_class_init (HyScanSonarProxyClass *klass)
     g_param_spec_object ("control", "Control", "Sonar control", HYSCAN_TYPE_SONAR_CONTROL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
-  g_object_class_install_property (object_class, PROP_SONAR_PROXY_MODE,
-    g_param_spec_int ("sonar-proxy-mode", "SonarProxyMode", "Sonar proxy mode",
+  g_object_class_install_property (object_class, PROP_PROXY_MODE,
+    g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
                       HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
                       HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
@@ -131,7 +131,7 @@ hyscan_sonar_proxy_set_property (GObject      *object,
       priv->control = g_value_dup_object (value);
       break;
 
-    case PROP_SONAR_PROXY_MODE:
+    case PROP_PROXY_MODE:
       G_OBJECT_CLASS (hyscan_sonar_proxy_parent_class)->set_property (object, prop_id, value, pspec);
       priv->proxy_mode = g_value_get_int (value);
       break;
@@ -460,16 +460,14 @@ hyscan_sonar_proxy_acoustic_forwarder (HyScanSonarProxyPrivate *priv,
 /* Функция создаёт новый объект HyScanSonarProxy. */
 HyScanSonarProxy *
 hyscan_sonar_proxy_new (HyScanSonarControl       *control,
-                        HyScanSonarProxyModeType  sensor_proxy_mode,
-                        HyScanSonarProxyModeType  sonar_proxy_mode)
+                        HyScanSonarProxyModeType  proxy_mode)
 {
   HyScanSonarProxy *proxy = NULL;
 
   /* Прокси сервер. */
   proxy = g_object_new (HYSCAN_TYPE_SONAR_PROXY,
                         "control", control,
-                        "sensor-proxy-mode", sensor_proxy_mode,
-                        "sonar-proxy-mode", sonar_proxy_mode,
+                        "proxy-mode", proxy_mode,
                         NULL);
 
   if (proxy->priv->server == NULL)

@@ -70,16 +70,14 @@ GType                  hyscan_sonar_proxy_get_type             (void);
  * указатель на него. Если гидролокатор не поддерживается, функция возвращает NULL.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param sensor_proxy_mode режим трансляции датчиков.
- * \param sonar_proxy_mode режим трансляции гидролокационных данных и команд.
+ * \param proxy_mode режим трансляции гидролокационных данных и команд.
  *
  * \return Указатель на объект \link HyScanSonarProxy \endlink или NULL.
  *
  */
 HYSCAN_API
 HyScanSonarProxy      *hyscan_sonar_proxy_new                  (HyScanSonarControl            *control,
-                                                                HyScanSonarProxyModeType       sensor_proxy_mode,
-                                                                HyScanSonarProxyModeType       sonar_proxy_mode);
+                                                                HyScanSonarProxyModeType       proxy_mode);
 
 /**
  *

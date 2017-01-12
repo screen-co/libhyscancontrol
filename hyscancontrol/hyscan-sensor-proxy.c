@@ -18,7 +18,7 @@ enum
 {
   PROP_O,
   PROP_CONTROL,
-  PROP_SENSOR_PROXY_MODE
+  PROP_PROXY_MODE
 };
 
 struct _HyScanSensorProxyPrivate
@@ -87,8 +87,8 @@ hyscan_sensor_proxy_class_init (HyScanSensorProxyClass *klass)
     g_param_spec_object ("control", "Control", "Sensor control", HYSCAN_TYPE_SENSOR_CONTROL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
-  g_object_class_install_property (object_class, PROP_SENSOR_PROXY_MODE,
-    g_param_spec_int ("sensor-proxy-mode", "SensorProxyMode", "Sensor proxy mode",
+  g_object_class_install_property (object_class, PROP_PROXY_MODE,
+    g_param_spec_int ("proxy-mode", "ProxyMode", "Proxy mode",
                       HYSCAN_SONAR_PROXY_MODE_ALL, HYSCAN_SONAR_PROXY_MODE_COMPUTED,
                       HYSCAN_SONAR_PROXY_MODE_COMPUTED, G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
@@ -114,7 +114,7 @@ hyscan_sensor_proxy_set_property (GObject      *object,
       priv->control = g_value_dup_object (value);
       break;
 
-    case PROP_SENSOR_PROXY_MODE:
+    case PROP_PROXY_MODE:
       priv->proxy_mode = g_value_get_int (value);
       break;
 
