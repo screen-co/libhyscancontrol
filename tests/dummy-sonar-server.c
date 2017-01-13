@@ -41,8 +41,7 @@ main (int    argc,
     GOptionContext *context;
     GOptionEntry entries[] =
       {
-        { "sonar-address", 's', 0, G_OPTION_ARG_STRING, &sonar_address, "Sonar IP address", NULL },
-        { "sonar-port", 'p', 0, G_OPTION_ARG_INT, &sonar_port, "Sonar UDP port", NULL },
+        { "sonar-address", 's', 0, G_OPTION_ARG_STRING, &sonar_address, "Sonar address", NULL },
         { "target-speed", 'e', 0, G_OPTION_ARG_STRING, &target_speed, "Target speed (local, 10M, 100M, 1G, 10G)", NULL },
         { NULL } };
 
@@ -94,7 +93,7 @@ main (int    argc,
 
   dummy = hyscan_sonar_dummy_new ();
   sonar = HYSCAN_PARAM (dummy);
-  server = hyscan_sonar_server_new (sonar, sonar_address, sonar_port);
+  server = hyscan_sonar_server_new (sonar, sonar_address);
 
   if (!hyscan_sonar_server_set_target_speed (server, target_speed_id))
     g_error ("can't set target speed");

@@ -51,7 +51,6 @@ enum
 {
   PROP_O,
   PROP_HOST,
-  PROP_PORT,
   PROP_TIMEOUT,
   PROP_N_EXEC,
   PROP_MASTER,
@@ -80,7 +79,6 @@ typedef struct
 struct _HyScanSonarClientPrivate
 {
   gchar               *host;                   /* Адрес гидролокатора. */
-  guint16              port;                   /* Порт гидролокатора. */
   gdouble              timeout;                /* Таймаут RPC соединения. */
   guint                n_exec;                 /* Число попыток выполнения RPC запроса. */
   gboolean             master;                 /* Признак "главного" подключения. */
@@ -149,12 +147,8 @@ static void hyscan_sonar_client_class_init (HyScanSonarClientClass *klass)
   object_class->finalize = hyscan_sonar_client_object_finalize;
 
   g_object_class_install_property (object_class, PROP_HOST,
-    g_param_spec_string ("host", "Host", "Sonar host", NULL,
+    g_param_spec_string ("host", "Host", "HyScan sonar server host", NULL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
-
-  g_object_class_install_property (object_class, PROP_PORT,
-    g_param_spec_uint ("port", "Port", "Sonar port", 1024, 65535, 1024,
-                       G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_TIMEOUT,
     g_param_spec_double ("timeout", "Timeout", "RPC timeout",
@@ -208,10 +202,6 @@ hyscan_sonar_client_set_property (GObject      *object,
       priv->host = g_value_dup_string (value);
       break;
 
-    case PROP_PORT:
-      priv->port = g_value_get_uint (value);
-      break;
-
     case PROP_TIMEOUT:
       priv->timeout = g_value_get_double (value);
       break;
@@ -262,7 +252,7 @@ hyscan_sonar_client_object_constructed (GObject *object)
     {
       gchar *uri;
 
-      uri = g_strdup_printf ("udp://%s:%d", priv->host, priv->port);
+      uri = g_strdup_printf ("udp://%s:%d", priv->host, HYSCAN_SONAR_RPC_UDP_PORT);
       priv->rpc = urpc_client_create (uri, URPC_DEFAULT_DATA_SIZE, priv->timeout);
       g_free (uri);
 
@@ -278,7 +268,7 @@ hyscan_sonar_client_object_constructed (GObject *object)
 
   if (priv->rpc == NULL)
     {
-      g_warning ("HyScanSonarClient: can't connect to sonar '%s:%d'", priv->host, priv->port);
+      g_warning ("HyScanSonarClient: can't connect to sonar '%s'", priv->host);
       return;
     }
 
@@ -1179,11 +1169,9 @@ hyscan_sonar_client_emitter (gpointer data)
 
 /* Функция создаёт новый объект HyScanSonarClient. */
 HyScanSonarClient *
-hyscan_sonar_client_new (const gchar *host,
-                         guint16      port)
+hyscan_sonar_client_new (const gchar *host)
 {
   return hyscan_sonar_client_new_full (host,
-                                       port,
                                        HYSCAN_SONAR_CLIENT_DEFAULT_TIMEOUT,
                                        HYSCAN_SONAR_CLIENT_DEFAULT_EXEC,
                                        HYSCAN_SONAR_CLIENT_DEFAULT_N_BUFFERS);
@@ -1192,7 +1180,6 @@ hyscan_sonar_client_new (const gchar *host,
 /* Функция создаёт новый объект HyScanSonarClient. */
 HyScanSonarClient *
 hyscan_sonar_client_new_full (const gchar *host,
-                              guint16      port,
                               gdouble      timeout,
                               guint        n_exec,
                               guint        n_buffers)
@@ -1205,7 +1192,6 @@ hyscan_sonar_client_new_full (const gchar *host,
 
   return g_object_new (HYSCAN_TYPE_SONAR_CLIENT,
                        "host", host,
-                       "port", port,
                        "timeout", timeout,
                        "n-exec", n_exec,
                        "n-buffers", n_buffers,

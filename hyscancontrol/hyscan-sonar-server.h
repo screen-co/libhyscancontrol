@@ -77,16 +77,14 @@ GType hyscan_sonar_server_get_type (void);
  * Функция создаёт новый объект \link HyScanSonarServer \endlink.
  *
  * \param sonar объект в который транслируются запросы клиентов;
- * \param host IP адрес или DNS имя сервера;
- * \param port UDP порт сервера.
+ * \param host IP адрес или DNS имя сервера.
  *
  * \return Указатель на объект \link HyScanSonarServer \endlink.
  *
  */
 HYSCAN_API
 HyScanSonarServer     *hyscan_sonar_server_new                (HyScanParam                    *sonar,
-                                                               const gchar                    *host,
-                                                               guint16                         port);
+                                                               const gchar                    *host);
 
 /**
  *

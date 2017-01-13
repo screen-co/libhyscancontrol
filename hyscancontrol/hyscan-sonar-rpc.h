@@ -14,6 +14,8 @@
 #include <glib.h>
 #include <urpc-types.h>
 
+#define HYSCAN_SONAR_RPC_UDP_PORT              5000
+
 #define HYSCAN_SONAR_RPC_MAGIC                 0x4E53534B
 #define HYSCAN_SONAR_RPC_VERSION               20160100
 #define HYSCAN_SONAR_RPC_STATUS_OK             1

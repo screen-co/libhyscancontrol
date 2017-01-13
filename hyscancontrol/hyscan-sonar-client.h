@@ -96,15 +96,13 @@ GType                  hyscan_sonar_client_get_type    (void);
  * Функция создаёт новый объект \link HyScanSonarClient \endlink и производит подключение
  * к удалённому гидролокатору.
  *
- * \param host IP адрес или DNS имя гидролокатора;
- * \param port UDP порт гидролокатора.
+ * \param host IP адрес или DNS имя гидролокатора.
  *
  * \return Указатель на объект \link HyScanSonarClient \endlink.
  *
  */
 HYSCAN_API
-HyScanSonarClient     *hyscan_sonar_client_new         (const gchar           *host,
-                                                        guint16                port);
+HyScanSonarClient     *hyscan_sonar_client_new         (const gchar           *host);
 
 /**
  *
@@ -113,7 +111,6 @@ HyScanSonarClient     *hyscan_sonar_client_new         (const gchar           *h
  * определяющие характеристики подключения к гидролокатору.
  *
  * \param host IP адрес или DNS имя гидролокатора;
- * \param port UDP порт гидролокатора;
  * \param timeout таймаут ожидания выполнения RPC запроса, секунды;
  * \param n_exec число попыток выполнения RPC запроса;
  * \param n_buffers число буферов для кэширования данных.
@@ -123,7 +120,6 @@ HyScanSonarClient     *hyscan_sonar_client_new         (const gchar           *h
  */
 HYSCAN_API
 HyScanSonarClient     *hyscan_sonar_client_new_full    (const gchar           *host,
-                                                        guint16                port,
                                                         gdouble                timeout,
                                                         guint                  n_exec,
                                                         guint                  n_buffers);

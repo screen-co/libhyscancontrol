@@ -44,8 +44,7 @@ enum
 {
   PROP_O,
   PROP_SONAR,
-  PROP_HOST,
-  PROP_PORT
+  PROP_HOST
 };
 
 struct _HyScanSonarServerPrivate
@@ -53,7 +52,6 @@ struct _HyScanSonarServerPrivate
   HyScanParam         *sonar;                  /* Указатель на интерфейс управления локатором. */
   uRpcServer          *rpc;                    /* RPC сервер. */
   gchar               *host;                   /* Адрес на котором запускается сервер. */
-  guint16              port;                   /* Номер UDP порта. */
 
   gint                 sid;                    /* Идентификатор сессии клиента заблокировавшего гидролокатор. */
 
@@ -121,10 +119,6 @@ static void hyscan_sonar_server_class_init (HyScanSonarServerClass *klass)
   g_object_class_install_property (object_class, PROP_HOST,
     g_param_spec_string ("host", "Host", "HyScan sonar server host", NULL,
                          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
-
-  g_object_class_install_property (object_class, PROP_PORT,
-    g_param_spec_uint ("port", "Port", "HyScan sonar server port", 0, 65535, 0,
-                       G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -160,10 +154,6 @@ hyscan_sonar_server_set_property (GObject      *object,
 
     case PROP_HOST:
       priv->host = g_value_dup_string (value);
-      break;
-
-    case PROP_PORT:
-      priv->port = g_value_get_uint (value);
       break;
 
     default:
@@ -678,13 +668,11 @@ hyscan_sonar_server_rpc_disconnect (guint32  session,
 /* Функция создаёт новый объект HyScanSonarServer. */
 HyScanSonarServer *
 hyscan_sonar_server_new (HyScanParam *sonar,
-                         const gchar *host,
-                         guint16      port)
+                         const gchar *host)
 {
   return g_object_new (HYSCAN_TYPE_SONAR_SERVER,
                        "sonar", sonar,
                        "host", host,
-                       "port", port,
                        NULL);
 }
 
@@ -749,7 +737,7 @@ hyscan_sonar_server_start (HyScanSonarServer *server,
     timeout = HYSCAN_SONAR_SERVER_MAX_TIMEOUT;
 
   /* Сокет отправки сообщений. */
-  address = g_inet_socket_address_new_from_string (priv->host, priv->port);
+  address = g_inet_socket_address_new_from_string (priv->host, HYSCAN_SONAR_RPC_UDP_PORT);
   if (address != NULL)
     {
       socket = g_socket_new (g_socket_address_get_family (address),
@@ -763,7 +751,7 @@ hyscan_sonar_server_start (HyScanSonarServer *server,
       return FALSE;
     }
 
-  uri = g_strdup_printf ("udp://%s:%d", priv->host, priv->port);
+  uri = g_strdup_printf ("udp://%s:%d", priv->host, HYSCAN_SONAR_RPC_UDP_PORT);
   priv->rpc = urpc_server_create (uri, 1, 32, timeout,
                                   URPC_DEFAULT_DATA_SIZE,
                                   URPC_DEFAULT_DATA_TIMEOUT);

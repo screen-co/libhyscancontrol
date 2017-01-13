@@ -103,7 +103,6 @@ main (int    argc,
   HyScanParam *sonar;
 
   gchar *sonar_address = NULL;
-  gint sonar_port = 12345;
 
   GTimer *stimer;
   GTimer *dtimer;
@@ -116,8 +115,7 @@ main (int    argc,
     GOptionContext *context;
     GOptionEntry entries[] =
       {
-        { "sonar-address", 's', 0, G_OPTION_ARG_STRING, &sonar_address, "Sonar IP address", NULL },
-        { "sonar-port", 'p', 0, G_OPTION_ARG_INT, &sonar_port, "Sonar UDP port", NULL },
+        { "sonar-address", 's', 0, G_OPTION_ARG_STRING, &sonar_address, "Sonar address", NULL },
         { "duration", 't', 0, G_OPTION_ARG_DOUBLE, &duration, "Test duration, s", NULL },
         { "sources", 'n', 0, G_OPTION_ARG_INT, &sources, "Number of sources", NULL },
         { "data-rate", 'r', 0, G_OPTION_ARG_DOUBLE, &data_msg_rate, "Data message rate, msg/s (0 - 1000)", NULL },
@@ -137,12 +135,6 @@ main (int    argc,
     if (!g_option_context_parse_strv (context, &args, &error))
       {
         g_message( error->message);
-        return -1;
-      }
-
-    if (sonar_port <= 0 || sonar_port > 65535)
-      {
-        g_warning ("Sonar UDP port '%d' out of range", sonar_port);
         return -1;
       }
 
@@ -171,7 +163,7 @@ main (int    argc,
   /* Сетевой тест. */
   else
     {
-      client = hyscan_sonar_client_new (sonar_address, sonar_port);
+      client = hyscan_sonar_client_new (sonar_address);
       if (!hyscan_sonar_client_set_master (client))
         g_error ("can't setup master connection");
 
