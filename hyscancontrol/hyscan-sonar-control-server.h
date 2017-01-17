@@ -45,7 +45,6 @@
  *                                     gpointer                    user_data);
  *
  * gboolean sonar_start_cb            (HyScanSonarControlServer   *server,
- *                                     const gchar                *project_name,
  *                                     const gchar                *track_name,
  *                                     HyScanTrackType             track_type,
  *                                     gpointer                    user_data);

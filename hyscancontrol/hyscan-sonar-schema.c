@@ -146,8 +146,6 @@ hyscan_sonar_schema_object_constructed (GObject *object)
   hyscan_data_schema_builder_key_boolean_create (builder, "/control/enable", "enable",
                                                  "Enable sonar", FALSE);
 
-  hyscan_data_schema_builder_key_string_create  (builder, "/control/project-name", "project-name",
-                                                 "Project name", NULL);
   hyscan_data_schema_builder_key_string_create  (builder, "/control/track-name", "track-name",
                                                  "Track name", NULL);
   hyscan_data_schema_builder_key_enum_create    (builder, "/control/track-type", "track-type",

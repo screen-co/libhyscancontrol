@@ -254,7 +254,6 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
  * Функция переводит гидролокатор в рабочий режим и включает запись данных.
  *
  * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
- * \param project_name название проекта, в который записывать данные;
  * \param track_name название галса, в который записывать данные;
  * \param track_type тип галса.
  *
@@ -263,7 +262,6 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
  */
 HYSCAN_API
 gboolean               hyscan_sonar_control_start                      (HyScanSonarControl    *control,
-                                                                        const gchar           *project_name,
                                                                         const gchar           *track_name,
                                                                         HyScanTrackType        track_type);
 

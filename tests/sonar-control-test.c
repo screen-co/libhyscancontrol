@@ -118,7 +118,6 @@ typedef struct
   gboolean                             enable;
   gint64                               sync_capabilities;
   gint64                               sync_type;
-  gchar                               *project_name;
   gchar                               *track_name;
   HyScanTrackType                      track_type;
 } SonarInfo;
@@ -564,14 +563,11 @@ sonar_set_receive_time_cb (ServerInfo       *server,
 /* Функция включает гидролокатор в работу. */
 gboolean
 sonar_start_cb (ServerInfo      *server,
-                const gchar     *project_name,
                 const gchar     *track_name,
                 HyScanTrackType  track_type)
 {
-  g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
 
-  sonar_info.project_name = g_strdup (project_name);
   sonar_info.track_name = g_strdup (track_name);
   sonar_info.track_type = track_type;
   sonar_info.enable = TRUE;
@@ -584,7 +580,6 @@ sonar_start_cb (ServerInfo      *server,
 gboolean
 sonar_stop_cb (ServerInfo *server)
 {
-  g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
 
   sonar_info.enable = FALSE;
@@ -1213,8 +1208,7 @@ check_sonar_control (HyScanSonarControl       *control,
       HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 2);
 
       prev_counter = counter;
-      if (!hyscan_sonar_control_start (control, project_name, track_name, track_type) ||
-          (g_strcmp0 (sonar_info.project_name, project_name) != 0) ||
+      if (!hyscan_sonar_control_start (control, track_name, track_type) ||
           (g_strcmp0 (sonar_info.track_name, track_name) != 0) ||
           (sonar_info.track_type != track_type) ||
           (prev_counter + 1 != counter))
@@ -1236,7 +1230,6 @@ check_sonar_control (HyScanSonarControl       *control,
   /* Выключаем гидролокатор. */
   prev_counter = counter;
   if (!hyscan_sonar_control_stop (control) ||
-      (sonar_info.project_name != NULL) ||
       (sonar_info.track_name != NULL) ||
       (prev_counter + 1 != counter))
     {
@@ -1671,7 +1664,6 @@ exit:
 
   g_hash_table_unref (ports);
 
-  g_clear_pointer (&sonar_info.project_name, g_free);
   g_clear_pointer (&sonar_info.track_name, g_free);
 
   g_object_unref (control);

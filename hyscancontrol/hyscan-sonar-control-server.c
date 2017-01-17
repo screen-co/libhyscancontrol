@@ -151,9 +151,9 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_START] =
     g_signal_new ("sonar-start", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_STRING_INT,
+                  g_cclosure_user_marshal_BOOLEAN__STRING_INT,
                   G_TYPE_BOOLEAN,
-                  3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
+                  2, G_TYPE_STRING, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_STOP] =
     g_signal_new ("sonar-stop", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
@@ -635,7 +635,6 @@ hyscan_sonar_control_server_start_stop (HyScanSonarControlServer     *server,
   gboolean enable;
 
   gint64 value64;
-  const gchar *project_name;
   const gchar *track_name;
   HyScanTrackType track_type = 0;
 
@@ -644,7 +643,6 @@ hyscan_sonar_control_server_start_stop (HyScanSonarControlServer     *server,
 
   if (enable)
     {
-      project_name = hyscan_control_find_string_param ("/control/project-name", names, values);
       track_name = hyscan_control_find_string_param ("/control/track-name", names, values);
       if (!hyscan_control_find_integer_param ("/control/track-type", names, values, &value64))
         return FALSE;
@@ -652,7 +650,7 @@ hyscan_sonar_control_server_start_stop (HyScanSonarControlServer     *server,
       track_type = value64;
 
       g_signal_emit (server, hyscan_sonar_control_server_signals[SIGNAL_SONAR_START], 0,
-                     project_name, track_name, track_type, &cancel);
+                     track_name, track_type, &cancel);
     }
   else
     {

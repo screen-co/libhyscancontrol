@@ -246,6 +246,10 @@ generate_data (HyScanSonarControl       *control,
   guint i;
   guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? SENSOR_N_PORTS : 1;
 
+  /* Проект для записи галсов. */
+  if (!hyscan_data_writer_project_set (HYSCAN_DATA_WRITER (control), project_name))
+    g_error ("can't set working project");
+
   /* Местоположение приёмных антенн датчиков. */
   for (i = 0; i < sensor_n_ports; i++)
     {
@@ -271,7 +275,7 @@ generate_data (HyScanSonarControl       *control,
       gchar *track_name = g_strdup_printf ("test-track-%d", i);
       HyScanTrackType track_type = HYSCAN_TRACK_SURVEY + (i % 2);
 
-      hyscan_sonar_control_start (control, project_name, track_name, track_type);
+      hyscan_sonar_control_start (control, track_name, track_type);
       hyscan_sonar_control_ping (control);
 
       g_free (track_name);

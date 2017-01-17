@@ -724,31 +724,28 @@ hyscan_sonar_control_set_receive_time (HyScanSonarControl *control,
 /* Функция переводит гидролокатор в рабочий режим и включает запись данных. */
 gboolean
 hyscan_sonar_control_start (HyScanSonarControl *control,
-                            const gchar        *project_name,
                             const gchar        *track_name,
                             HyScanTrackType     track_type)
 {
-  gchar *param_names[5];
-  GVariant *param_values[5];
+  gchar *param_names[4];
+  GVariant *param_values[4];
   gboolean status = FALSE;
 
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), FALSE);
 
   g_mutex_lock (&control->priv->lock);
 
-  if (hyscan_data_writer_start (HYSCAN_DATA_WRITER (control), project_name, track_name, track_type))
+  if (hyscan_data_writer_start (HYSCAN_DATA_WRITER (control), track_name, track_type))
     {
-      param_names[0] = "/control/project-name";
-      param_names[1] = "/control/track-name";
-      param_names[2] = "/control/track-type";
-      param_names[3] = "/control/enable";
-      param_names[4] = NULL;
+      param_names[0] = "/control/track-name";
+      param_names[1] = "/control/track-type";
+      param_names[2] = "/control/enable";
+      param_names[3] = NULL;
 
-      param_values[0] = g_variant_new_string (project_name);
-      param_values[1] = g_variant_new_string (track_name);
-      param_values[2] = g_variant_new_int64 (track_type);
-      param_values[3] = g_variant_new_boolean (TRUE);
-      param_values[4] = NULL;
+      param_values[0] = g_variant_new_string (track_name);
+      param_values[1] = g_variant_new_int64 (track_type);
+      param_values[2] = g_variant_new_boolean (TRUE);
+      param_values[3] = NULL;
 
       status = hyscan_param_set (control->priv->sonar, (const gchar **)param_names, param_values);
 
@@ -757,7 +754,6 @@ hyscan_sonar_control_start (HyScanSonarControl *control,
           g_variant_unref (param_values[0]);
           g_variant_unref (param_values[1]);
           g_variant_unref (param_values[2]);
-          g_variant_unref (param_values[3]);
         }
     }
 

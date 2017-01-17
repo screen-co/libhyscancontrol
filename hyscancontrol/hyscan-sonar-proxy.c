@@ -66,7 +66,6 @@ static gboolean    hyscan_sonar_proxy_set_receive_time         (HyScanSonarProxy
                                                                 HyScanSourceType             source,
                                                                 gdouble                      receive_time);
 static gboolean    hyscan_sonar_proxy_start                    (HyScanSonarProxyPrivate     *priv,
-                                                                const gchar                 *project_name,
                                                                 const gchar                 *track_name,
                                                                 HyScanTrackType              track_type);
 static gboolean    hyscan_sonar_proxy_stop                     (HyScanSonarProxyPrivate     *priv);
@@ -299,11 +298,10 @@ hyscan_sonar_proxy_set_receive_time (HyScanSonarProxyPrivate *priv,
 /* Команда - hyscan_sonar_control_start. */
 static gboolean
 hyscan_sonar_proxy_start (HyScanSonarProxyPrivate *priv,
-                          const gchar             *project_name,
                           const gchar             *track_name,
                           HyScanTrackType          track_type)
 {
-  return hyscan_sonar_control_start (priv->control, project_name, track_name, track_type);
+  return hyscan_sonar_control_start (priv->control, track_name, track_type);
 }
 
 /* Команда - hyscan_sonar_control_stop. */
