@@ -208,6 +208,14 @@ hyscan_sonar_server_sender (HyScanSonarServerPrivate *priv,
   if (priv->address == NULL)
     goto exit;
 
+  /* Сбрасываем таймер при длительной паузе. */
+  elapsed = g_timer_elapsed (priv->timer, NULL);
+  if (elapsed > (4.0 / TIMER_GRANULARITY))
+    {
+      g_timer_start (priv->timer);
+      priv->data_chunk = 0;
+    }
+
   /* Разбиваем сообщения на пакеты. */
   offset = 0;
   left_size = message->size;
