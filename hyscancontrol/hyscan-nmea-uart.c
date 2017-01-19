@@ -775,7 +775,7 @@ hyscan_nmea_uart_list_devices (void)
             index = g_ascii_strtoll(device + 6, NULL, 10);
 
           port = g_new (HyScanNmeaUARTDevice, 1);
-          port->name = g_strdup_printf ("%s%d", serial ? "COM" : "USB COM", index + 1);
+          port->name = g_strdup_printf ("%s%d", serial ? "COM" : "USBCOM", index + 1);
           port->path = g_strdup_printf ("/dev/%s", device);
 
           g_ptr_array_add (list, port);
@@ -863,7 +863,7 @@ hyscan_nmea_uart_list_devices (void)
       port->path = g_strdup_printf ("%s:", port_path);
 
       if (is_usb)
-        port->name = g_strdup_printf("USB %s", port_path);
+        port->name = g_strdup_printf("USB%s", port_path);
       else
         port->name = g_strdup_printf("%s", port_path);
 

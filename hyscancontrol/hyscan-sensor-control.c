@@ -472,7 +472,7 @@ hyscan_sensor_control_add_uart_devices (HyScanDataSchemaBuilder *builder,
   hyscan_data_schema_builder_enum_create (builder, "uart-devices");
 
   hyscan_data_schema_builder_enum_value_create (builder, "uart-devices", 0,
-                                                         _("Disabled"), _("Disabled"));
+                                                         "Disabled", _("Disabled"));
 
   for (i = 0; (uarts != NULL) && (uarts[i] != NULL); i++)
     {
@@ -493,21 +493,21 @@ hyscan_sensor_control_add_uart_modes (HyScanDataSchemaBuilder *builder,
   hyscan_data_schema_builder_enum_create (builder, "uart-modes");
 
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_DISABLED,
-                                                         _("Disabled"), _("Disabled"));
+                                                         "Disabled", _("Disabled"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_AUTO,
-                                                         _("Auto"), _("Auto"));
+                                                         "Auto", _("Auto"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_4800_8N1,
-                                                         _("4800 8N1"), _("4800 8N1"));
+                                                         "4800-8N1", _("4800 8N1"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_9600_8N1,
-                                                         _("9600 8N1"), _("9600 8N1"));
+                                                         "9600-8N1", _("9600 8N1"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_19200_8N1,
-                                                         _("19200 8N1"), _("19200 8N1"));
+                                                         "19200-8N1", _("19200 8N1"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_38400_8N1,
-                                                         _("38400 8N1"), _("38400 8N1"));
+                                                         "38400-8N1", _("38400 8N1"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_57600_8N1,
-                                                         _("57600 8N1"), _("57600 8N1"));
+                                                         "57600-8N1", _("57600 8N1"));
   hyscan_data_schema_builder_enum_value_create (builder, "uart-modes", HYSCAN_NMEA_UART_MODE_115200_8N1,
-                                                         _("115200 8N1"), _("115200 8N1"));
+                                                         "115200-8N1", _("115200 8N1"));
 
   g_hash_table_insert (modes, GINT_TO_POINTER (HYSCAN_NMEA_UART_MODE_AUTO),
                               GINT_TO_POINTER (HYSCAN_NMEA_UART_MODE_AUTO));
@@ -538,7 +538,7 @@ hyscan_sensor_control_add_ip_addresses (HyScanDataSchemaBuilder *builder,
   hyscan_data_schema_builder_enum_create (builder, "ip-addresses");
 
   hyscan_data_schema_builder_enum_value_create (builder, "ip-addresses", 0,
-                                                         _("Disabled"), _("Disabled"));
+                                                         "Disabled", _("Disabled"));
 
   for (i = 0; (ips != NULL) && (ips[i] != NULL); i++)
     {
