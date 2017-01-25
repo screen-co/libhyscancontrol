@@ -1050,6 +1050,17 @@ check_tvg_control (HyScanTVGControl *control,
         }
     }
 
+  /* Автоматический режим, значения по умолчанию. */
+  prev_counter = counter;
+  if (!hyscan_tvg_control_set_auto (control, source, -1.0, -1.0) ||
+      (info->tvg.cur_mode != HYSCAN_TVG_MODE_AUTO) ||
+      (info->tvg.cur_level >= 0.0) ||
+      (info->tvg.cur_sensitivity >= 0.0) ||
+      (prev_counter + 1 != counter))
+    {
+      g_error ("tvg.%s.auto: can't set default mode", name);
+    }
+
   /* Постоянное усиление. */
   for (i = 0; i < N_TESTS; i++)
     {
