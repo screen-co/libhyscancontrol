@@ -1064,7 +1064,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
       key_id = g_strdup_printf ("%s/auto/level", prefix);
       status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "level", NULL, 0.9);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.1);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, -G_MAXDOUBLE, 1.0, 0.1);
       g_free (key_id);
 
       if (!status)
@@ -1073,7 +1073,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
       key_id = g_strdup_printf ("%s/auto/sensitivity", prefix);
       status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "sensitivity", NULL, 0.6);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.1);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, -G_MAXDOUBLE, 1.0, 0.1);
       g_free (key_id);
 
       if (!status)

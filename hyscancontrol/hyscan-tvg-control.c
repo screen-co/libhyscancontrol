@@ -412,8 +412,8 @@ hyscan_tvg_control_set_auto (HyScanTVGControl *control,
 
   if (!status)
     {
-      g_variant_unref (param_values[0]);
-      g_variant_unref (param_values[1]);
+      g_clear_pointer (&param_values[0], g_variant_unref);
+      g_clear_pointer (&param_values[1], g_variant_unref);
     }
 
   g_free (param_names[0]);
