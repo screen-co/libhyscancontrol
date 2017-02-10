@@ -11,6 +11,7 @@
 #include <string.h>
 #include <math.h>
 
+#define OPERATOR_NAME                  "Tester"
 #define SONAR_MODEL                    "Test"
 #define SONAR_SERIAL                   123456
 
@@ -246,8 +247,11 @@ generate_data (HyScanSonarControl       *control,
   guint i;
   guint sensor_n_ports = (proxy_mode == HYSCAN_SONAR_PROXY_MODE_ALL) ? SENSOR_N_PORTS : 1;
 
+  /* Имя оператора. */
+  hyscan_data_writer_set_operator_name (HYSCAN_DATA_WRITER (control), OPERATOR_NAME);
+
   /* Проект для записи галсов. */
-  if (!hyscan_data_writer_project_set (HYSCAN_DATA_WRITER (control), project_name))
+  if (!hyscan_data_writer_set_project (HYSCAN_DATA_WRITER (control), project_name))
     g_error ("can't set working project");
 
   /* Местоположение приёмных антенн датчиков. */
@@ -320,6 +324,7 @@ check_data (HyScanDB                 *db,
       gchar *track_name;
       gchar *track_type;
       gchar *sonar_info;
+      gchar *operator_name;
 
       HyScanDataSchema *info_schema;
       GVariant *value;
@@ -334,8 +339,14 @@ check_data (HyScanDB                 *db,
       if (param_id < 0)
         g_error ("can't open track %s parameters", track_name);
 
+      /* Проверка имени оператора. */
+      operator_name = hyscan_db_param_get_string (db, param_id, NULL, "/operator");
+      if (g_strcmp0 (operator_name, OPERATOR_NAME) != 0)
+        g_error ("%s: operator name error", track_name);
+      g_free (operator_name);
+
       /* Информация о галсе. */
-      sonar_info = hyscan_db_param_get_string (db, param_id, NULL, "/info");
+      sonar_info = hyscan_db_param_get_string (db, param_id, NULL, "/sonar");
       info_schema = hyscan_data_schema_new_from_string (sonar_info, "info");
 
       /* Модель. */
@@ -925,7 +936,7 @@ main (int    argc,
       info->acoustic_info.antenna.pattern.vertical = info->raw_info.antenna.pattern.vertical;
       info->acoustic_info.antenna.pattern.horizontal = info->raw_info.antenna.pattern.horizontal;
 
-      info->tvg_rate = g_random_double ();
+      info->tvg_rate = info->raw_info.data.rate;
 
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,

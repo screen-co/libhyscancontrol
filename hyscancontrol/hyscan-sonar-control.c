@@ -695,7 +695,7 @@ hyscan_sonar_control_set_position (HyScanSonarControl    *control,
   g_free (param_names[5]);
 
   if (status)
-    status = hyscan_data_writer_sonar_set_position (HYSCAN_DATA_WRITER (control), source, position);
+    hyscan_data_writer_sonar_set_position (HYSCAN_DATA_WRITER (control), source, position);
 
   g_mutex_unlock (&control->priv->lock);
 

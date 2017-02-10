@@ -1367,7 +1367,7 @@ hyscan_sensor_control_set_position (HyScanSensorControl   *control,
 
 exit:
   if (status)
-    status = hyscan_data_writer_sensor_set_position (HYSCAN_DATA_WRITER (control), name, position);
+    hyscan_data_writer_sensor_set_position (HYSCAN_DATA_WRITER (control), name, position);
 
   return status;
 }
