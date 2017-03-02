@@ -130,7 +130,7 @@ GType                          hyscan_generator_control_get_type           (void
  *
  * Функция возвращает флаги допустимых режимов работы генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink;
  * \param source идентификатор источника данных.
  *
  * \return Флаги допустимых режимов работы генератора.
@@ -144,7 +144,7 @@ HyScanGeneratorModeType        hyscan_generator_control_get_capabilities   (HySc
  *
  * Функция возвращает флаги допустимых сигналов генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink;
  * \param source идентификатор источника данных.
  *
  * \return Флаги допустимых сигналов генератора.
@@ -159,7 +159,7 @@ HyScanGeneratorSignalType      hyscan_generator_control_get_signals        (HySc
  * Функция возвращает максимальную длительность сигнала, которую может
  * сформировать генератор.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink;
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink;
  * \param source идентификатор источника данных;
  * \param signal тип сигнала;
  * \param min_duration минимальная длительность сигнала, с;
@@ -180,7 +180,7 @@ gboolean                       hyscan_generator_control_get_duration_range (HySc
  * Функция возвращает список преднастроек генератора. Пользователь должен освободить
  * память, занимаемую списком, функцией \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных.
  *
  * \return Список преднастроек генератора.
@@ -194,7 +194,7 @@ HyScanDataSchemaEnumValue    **hyscan_generator_control_list_presets       (HySc
  *
  * Функция включает преднастроенный режим работы генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных;
  * \param preset идентификатор преднастройки.
  *
@@ -210,7 +210,7 @@ gboolean                       hyscan_generator_control_set_preset         (HySc
  *
  * Функция включает автоматический режим работы генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных;
  * \param signal тип сигнала.
  *
@@ -226,7 +226,7 @@ gboolean                       hyscan_generator_control_set_auto           (HySc
  *
  * Функция включает упрощённый режим работы генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных;
  * \param signal тип сигнала;
  * \param power энергия сигнала, проценты.
@@ -244,7 +244,7 @@ gboolean                       hyscan_generator_control_set_simple         (HySc
  *
  * Функция включает расширенный режим работы генератора.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных;
  * \param signal тип сигнала;
  * \param duration длительность сигнала, с;
@@ -264,7 +264,7 @@ gboolean                       hyscan_generator_control_set_extended       (HySc
  *
  * Функция включает или выключает формирование сигнала генератором.
  *
- * \param control указатель на интерфейс \link HyScanGeneratorControl \endlink.
+ * \param control указатель на класс \link HyScanGeneratorControl \endlink.
  * \param source идентификатор источника данных;
  * \param enable включён или выключен.
  *

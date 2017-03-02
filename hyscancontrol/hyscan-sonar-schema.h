@@ -282,7 +282,7 @@ gint                   hyscan_sonar_schema_channel_add                 (HyScanSo
  *
  */
 HYSCAN_API
-gint                   hyscan_sonar_schema_source_add_acuostic         (HyScanSonarSchema             *schema,
+gint                   hyscan_sonar_schema_source_add_acoustic         (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source);
 
 G_END_DECLS

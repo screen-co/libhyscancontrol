@@ -120,7 +120,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
 
       /* Проброс источника акустических данных. */
       if ((hyscan_sonar_schema_source_add (schema, sources[i], antenna_vpattern, antenna_hpattern, max_receive_time, auto_receive_time) < 0) ||
-          (hyscan_sonar_schema_source_add_acuostic (schema, sources[i]) < 0))
+          (hyscan_sonar_schema_source_add_acoustic (schema, sources[i]) < 0))
         {
           g_warning ("HyScanSonarProxy: can't forward '%s' source", source_name);
           goto exit;

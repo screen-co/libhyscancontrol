@@ -132,7 +132,7 @@ GType                  hyscan_tvg_control_get_type             (void);
  *
  * Функция возвращает флаги допустимых режимов работы системы ВАРУ.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных.
  *
  * \return Флаги допустимых режимов работы системы ВАРУ.
@@ -146,7 +146,7 @@ HyScanTVGModeType      hyscan_tvg_control_get_capabilities      (HyScanTVGContro
  *
  * Функция возвращает допустимые пределы диапазона регулировки усиления ВАРУ.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
  * \param min_gain минимальный коэффициент усиления, дБ;
  * \param max_gain максимальный коэффициент усиления, дБ.
@@ -167,7 +167,7 @@ gboolean               hyscan_tvg_control_get_gain_range        (HyScanTVGContro
  * Если в качестве значений параметров уровня сигнала и (или) чувствительности
  * передать отрицательное число, будут установлены значения по умолчанию.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
  * \param level целевой уровень сигнала;
  * \param sensitivity чувствительность автомата регулировки.
@@ -188,7 +188,7 @@ gboolean               hyscan_tvg_control_set_auto              (HyScanTVGContro
  * Ууровень усиления должен находится в пределах значений, возвращаемых
  * функцией #hyscan_tvg_control_get_gain_range.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
  * \param gain коэффициент усиления, дБ;
  *
@@ -208,7 +208,7 @@ gboolean               hyscan_tvg_control_set_constant          (HyScanTVGContro
  * значения возвращаемого функцией #hyscan_tvg_control_get_gain_range. Величина изменения
  * усиления должна находится в пределах от 0 до 100 дБ.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
  * \param gain0 начальный уровень усиления, дБ;
  * \param step величина изменения усиления каждые 100 метров, дБ.
@@ -231,7 +231,7 @@ gboolean               hyscan_tvg_control_set_linear_db         (HyScanTVGContro
  * отражения цели должно находится в пределах от 0 дБ до 100 дБ. Значение коэффициента
  * затухания должно находится в пределах от 0 дБ/м до 1 дБ/м.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
  * \param gain0 начальный уровень усиления, дБ;
  * \param beta коэффициент отражения цели, дБ;
@@ -251,9 +251,9 @@ gboolean               hyscan_tvg_control_set_logarithmic       (HyScanTVGContro
  *
  * Функция включает или выключает систему ВАРУ.
  *
- * \param control указатель на интерфейс \link HyScanTVGControl \endlink;
+ * \param control указатель на класс \link HyScanTVGControl \endlink;
  * \param source идентификатор источника данных;
- * \param enable включёно или выключено.
+ * \param enable включёна или выключена.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *

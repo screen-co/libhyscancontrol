@@ -158,7 +158,7 @@ GType                          hyscan_sensor_control_get_type                  (
  * Функция возвращает список портов, к которым могут быть подключены датчики. Пользователь
  * должен освободить память, занимаемую списком, функцией g_strfreev.
  *
- * \param control указатель на объект \link HyScanSensorControl \endlink.
+ * \param control указатель на класс \link HyScanSensorControl \endlink.
  *
  * \return Список портов или NULL.
  *
@@ -172,7 +172,7 @@ gchar                        **hyscan_sensor_control_list_ports                (
  * Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return Список физических устройств UART или NULL.
@@ -188,7 +188,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_devices         (
  * Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return Список режимов обмена данными или NULL.
@@ -204,7 +204,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_uart_modes           (
  * от датчиков. Пользователь должен освободить память, занимаемую списком, функцией
  * \link hyscan_data_schema_free_enum_values \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return Список IP адресов или NULL.
@@ -218,7 +218,7 @@ HyScanDataSchemaEnumValue    **hyscan_sensor_control_list_ip_addresses         (
  *
  * Функция возвращает тип порта.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return Тип порта.
@@ -232,7 +232,7 @@ HyScanSensorPortType           hyscan_sensor_control_get_port_type             (
  *
  * Функция возвращает признак локального порта.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return TRUE - если порт локальный, иначе - FALSE.
@@ -246,7 +246,7 @@ gboolean                       hyscan_sensor_control_is_port_local             (
  *
  * Функция возвращает текущее состояние порта.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название  порта.
  *
  * \return Состояние порта.
@@ -260,7 +260,7 @@ HyScanSensorPortStatus         hyscan_sensor_control_get_port_status           (
  *
  * Функция устанавливает режим работы порта типа HYSCAN_SENSOR_CONTROL_PORT_VIRTUAL.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название порта;
  * \param channel номер канала;
  * \param time_offset коррекция времени приёма данных, мкс.
@@ -282,7 +282,7 @@ gboolean                       hyscan_sensor_control_set_virtual_port_param    (
  * из списка допустимых значений (см. #hyscan_sensor_control_list_uart_devices и
  * #hyscan_sensor_control_list_uart_modes).
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название порта;
  * \param channel номер канала;
  * \param time_offset коррекция времени приёма данных, мкс;
@@ -309,7 +309,7 @@ gboolean                       hyscan_sensor_control_set_uart_port_param       (
  * В эту функцию передаётся идентфикатор IP адреса из списка допустимых значений
  * (см. #hyscan_sensor_control_list_ip_addresses).
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название порта;
  * \param channel номер канала;
  * \param time_offset коррекция времени приёма данных, мкс;
@@ -334,7 +334,7 @@ gboolean                       hyscan_sensor_control_set_udp_ip_port_param     (
  * Функция устанавливает информацию о местоположении приёмных антенн относительно центра масс судна.
  * Подробное описание параметров приводится в \link HyScanCoreTypes \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название порта;
  * \param position параметры местоположения приёмной антенны.
  *
@@ -350,7 +350,7 @@ gboolean                       hyscan_sensor_control_set_position              (
  *
  * Функция включает или выключает приём данных на указанном порту.
  *
- * \param control указатель на интерфейс \link HyScanSensorControl \endlink;
+ * \param control указатель на класс \link HyScanSensorControl \endlink;
  * \param name название порта;
  * \param enable включён или выключен.
  *

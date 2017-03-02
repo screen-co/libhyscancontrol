@@ -1280,8 +1280,8 @@ exit:
 
 /* Функция добавляет в схему описание источника "акустических" данных. */
 gint
-hyscan_sonar_schema_source_add_acuostic (HyScanSonarSchema *schema,
-                                         HyScanSourceType   source)
+hyscan_sonar_schema_source_add_acoustic (HyScanSonarSchema *schema,
+                                         HyScanSourceType source)
 {
   HyScanDataSchemaBuilder *builder;
   const gchar *source_name;

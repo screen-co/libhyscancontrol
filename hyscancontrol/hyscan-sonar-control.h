@@ -152,7 +152,7 @@ HyScanSonarControl    *hyscan_sonar_control_new                        (HyScanPa
  *
  * После использования, необходимо освободить память функцией g_free.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
+ * \param control указатель на класс \link HyScanSonarControl \endlink.
  *
  * \return Список источников данных или NULL.
  *
@@ -164,7 +164,7 @@ gint                  *hyscan_sonar_control_source_list                (HyScanSo
  *
  * Функция возвращает маску доступных типов синхронизации излучения.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
+ * \param control указатель на класс \link HyScanSonarControl \endlink.
  *
  * \return Маска доступных типов синхронизации излучения.
  *
@@ -176,7 +176,7 @@ HyScanSonarSyncType    hyscan_sonar_control_get_sync_capabilities      (HyScanSo
  *
  * Функция возвращает максимально возможное время приёма эхосигнала.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных.
  *
  * \return Максимально возможное время приёма эхосигнала.
@@ -190,7 +190,7 @@ gdouble                hyscan_sonar_control_get_max_receive_time       (HyScanSo
  *
  * Функция возвращает возможность автоматического управления временем приёма.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных.
  *
  * \return TRUE - если имеется возможность автоматического управления, FALSE - если нет.
@@ -204,7 +204,7 @@ gboolean               hyscan_sonar_control_get_auto_receive_time      (HyScanSo
  *
  * Функция устанавливает тип синхронизации излучения.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param sync_type тип синхронизации излучения.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
@@ -219,7 +219,7 @@ gboolean               hyscan_sonar_control_set_sync_type              (HyScanSo
  * Функция устанавливает информацию о местоположении приёмных антенн относительно центра масс судна.
  * Подробное описание параметров приводится в \link HyScanCoreTypes \endlink.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных;
  * \param position параметры местоположения приёмной антенны.
  *
@@ -237,7 +237,7 @@ gboolean               hyscan_sonar_control_set_position               (HyScanSo
  * установленно нулевым, приём данных этим источником отключается. Если время
  * приёма отрицательное (<= -1.0), будет использоваться автоматическое управление.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param source идентификатор источника данных;
  * \param receive_time время приёма эхосигнала, секунды.
  *
@@ -253,7 +253,7 @@ gboolean               hyscan_sonar_control_set_receive_time           (HyScanSo
  *
  * Функция переводит гидролокатор в рабочий режим и включает запись данных.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink;
+ * \param control указатель на класс \link HyScanSonarControl \endlink;
  * \param track_name название галса, в который записывать данные;
  * \param track_type тип галса.
  *
@@ -269,7 +269,7 @@ gboolean               hyscan_sonar_control_start                      (HyScanSo
  *
  * Функция переводит гидролокатор в ждущий режим и отключает запись данных.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
+ * \param control указатель на класс \link HyScanSonarControl \endlink.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *
@@ -284,7 +284,7 @@ gboolean               hyscan_sonar_control_stop                       (HyScanSo
  * излучения (#HYSCAN_SONAR_SYNC_SOFTWARE) и этот тип синхронизации должен быть включён
  * функцией #hyscan_sonar_control_set_sync_type.
  *
- * \param control указатель на интерфейс \link HyScanSonarControl \endlink.
+ * \param control указатель на класс \link HyScanSonarControl \endlink.
  *
  * \return TRUE - если команда выполнена успешно, FALSE - в случае ошибки.
  *

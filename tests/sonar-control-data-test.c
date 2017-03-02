@@ -957,7 +957,7 @@ main (int    argc,
                                        info->raw_info.adc.offset,
                                        info->raw_info.adc.vref);
 
-      hyscan_sonar_schema_source_add_acuostic (schema, source);
+      hyscan_sonar_schema_source_add_acoustic (schema, source);
     }
 
   /* Схема гидролокатора. */
