@@ -219,6 +219,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
           gdouble antenna_vpattern;
           gdouble antenna_hpattern;
+          gdouble antenna_frequency;
+          gdouble antenna_bandwidth;
           gint64 acoustic_id;
 
           gboolean status;
@@ -233,7 +235,9 @@ hyscan_sonar_control_object_constructed (GObject *object)
 
           param_names[0] = g_strdup_printf ("%s/antenna/pattern/vertical", sources->nodes[i]->path);
           param_names[1] = g_strdup_printf ("%s/antenna/pattern/horizontal", sources->nodes[i]->path);
-          param_names[2] = NULL;
+          param_names[2] = g_strdup_printf ("%s/antenna/frequency", sources->nodes[i]->path);
+          param_names[3] = g_strdup_printf ("%s/antenna/bandwidth", sources->nodes[i]->path);
+          param_names[4] = NULL;
 
           status = hyscan_param_get (priv->sonar, (const gchar **)param_names, param_values);
 
@@ -241,13 +245,19 @@ hyscan_sonar_control_object_constructed (GObject *object)
             {
               antenna_vpattern = g_variant_get_double (param_values[0]);
               antenna_hpattern = g_variant_get_double (param_values[1]);
+              antenna_frequency = g_variant_get_double (param_values[2]);
+              antenna_bandwidth = g_variant_get_double (param_values[3]);
 
               g_variant_unref (param_values[0]);
               g_variant_unref (param_values[1]);
+              g_variant_unref (param_values[2]);
+              g_variant_unref (param_values[3]);
             }
 
           g_free (param_names[0]);
           g_free (param_names[1]);
+          g_free (param_names[2]);
+          g_free (param_names[3]);
 
           if (!status)
             continue;
@@ -326,6 +336,8 @@ hyscan_sonar_control_object_constructed (GObject *object)
               channel->info.antenna.offset.horizontal = antenna_hoffset;
               channel->info.antenna.pattern.vertical = antenna_vpattern;
               channel->info.antenna.pattern.horizontal = antenna_hpattern;
+              channel->info.antenna.frequency = antenna_frequency;
+              channel->info.antenna.bandwidth = antenna_bandwidth;
 
               g_hash_table_insert (priv->channels, GINT_TO_POINTER (data_id), channel);
               g_hash_table_insert (priv->noises, GINT_TO_POINTER (noise_id), channel);

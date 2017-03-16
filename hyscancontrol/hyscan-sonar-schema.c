@@ -669,6 +669,8 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
                                 HyScanSourceType   source,
                                 gdouble            antenna_vpattern,
                                 gdouble            antenna_hpattern,
+                                gdouble            antenna_frequency,
+                                gdouble            antenna_bandwidth,
                                 gdouble            max_receive_time,
                                 gboolean           auto_receive_time)
 {
@@ -706,6 +708,26 @@ hyscan_sonar_schema_source_add (HyScanSonarSchema *schema,
   /* Диаграмма направленности антенны в горизонтальной плоскости. */
   key_id = g_strdup_printf ("%s/antenna/pattern/horizontal", prefix);
   status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "horizontal-pattern", NULL,  antenna_hpattern);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+  g_free (key_id);
+
+  if (!status)
+    goto exit;
+
+  /* Центральная частота. */
+  key_id = g_strdup_printf ("%s/antenna/frequency", prefix);
+  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "frequency", NULL, antenna_frequency);
+  if (status)
+    status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
+  g_free (key_id);
+
+  if (!status)
+    goto exit;
+
+  /* Полоса пропускания. */
+  key_id = g_strdup_printf ("%s/antenna/bandwidth", prefix);
+  status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "bandwidth", NULL, antenna_bandwidth);
   if (status)
     status = hyscan_data_schema_builder_key_set_access (builder, key_id, HYSCAN_DATA_SCHEMA_ACCESS_READONLY);
   g_free (key_id);

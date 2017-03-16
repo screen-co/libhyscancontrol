@@ -169,8 +169,10 @@ gboolean               hyscan_sonar_schema_sync_add                    (HyScanSo
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
  * \param source тип источника данных;
- * \param antenna_vpattern диаграмма направленности антенны в вертикальной плоскости;
- * \param antenna_hpattern диаграмма направленности антенны в горизонтальной плоскости;
+ * \param antenna_vpattern диаграмма направленности антенны в вертикальной плоскости, рад;
+ * \param antenna_hpattern диаграмма направленности антенны в горизонтальной плоскости, рад;
+ * \param antenna_frequency центральная частота, Гц;
+ * \param antenna_bandwidth полоса пропускания, Гц;
  * \param max_receive_time максимальное время приёма эхосигнала источником данных, с;
  * \param auto_receive_time возможность автоматического управления временем приёма.
  *
@@ -182,6 +184,8 @@ gint                   hyscan_sonar_schema_source_add                  (HyScanSo
                                                                         HyScanSourceType               source,
                                                                         gdouble                        antenna_vpattern,
                                                                         gdouble                        antenna_hpattern,
+                                                                        gdouble                        antenna_frequency,
+                                                                        gdouble                        antenna_bandwidth,
                                                                         gdouble                        max_receive_time,
                                                                         gboolean                       auto_receive_time);
 

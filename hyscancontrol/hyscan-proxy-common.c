@@ -66,11 +66,13 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
     {
       const gchar *source_name;
 
-      gchar *param_names[3];
-      GVariant *param_values[3];
+      gchar *param_names[5];
+      GVariant *param_values[5];
 
       gdouble antenna_vpattern;
       gdouble antenna_hpattern;
+      gdouble antenna_frequency;
+      gdouble antenna_bandwidth;
       gdouble max_receive_time;
       gboolean auto_receive_time;
 
@@ -86,6 +88,7 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
       gdouble max_gain = 0.0;
 
       gboolean status;
+      gint id;
 
       /* Обрабатываем только источники акустических данных. */
       if (!hyscan_source_is_acoustic (sources[i]))
@@ -96,12 +99,16 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
       /* Параметры источника данных. */
       param_names[0] = g_strdup_printf ("/sources/%s/antenna/pattern/vertical", source_name);
       param_names[1] = g_strdup_printf ("/sources/%s/antenna/pattern/horizontal", source_name);
-      param_names[2] = NULL;
+      param_names[2] = g_strdup_printf ("/sources/%s/antenna/frequency", source_name);
+      param_names[3] = g_strdup_printf ("/sources/%s/antenna/bandwidth", source_name);
+      param_names[4] = NULL;
 
       status = hyscan_param_get (sonar, (const gchar **)param_names, param_values);
 
       g_free (param_names[0]);
       g_free (param_names[1]);
+      g_free (param_names[2]);
+      g_free (param_names[3]);
 
       if (!status)
         {
@@ -111,16 +118,30 @@ hyscan_proxy_schema_ssse_acoustic (HyScanSonarSchema  *schema,
 
       antenna_vpattern = g_variant_get_double (param_values[0]);
       antenna_hpattern = g_variant_get_double (param_values[1]);
+      antenna_frequency = g_variant_get_double (param_values[2]);
+      antenna_bandwidth = g_variant_get_double (param_values[3]);
 
       g_variant_unref (param_values[0]);
       g_variant_unref (param_values[1]);
+      g_variant_unref (param_values[2]);
+      g_variant_unref (param_values[3]);
 
       max_receive_time = hyscan_sonar_control_get_max_receive_time (HYSCAN_SONAR_CONTROL (control), sources[i]);
       auto_receive_time = hyscan_sonar_control_get_auto_receive_time (HYSCAN_SONAR_CONTROL (control), sources[i]);
 
       /* Проброс источника акустических данных. */
-      if ((hyscan_sonar_schema_source_add (schema, sources[i], antenna_vpattern, antenna_hpattern, max_receive_time, auto_receive_time) < 0) ||
-          (hyscan_sonar_schema_source_add_acoustic (schema, sources[i]) < 0))
+      id = hyscan_sonar_schema_source_add (schema, sources[i],
+                                           antenna_vpattern, antenna_hpattern,
+                                           antenna_frequency, antenna_bandwidth,
+                                           max_receive_time, auto_receive_time);
+      if (id < 0)
+        {
+          g_warning ("HyScanSonarProxy: can't forward '%s' source", source_name);
+          goto exit;
+        }
+
+      id = hyscan_sonar_schema_source_add_acoustic (schema, sources[i]);
+      if (id < 0)
         {
           g_warning ("HyScanSonarProxy: can't forward '%s' source", source_name);
           goto exit;

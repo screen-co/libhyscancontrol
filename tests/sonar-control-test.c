@@ -1334,6 +1334,8 @@ main (int    argc,
       info->raw_info.antenna.pattern.horizontal = g_random_double ();
       info->raw_info.antenna.offset.vertical = g_random_double ();
       info->raw_info.antenna.offset.horizontal = g_random_double ();
+      info->raw_info.antenna.frequency = g_random_double ();
+      info->raw_info.antenna.bandwidth = g_random_double ();
       info->raw_info.adc.vref = g_random_double ();
       info->raw_info.adc.offset = 100 * g_random_double ();
 
@@ -1465,6 +1467,8 @@ main (int    argc,
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,
                                       info->raw_info.antenna.pattern.horizontal,
+                                      info->raw_info.antenna.frequency,
+                                      info->raw_info.antenna.bandwidth,
                                       info->max_receive_time,
                                       info->auto_receive_time);
 

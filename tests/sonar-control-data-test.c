@@ -617,6 +617,18 @@ check_data (HyScanDB                 *db,
                       g_error ("%s.%s: '/antenna/offset/horizontal' error", track_name, channel_name);
                     }
 
+                  if (!hyscan_db_param_get_double (db, param_id, NULL, "/antenna/frequency", &double_value) ||
+                      fabs (double_value - info->raw_info.antenna.frequency) > FLOAT_EPSILON)
+                    {
+                      g_error ("%s.%s: '/antenna/frequency' error", track_name, channel_name);
+                    }
+
+                  if (!hyscan_db_param_get_double (db, param_id, NULL, "/antenna/bandwidth", &double_value) ||
+                      fabs (double_value - info->raw_info.antenna.bandwidth) > FLOAT_EPSILON)
+                    {
+                      g_error ("%s.%s: '/antenna/bandwidth' error", track_name, channel_name);
+                    }
+
                   if (!hyscan_db_param_get_double (db, param_id, NULL, "/adc/vref", &double_value) ||
                       fabs (double_value - info->raw_info.adc.vref) > FLOAT_EPSILON)
                     {
@@ -928,6 +940,8 @@ main (int    argc,
       info->raw_info.antenna.pattern.horizontal = g_random_double ();
       info->raw_info.antenna.offset.vertical = g_random_double ();
       info->raw_info.antenna.offset.horizontal = g_random_double ();
+      info->raw_info.antenna.frequency = g_random_double ();
+      info->raw_info.antenna.bandwidth = g_random_double ();
       info->raw_info.adc.vref = 1.0;
       info->raw_info.adc.offset = 0;
 
@@ -941,6 +955,8 @@ main (int    argc,
       hyscan_sonar_schema_source_add (schema, source,
                                       info->raw_info.antenna.pattern.vertical,
                                       info->raw_info.antenna.pattern.horizontal,
+                                      info->raw_info.antenna.frequency,
+                                      info->raw_info.antenna.bandwidth,
                                       0.0,
                                       FALSE);
 
