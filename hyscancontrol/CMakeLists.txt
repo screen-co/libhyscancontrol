@@ -34,12 +34,7 @@ add_library (hyscancontrol SHARED
              hyscan-generator-control-server.c
              hyscan-tvg-control-server.c
              hyscan-sonar-control-server.c
-             hyscan-sensor-proxy.c
-             hyscan-generator-proxy.c
-             hyscan-tvg-proxy.c
-             hyscan-sonar-proxy.c
              hyscan-control-common.c
-             hyscan-proxy-common.c
              hyscan-sonar-discover.c
              hyscan-sonar-driver.c
              ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c)
