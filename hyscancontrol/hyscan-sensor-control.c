@@ -1081,7 +1081,7 @@ hyscan_sensor_control_set_virtual_port_param (HyScanSensorControl     *control,
 
   g_mutex_unlock (&priv->lock);
 
-  return TRUE;
+  return status;
 }
 
 /* Функция устанавливает режим работы порта типа UART. */
