@@ -74,7 +74,7 @@ hyscan_generator_control_class_init (HyScanGeneratorControlClass *klass)
 
   hyscan_generator_control_signals[SIGNAL_SIGNAL_IMAGE] =
     g_signal_new ("signal-image", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_POINTER,
+                  hyscan_control_marshal_VOID__INT_POINTER,
                   G_TYPE_NONE,
                   2, G_TYPE_INT, G_TYPE_POINTER);
 }

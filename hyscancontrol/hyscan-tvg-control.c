@@ -78,7 +78,7 @@ hyscan_tvg_control_class_init (HyScanTVGControlClass *klass)
 
   hyscan_tvg_control_signals[SIGNAL_GAINS] =
     g_signal_new ("gains", HYSCAN_TYPE_GENERATOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_INT_POINTER,
+                  hyscan_control_marshal_VOID__INT_INT_POINTER,
                   G_TYPE_NONE,
                   3, G_TYPE_INT, G_TYPE_INT, G_TYPE_POINTER);
 }

@@ -117,7 +117,7 @@ hyscan_nmea_uart_class_init (HyScanNmeaUARTClass *klass)
 
   hyscan_nmea_uart_signals[SIGNAL_NMEA_DATA] =
     g_signal_new ("nmea-data", HYSCAN_TYPE_NMEA_UART, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT64_STRING_UINT_STRING,
+                  hyscan_control_marshal_VOID__INT64_STRING_UINT_STRING,
                   G_TYPE_NONE,
                   4, G_TYPE_INT64, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 }

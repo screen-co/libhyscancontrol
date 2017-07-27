@@ -123,48 +123,48 @@ hyscan_sonar_control_server_class_init (HyScanSonarControlServerClass *klass)
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_SYNC_TYPE] =
     g_signal_new ("sonar-set-sync-type", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT,
+                  hyscan_control_marshal_BOOLEAN__INT,
                   G_TYPE_BOOLEAN,
                   1, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_DATA_MODE] =
     g_signal_new ("sonar-set-data-mode", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT,
+                  hyscan_control_marshal_BOOLEAN__INT,
                   G_TYPE_BOOLEAN,
                   1, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_POSITION] =
     g_signal_new ("sonar-set-position", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_POINTER,
+                  hyscan_control_marshal_BOOLEAN__INT_POINTER,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_POINTER);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_SET_RECEIVE_TIME] =
     g_signal_new ("sonar-set-receive-time", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_DOUBLE,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_DOUBLE);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_START] =
     g_signal_new ("sonar-start", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_INT,
+                  hyscan_control_marshal_BOOLEAN__STRING_INT,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_STRING, G_TYPE_INT);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_STOP] =
     g_signal_new ("sonar-stop", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__VOID,
+                  hyscan_control_marshal_BOOLEAN__VOID,
                   G_TYPE_BOOLEAN, 0);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_PING] =
     g_signal_new ("sonar-ping", HYSCAN_TYPE_SONAR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__VOID,
+                  hyscan_control_marshal_BOOLEAN__VOID,
                   G_TYPE_BOOLEAN, 0);
 
   hyscan_sonar_control_server_signals[SIGNAL_SONAR_ALIVE_TIMEOUT] =

@@ -109,35 +109,35 @@ hyscan_sensor_control_server_class_init (HyScanSensorControlServerClass *klass)
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_VIRTUAL_PORT_PARAM] =
     g_signal_new ("sensor-virtual-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64,
+                  hyscan_control_marshal_BOOLEAN__STRING_UINT_INT64,
                   G_TYPE_BOOLEAN,
                   3, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UART_PORT_PARAM] =
     g_signal_new ("sensor-uart-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
+                  hyscan_control_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
                   G_TYPE_BOOLEAN,
                   6, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_UDP_IP_PORT_PARAM] =
     g_signal_new ("sensor-udp-ip-port-param", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
+                  hyscan_control_marshal_BOOLEAN__STRING_UINT_INT64_INT_UINT_UINT,
                   G_TYPE_BOOLEAN,
                   6, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_INT64, G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_SET_POSITION] =
     g_signal_new ("sensor-set-position", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_POINTER,
+                  hyscan_control_marshal_BOOLEAN__STRING_POINTER,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_STRING, G_TYPE_POINTER);
 
   hyscan_sensor_control_server_signals[SIGNAL_SENSOR_SET_ENABLE] =
     g_signal_new ("sensor-set-enable", HYSCAN_TYPE_SENSOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__STRING_BOOLEAN,
+                  hyscan_control_marshal_BOOLEAN__STRING_BOOLEAN,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_STRING, G_TYPE_BOOLEAN);
 }

@@ -9,9 +9,11 @@ include_directories (${CMAKE_BINARY_DIR}/marshallers)
 
 add_custom_command (OUTPUT ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
                     COMMAND ${MARSHAL_COMPILER} --header
+                            --prefix hyscan_control_marshal
                             hyscan-control-marshallers.list >
                             ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.h
                     COMMAND ${MARSHAL_COMPILER} --body
+                            --prefix hyscan_control_marshal
                             hyscan-control-marshallers.list >
                             ${CMAKE_BINARY_DIR}/marshallers/hyscan-control-marshallers.c
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

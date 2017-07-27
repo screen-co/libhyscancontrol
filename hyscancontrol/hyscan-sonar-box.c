@@ -54,7 +54,7 @@ hyscan_sonar_box_class_init (HyScanSonarBoxClass *klass)
   hyscan_sonar_box_signals[SIGNAL_SET] =
     g_signal_new ("set", HYSCAN_TYPE_SONAR_BOX, G_SIGNAL_RUN_LAST, 0,
                   hyscan_sonar_box_signal_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__POINTER_POINTER,
+                  hyscan_control_marshal_BOOLEAN__POINTER_POINTER,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_POINTER, G_TYPE_POINTER);
 

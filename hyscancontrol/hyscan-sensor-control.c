@@ -160,7 +160,7 @@ hyscan_sensor_control_class_init (HyScanSensorControlClass *klass)
 
   hyscan_sensor_control_signals[SIGNAL_SENSOR_DATA] =
     g_signal_new ("sensor-data", HYSCAN_TYPE_SENSOR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__STRING_INT_INT_POINTER,
+                  hyscan_control_marshal_VOID__STRING_INT_INT_POINTER,
                   G_TYPE_NONE,
                   4, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, G_TYPE_POINTER);
 }

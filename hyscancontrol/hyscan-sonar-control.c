@@ -96,19 +96,19 @@ hyscan_sonar_control_class_init (HyScanSonarControlClass *klass)
 
   hyscan_sonar_control_signals[SIGNAL_RAW_DATA] =
     g_signal_new ("raw-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_UINT_POINTER_POINTER,
+                  hyscan_control_marshal_VOID__INT_UINT_POINTER_POINTER,
                   G_TYPE_NONE,
                   4, G_TYPE_INT, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
 
   hyscan_sonar_control_signals[SIGNAL_NOISE_DATA] =
     g_signal_new ("noise-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_UINT_POINTER_POINTER,
+                  hyscan_control_marshal_VOID__INT_UINT_POINTER_POINTER,
                   G_TYPE_NONE,
                   4, G_TYPE_INT, G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
 
   hyscan_sonar_control_signals[SIGNAL_ACOUSTIC_DATA] =
     g_signal_new ("acoustic-data", HYSCAN_TYPE_SONAR_CONTROL, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-                  g_cclosure_user_marshal_VOID__INT_POINTER_POINTER,
+                  hyscan_control_marshal_VOID__INT_POINTER_POINTER,
                   G_TYPE_NONE,
                   3, G_TYPE_INT, G_TYPE_POINTER, G_TYPE_POINTER);
 }

@@ -112,35 +112,35 @@ hyscan_generator_control_server_class_init (HyScanGeneratorControlServerClass *k
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_PRESET] =
     g_signal_new ("generator-set-preset", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_UINT,
+                  hyscan_control_marshal_BOOLEAN__INT_UINT,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_UINT);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_AUTO] =
     g_signal_new ("generator-set-auto", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT,
+                  hyscan_control_marshal_BOOLEAN__INT_INT,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_INT);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_SIMPLE] =
     g_signal_new ("generator-set-simple", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_INT_DOUBLE,
                   G_TYPE_BOOLEAN,
                   3, G_TYPE_INT, G_TYPE_INT, G_TYPE_DOUBLE);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_EXTENDED] =
     g_signal_new ("generator-set-extended", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_INT_DOUBLE_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_INT_DOUBLE_DOUBLE,
                   G_TYPE_BOOLEAN,
                   4, G_TYPE_INT, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
   hyscan_generator_control_server_signals[SIGNAL_GENERATOR_SET_ENABLE] =
     g_signal_new ("generator-set-enable", HYSCAN_TYPE_GENERATOR_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_BOOLEAN,
+                  hyscan_control_marshal_BOOLEAN__INT_BOOLEAN,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_BOOLEAN);
 }

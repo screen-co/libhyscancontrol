@@ -111,35 +111,35 @@ hyscan_tvg_control_server_class_init (HyScanTVGControlServerClass *klass)
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_AUTO] =
     g_signal_new ("tvg-set-auto", HYSCAN_TYPE_TVG_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_DOUBLE_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_DOUBLE_DOUBLE,
                   G_TYPE_BOOLEAN,
                   3, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_CONSTANT] =
     g_signal_new ("tvg-set-constant", HYSCAN_TYPE_TVG_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_DOUBLE,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_DOUBLE);
 
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_LINEAR_DB] =
     g_signal_new ("tvg-set-linear-db", HYSCAN_TYPE_TVG_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_DOUBLE_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_DOUBLE_DOUBLE,
                   G_TYPE_BOOLEAN,
                   3, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_LOGARITHMIC] =
     g_signal_new ("tvg-set-logarithmic", HYSCAN_TYPE_TVG_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_DOUBLE_DOUBLE_DOUBLE,
+                  hyscan_control_marshal_BOOLEAN__INT_DOUBLE_DOUBLE_DOUBLE,
                   G_TYPE_BOOLEAN,
                   4, G_TYPE_INT, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 
   hyscan_tvg_control_server_signals[SIGNAL_TVG_SET_ENABLE] =
     g_signal_new ("tvg-set-enable", HYSCAN_TYPE_TVG_CONTROL_SERVER, G_SIGNAL_RUN_LAST, 0,
                   hyscan_control_boolean_accumulator, NULL,
-                  g_cclosure_user_marshal_BOOLEAN__INT_BOOLEAN,
+                  hyscan_control_marshal_BOOLEAN__INT_BOOLEAN,
                   G_TYPE_BOOLEAN,
                   2, G_TYPE_INT, G_TYPE_BOOLEAN);
 }
