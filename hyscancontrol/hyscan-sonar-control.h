@@ -158,7 +158,7 @@ HyScanSonarControl    *hyscan_sonar_control_new                        (HyScanPa
  *
  */
 HYSCAN_API
-gint                  *hyscan_sonar_control_source_list                (HyScanSonarControl    *control);
+HyScanSourceType      *hyscan_sonar_control_source_list                (HyScanSonarControl    *control);
 
 /**
  *

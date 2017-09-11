@@ -1224,7 +1224,7 @@ main (int    argc,
   HyScanSonarControl *control;
   gboolean print_schema = FALSE;
 
-  gint *sources;
+  HyScanSourceType *sources;
 
   guint pow2;
   guint i, j;

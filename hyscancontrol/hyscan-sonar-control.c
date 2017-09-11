@@ -161,7 +161,7 @@ hyscan_sonar_control_object_constructed (GObject *object)
   g_mutex_init (&priv->lock);
 
   /* Список источников данных. */
-  priv->sources = g_array_new (TRUE, TRUE, sizeof (gint));
+  priv->sources = g_array_new (TRUE, TRUE, sizeof (HyScanSourceType));
 
   /* Список приёмных каналов. */
   priv->channels = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, g_free);
@@ -571,7 +571,7 @@ hyscan_sonar_control_new (HyScanParam *sonar,
 }
 
 /* Функция возвращает список доступных источников гидролокационных данных. */
-gint *
+HyScanSourceType *
 hyscan_sonar_control_source_list (HyScanSonarControl *control)
 {
   g_return_val_if_fail (HYSCAN_IS_SONAR_CONTROL (control), NULL);
@@ -579,7 +579,7 @@ hyscan_sonar_control_source_list (HyScanSonarControl *control)
   if (control->priv->sources->len <= 1)
     return NULL;
 
-  return g_memdup (control->priv->sources->data, control->priv->sources->len * sizeof (gint));
+  return g_memdup (control->priv->sources->data, control->priv->sources->len * sizeof (HyScanSourceType));
 }
 
 /* Функция возвращает маску доступных типов синхронизации излучения. */
