@@ -1,7 +1,3 @@
-.project
-.cproject
-.settings
-.idea
 bin
 build
 doc/documentation

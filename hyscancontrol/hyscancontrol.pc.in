@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include/hyscan-@HYSCAN_MAJOR_VERSION@/hyscancontrol
+
+Name: HyScanControl
+Version: @HYSCAN_MAJOR_VERSION@.@HYSCAN_CONTROL_VERSION@
+Description: HyScan control library
+
+Requires: hyscancore-@HYSCAN_MAJOR_VERSION@
+Libs: -L${libdir} -lhyscancontrol-@HYSCAN_MAJOR_VERSION@
+Cflags: -I${includedir}

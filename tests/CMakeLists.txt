@@ -2,7 +2,7 @@
 set (TEST_LIBRARIES ${GLIB2_LIBRARIES}
                     ${LIBXML2_LIBRARIES}
                     ${HYSCAN_LIBRARIES}
-                    hyscancontrol)
+                    ${HYSCAN_CONTROL_LIBRARY})
 
 add_executable (nmea-uart-test nmea-uart-test.c)
 add_executable (nmea-udp-test nmea-udp-test.c)
@@ -19,3 +19,16 @@ target_link_libraries (dummy-sonar-server ${TEST_LIBRARIES})
 target_link_libraries (dummy-sonar-client ${TEST_LIBRARIES})
 target_link_libraries (sonar-control-test ${TEST_LIBRARIES})
 target_link_libraries (sonar-control-data-test ${TEST_LIBRARIES})
+
+install (TARGETS nmea-uart-test
+                 nmea-udp-test
+                 nmea-uart2udp
+                 dummy-sonar-server
+                 dummy-sonar-client
+                 sonar-control-test
+                 sonar-control-data-test
+         COMPONENT test
+         RUNTIME DESTINATION bin
+         LIBRARY DESTINATION lib
+         ARCHIVE DESTINATION lib
+         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
