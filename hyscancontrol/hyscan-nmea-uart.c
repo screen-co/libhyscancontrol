@@ -682,7 +682,7 @@ hyscan_nmea_uart_set_device (HyScanNmeaUART     *uart,
     priv->skip_broken = TRUE;
 
   /* Устанавливаем режим работы порта. */
-  if ((mode != HYSCAN_NMEA_UART_MODE_AUTO) && !hyscan_nmea_uart_set_mode (fd, priv->mode))
+  if ((mode != HYSCAN_NMEA_UART_MODE_AUTO) && !hyscan_nmea_uart_set_mode (fd, mode))
     {
       g_warning ("HyScanNmeaUART: %s: can't set device mode", path);
       goto exit;
