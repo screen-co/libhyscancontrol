@@ -1119,9 +1119,9 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_LINEAR_DB)
     {
       key_id = g_strdup_printf ("%s/linear-db/gain0", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, min_gain);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, 0.0);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_gain, max_gain, 1.0);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, -20.0, max_gain, 1.0);
       g_free (key_id);
 
       if (!status)
@@ -1130,7 +1130,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
       key_id = g_strdup_printf ("%s/linear-db/step", prefix);
       status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "step", NULL, 20.0);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 10.0);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 40.0, 10.0);
       g_free (key_id);
 
       if (!status)
@@ -1141,9 +1141,9 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
   if (capabilities & HYSCAN_TVG_MODE_LOGARITHMIC)
     {
       key_id = g_strdup_printf ("%s/logarithmic/alpha", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "alpha", NULL, 0.02);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "alpha", NULL, 0.0);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 1.0, 0.001);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, -1.0, 1.0, 0.001);
       g_free (key_id);
 
       if (!status)
@@ -1152,7 +1152,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
       key_id = g_strdup_printf ("%s/logarithmic/beta", prefix);
       status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "beta", NULL, 10.0);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 100.0, 10.0);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, 0.0, 40.0, 10.0);
       g_free (key_id);
 
       if (!status)
@@ -1161,7 +1161,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
       key_id = g_strdup_printf ("%s/logarithmic/gain0", prefix);
       status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, min_gain);
       if (status)
-        status = hyscan_data_schema_builder_key_double_range (builder, key_id, min_gain, max_gain, 1.0);
+        status = hyscan_data_schema_builder_key_double_range (builder, key_id, -20.0, max_gain, 1.0);
       g_free (key_id);
 
       if (!status)
