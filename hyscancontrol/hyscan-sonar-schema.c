@@ -1159,7 +1159,7 @@ hyscan_sonar_schema_tvg_add (HyScanSonarSchema *schema,
         goto exit;
 
       key_id = g_strdup_printf ("%s/logarithmic/gain0", prefix);
-      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, min_gain);
+      status =  hyscan_data_schema_builder_key_double_create (builder, key_id, "gain0", NULL, 0.0);
       if (status)
         status = hyscan_data_schema_builder_key_double_range (builder, key_id, -20.0, max_gain, 1.0);
       g_free (key_id);
