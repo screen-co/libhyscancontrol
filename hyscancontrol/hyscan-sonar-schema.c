@@ -1006,7 +1006,8 @@ exit:
 gint
 hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema *schema,
                                           HyScanSourceType   source,
-                                          const gchar       *name)
+                                          const gchar       *name,
+                                          const gchar       *description)
 {
   HyScanDataSchemaBuilder *builder;
   const gchar *source_name;
@@ -1023,7 +1024,7 @@ hyscan_sonar_schema_generator_add_preset (HyScanSonarSchema *schema,
   preset = g_strdup_printf ("%s-generator-preset", source_name);
 
   id = schema->priv->id_counter++;
-  if (!hyscan_data_schema_builder_enum_value_create (builder, preset, id, name, NULL))
+  if (!hyscan_data_schema_builder_enum_value_create (builder, preset, id, name, description))
     id = -1;
 
   g_free (preset);

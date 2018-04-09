@@ -80,6 +80,7 @@ typedef struct
     HyScanGeneratorSignalType          signals;
     gint                               preset_ids[GENERATOR_N_PRESETS+1];
     gchar                             *preset_names[GENERATOR_N_PRESETS+1];
+    gchar                             *preset_descriptions[GENERATOR_N_PRESETS+1];
     gdouble                            min_tone_duration;
     gdouble                            max_tone_duration;
     gdouble                            min_lfm_duration;
@@ -870,8 +871,13 @@ check_generator_control (HyScanGeneratorControl *control,
       gboolean has_preset = FALSE;
 
       for (j = 0; presets[j] != NULL; j++)
-        if (g_strcmp0 (presets[j]->name, info->generator.preset_names[i]) == 0)
-          has_preset = TRUE;
+        {
+          if ((g_strcmp0 (presets[j]->name, info->generator.preset_names[i]) == 0) &&
+              (g_strcmp0 (presets[j]->description, info->generator.preset_descriptions[i]) == 0))
+            {
+              has_preset = TRUE;
+            }
+        }
 
       if (!has_preset)
         g_error ("generator.%s.presets: can't find preset %s", name, info->generator.preset_names[i]);
@@ -1044,8 +1050,8 @@ check_tvg_control (HyScanTVGControl *control,
   /* Линейное усиление. */
   for (i = 0; i < N_TESTS; i++)
     {
-      gdouble gain0 = g_random_double_range (min_gain, max_gain);
-      gdouble step = g_random_double_range (0.0, 100.0);
+      gdouble gain0 = g_random_double_range (-20.0, max_gain);
+      gdouble step = g_random_double_range (0.0, 40.0);
 
       prev_counter = counter;
       if (!hyscan_tvg_control_set_linear_db (control, source, gain0, step) ||
@@ -1061,8 +1067,8 @@ check_tvg_control (HyScanTVGControl *control,
   /* Логарифимическое усиление. */
   for (i = 0; i < N_TESTS; i++)
     {
-      gdouble gain0 = g_random_double_range (min_gain, max_gain);
-      gdouble beta = g_random_double_range (0.0, 100.0);
+      gdouble gain0 = g_random_double_range (-20.0, max_gain);
+      gdouble beta = g_random_double_range (0.0, 40.0);
       gdouble alpha = g_random_double_range (0.0, 1.0);
 
       prev_counter = counter;
@@ -1408,9 +1414,11 @@ main (int    argc,
       for (j = 1; j <= GENERATOR_N_PRESETS; j++)
         {
           gchar *preset_name = g_strdup_printf ("%s.preset.%d", hyscan_channel_get_name_by_types (source, FALSE, 1), j + 1);
+          gchar *preset_description = g_strdup_printf ("%s.preset.%d.description", hyscan_channel_get_name_by_types (source, FALSE, 1), j + 1);
 
-          info->generator.preset_ids[j] = hyscan_sonar_schema_generator_add_preset (schema, source, preset_name);
+          info->generator.preset_ids[j] = hyscan_sonar_schema_generator_add_preset (schema, source, preset_name, preset_description);
           info->generator.preset_names[j] = preset_name;
+          info->generator.preset_descriptions[j] = preset_description;
         }
 
       hyscan_sonar_schema_tvg_add (schema, source,
@@ -1579,7 +1587,10 @@ exit:
       SourceInfo *info = source_info (source);
 
       for (j = 0; j <= GENERATOR_N_PRESETS; j++)
-        g_free (info->generator.preset_names[j]);
+        {
+          g_free (info->generator.preset_names[j]);
+          g_free (info->generator.preset_descriptions[j]);
+        }
     }
 
   g_hash_table_unref (ports);

@@ -221,7 +221,8 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
  *
  * \param schema указатель на объект \link HyScanSonarSchema \endlink;
  * \param source тип источника данных;
- * \param name название варианта значения.
+ * \param name название варианта значения;
+ * \param description описание варианта значения.
  *
  * \return Уникальный идентификатор варианта значения в схеме или отрицательное число в случае ошибки.
  *
@@ -229,7 +230,8 @@ gint                   hyscan_sonar_schema_generator_add               (HyScanSo
 HYSCAN_API
 gint                   hyscan_sonar_schema_generator_add_preset        (HyScanSonarSchema             *schema,
                                                                         HyScanSourceType               source,
-                                                                        const gchar                   *name);
+                                                                        const gchar                   *name,
+                                                                        const gchar                   *description);
 
 /**
  *
