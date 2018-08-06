@@ -1057,10 +1057,7 @@ hyscan_sonar_client_emitter (gpointer data)
           crc2 = crc32 (0L, Z_NULL, 0);
           crc2 = crc32 (crc2, (gpointer)packet, part_size + offsetof (HyScanSonarRpcPacket, data));
           if (crc1 != crc2)
-            {
-              g_warning ("HyScanSonarClient: packet %d crc mismatch", packet->index);
-              continue;
-            }
+            g_warning ("HyScanSonarClient: packet %d crc mismatch", packet->index);
 
           /* Буфер для данных. */
           buffer = g_hash_table_lookup (buffers, GINT_TO_POINTER (id));
@@ -1089,7 +1086,7 @@ hyscan_sonar_client_emitter (gpointer data)
               (buffer->size == 0 || buffer->size == size) &&
               (buffer->type == 0 || buffer->type == type) &&
               (buffer->rate == 0.0 || buffer->rate == rate) &&
-              (time >= buffer->time))
+              (time >= buffer->time) && (crc1 == crc2))
             {
               /* Изменилось время, отправляем неполный пакет. */
               if ((buffer->cur_size > 0) && (buffer->time != time))
